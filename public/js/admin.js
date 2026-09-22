@@ -39,38 +39,66 @@
     });
   }
 
-  function uploadUrl(v){ return /^data:/.test(v) ? v : "/uploads/" + encodeURIComponent(v); }
+  function uploadUrl(v){ return /^(data|blob):/.test(v) ? v : "/uploads/" + encodeURIComponent(v); }
   function today(){
     var d = new Date();
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
 
-  /* وێنە پێش ناردن بچووک دەکرێتەوە — وێنەی مۆبایل زۆر گەورەن */
-  function prepareImage(file, maxSide, type){
+  /* وێنە پێش ناردن بچووک دەکرێتەوە — وێنەی مۆبایل زۆر گەورەن.
+     ئەنجام: Blob ـێک کە لە ١.٨ مێگابایت بچووکترە */
+  var MAX_BYTES = 1800000;
+  function loadImage(file){
     return new Promise(function(resolve, reject){
-      if(!/^image\//.test(file.type)) return reject(new Error("ئەم فایلە وێنە نییە: " + file.name));
-      if(file.type === "image/gif"){
-        if(file.size > 8 * 1024 * 1024) return reject(new Error("GIF ـەکە زۆر گەورەیە"));
-        var fr = new FileReader();
-        fr.onload = function(){ resolve(fr.result); };
-        fr.onerror = function(){ reject(new Error("خوێندنەوەی فایل سەرکەوتوو نەبوو")); };
-        return fr.readAsDataURL(file);
-      }
       var url = URL.createObjectURL(file);
       var img = new Image();
-      img.onload = function(){
-        var scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
-        var w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
-        var c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        var ctx = c.getContext("2d");
-        if(type === "image/jpeg"){ ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h); }
-        ctx.drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        resolve(c.toDataURL(type, 0.86));
-      };
+      img.onload = function(){ URL.revokeObjectURL(url); resolve(img); };
       img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error("وێنەکە ناخوێندرێتەوە: " + file.name)); };
       img.src = url;
+    });
+  }
+  function encode(img, maxSide, type, quality){
+    return new Promise(function(resolve){
+      var scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+      var c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      var ctx = c.getContext("2d");
+      if(type === "image/jpeg"){ ctx.fillStyle = "#000"; ctx.fillRect(0, 0, c.width, c.height); }
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(resolve, type, quality);
+    });
+  }
+  function prepareImage(file, maxSide, type){
+    if(!/^image\//.test(file.type)) return Promise.reject(new Error("ئەم فایلە وێنە نییە: " + file.name));
+    if(file.type === "image/gif"){
+      return file.size > MAX_BYTES ? Promise.reject(new Error("GIF ـەکە زۆر گەورەیە (زیاتر لە ١.٨ مێگابایت)"))
+                                   : Promise.resolve(file);
+    }
+    return loadImage(file).then(function(img){
+      var tries = [[maxSide, 0.86], [maxSide, 0.74], [Math.round(maxSide * 0.75), 0.72], [Math.round(maxSide * 0.55), 0.7]];
+      function attempt(i){
+        return encode(img, tries[i][0], type, tries[i][1]).then(function(blob){
+          if(blob && blob.size <= MAX_BYTES) return blob;
+          if(i + 1 < tries.length) return attempt(i + 1);
+          if(type !== "image/jpeg") return encode(img, maxSide, "image/jpeg", 0.8);
+          throw new Error("وێنەکە زۆر گەورەیە: " + file.name);
+        });
+      }
+      return attempt(0);
+    });
+  }
+  function uploadBlob(blob){
+    return fetch("/api/admin/images", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": blob.type || "application/octet-stream" },
+      body: blob
+    }).then(function(res){
+      return res.json().catch(function(){ return {}; }).then(function(body){
+        if(res.status === 401) showLogin();
+        if(!res.ok) throw new Error(body.error || ("هەڵە لە ناردنی وێنە: " + res.status));
+        return body.name;
+      });
     });
   }
 
@@ -168,8 +196,12 @@
       var slot = { loading: true, src: "", value: "" };
       images.push(slot);
       renderThumbs();
-      prepareImage(file, 1920, "image/jpeg").then(function(data){
-        slot.value = data; slot.src = data; slot.loading = false;
+      prepareImage(file, 1920, "image/jpeg").then(function(blob){
+        slot.src = URL.createObjectURL(blob);
+        renderThumbs();
+        return uploadBlob(blob);
+      }).then(function(name){
+        slot.value = name; slot.loading = false;
       }).catch(function(err){
         images.splice(images.indexOf(slot), 1);
         toast(err.message);
@@ -204,8 +236,12 @@
   }
 
   function editPost(id){
-    var p = posts.find(function(x){ return x.id === id; });
-    if(!p) return;
+    api("GET", "/api/admin/posts/" + id).then(function(r){ fillEditor(r.post); })
+      .catch(function(err){ toast(err.message); });
+  }
+
+  function fillEditor(p){
+    var id = p.id;
     editingId = id;
     $("pTitle").value = p.title;
     fillCategories(p.category || "");
@@ -233,7 +269,7 @@
     e.preventDefault();
     $("postError").textContent = "";
     if(images.some(function(i){ return i.loading; })){
-      $("postError").textContent = "چاوەڕێ بکە تا وێنەکان ئامادە دەبن...";
+      $("postError").textContent = "چاوەڕێ بکە تا وێنەکان بار دەبن...";
       return;
     }
     var data = {
@@ -272,7 +308,7 @@
     $("postList").innerHTML = list.length ? list.map(function(p){
       var cover = p.images && p.images[0];
       return '<div class="post-row">' +
-        '<img src="' + (cover ? uploadUrl(cover) : "/img/logo.svg") + '" alt="" loading="lazy">' +
+        '<img src="' + (cover ? uploadUrl(cover) : "/img/logo.png") + '" alt="" loading="lazy">' +
         '<div><h3>' + esc(p.title) + '</h3><div class="meta">' +
           '<span>' + esc(p.date) + '</span>' +
           (p.category ? '<span class="tag">' + esc(p.category) + '</span>' : "") +
@@ -306,11 +342,12 @@
 
   /* ---------- ڕێکخستنەکان ---------- */
   var FIELDS = ["siteTitle", "shortTitle", "orgLatin", "tagline", "about", "phone", "email", "address",
-                "facebook", "instagram", "youtube", "tiktok", "devName", "devMotto"];
+                "facebook", "instagram", "youtube", "tiktok", "telegram", "devName", "devMotto"];
 
   function previewImg(kind){
     var v = pendingImg[kind] !== undefined ? pendingImg[kind] : settings[kind];
-    $(kind + "Prev").innerHTML = v ? '<img src="' + esc(uploadUrl(v)) + '" alt="">' : "<span>هیچ وێنەیەک نییە</span>";
+    var def = kind === "logo" ? "/img/logo.png" : "/img/banner.jpg";
+    $(kind + "Prev").innerHTML = '<img src="' + esc(v ? uploadUrl(v) : def) + '" alt="">';
   }
 
   function fillSettings(){
@@ -319,7 +356,7 @@
     pendingImg = { logo: undefined, banner: undefined };
     previewImg("logo");
     previewImg("banner");
-    if(settings.logo) $("topLogo").src = uploadUrl(settings.logo);
+    $("topLogo").src = settings.logo ? uploadUrl(settings.logo) : "/img/logo.png";
   }
 
   [["logo", 512, "image/png"], ["banner", 2400, "image/jpeg"]].forEach(function(cfg){
@@ -327,10 +364,11 @@
       var file = this.files[0];
       this.value = "";
       if(!file) return;
-      prepareImage(file, cfg[1], cfg[2]).then(function(data){
-        pendingImg[cfg[0]] = data;
+      $(cfg[0] + "Prev").innerHTML = "<span>چاوەڕێ بکە...</span>";
+      prepareImage(file, cfg[1], cfg[2]).then(uploadBlob).then(function(name){
+        pendingImg[cfg[0]] = name;
         previewImg(cfg[0]);
-      }).catch(function(err){ toast(err.message); });
+      }).catch(function(err){ previewImg(cfg[0]); toast(err.message); });
     });
   });
   [].forEach.call(document.querySelectorAll("[data-clear]"), function(b){

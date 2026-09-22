@@ -1,0 +1,17 @@
+# ڕێکخستنی Cloudflare Workers — بڕوانە README بەشی Cloudflare
+name = "puk-sports-board"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "puk-sports"
+# ئەم ژمارەیە لە Cloudflare Dashboard → Storage & Databases → D1 → puk-sports وەربگرە و لێرە دایبنێ
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[observability]
+enabled = true

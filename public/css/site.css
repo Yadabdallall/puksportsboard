@@ -63,11 +63,62 @@ img{max-width:100%;}
   .topbar-nav a{font-size:15px;padding:4px 10px;}
 }
 
+/* لە لاپەڕەی سەرەکی شریتەکە سەرەتا ڕوونە و لەگەڵ سکڕۆڵ تۆخ دەبێت */
+.page-home .topbar{position:fixed;inset-inline:0;background:transparent;border-bottom-color:transparent;
+  -webkit-backdrop-filter:none;backdrop-filter:none;transition:background .35s,border-color .35s,backdrop-filter .35s;}
+.page-home .topbar .topbar-logo,.page-home .topbar .topbar-name{opacity:0;transition:opacity .35s;}
+.page-home .topbar.is-solid{background:rgba(1,12,7,.82);border-bottom-color:var(--line-soft);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+.page-home .topbar.is-solid .topbar-logo,.page-home .topbar.is-solid .topbar-name{opacity:1;}
+.page-home .topbar-nav a{text-shadow:0 1px 8px rgba(0,0,0,.8);}
+
 /* ================= سەرەوەی لاپەڕەی سەرەکی ================= */
-.banner-space{height:48px;}
+.banner img{object-fit:cover;}
 .board-logo.no-banner{margin-top:0;}
-.board-logo{overflow:hidden;}
+.board-logo{width:152px;height:152px;margin-top:-44px;padding:0;background:#fff;border:none;
+  box-shadow:0 0 0 6px rgba(0,0,0,.8),0 0 36px rgba(77,255,171,.35),0 0 90px rgba(77,255,171,.18);
+  transition:transform .5s cubic-bezier(.22,.8,.3,1);}
+.board-logo:hover{transform:scale(1.04) rotate(-2deg);}
+.board-logo img{width:100%;height:100%;object-fit:cover;border-radius:50%;filter:none;position:relative;z-index:1;}
+.logo-ring{
+  position:absolute;inset:-12px;border-radius:50%;z-index:0;
+  background:conic-gradient(from 0deg,transparent 0 58%,rgba(77,255,171,.15) 70%,var(--neon) 88%,#fff 90%,transparent 92%);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));
+          mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 calc(100% - 2px));
+  animation:ring-spin 4.5s linear infinite;
+  filter:drop-shadow(0 0 6px var(--neon));
+}
+@keyframes ring-spin{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){ .logo-ring{animation:none;} }
 .hero .form-title{max-width:900px;margin-inline:auto;}
+.hero-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:26px;}
+.login-card .board-logo{width:120px;height:120px;}
+
+/* ================= شریتی هەواڵی نوێ ================= */
+.ticker{
+  display:flex;align-items:stretch;margin-top:40px;overflow:hidden;
+  border-radius:999px;border:1px solid var(--line);
+  background:rgba(2,17,10,.75);
+  box-shadow:0 0 24px rgba(77,255,171,.10),inset 0 0 18px rgba(77,255,171,.05);
+}
+.ticker-label{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;
+  padding:8px 18px;font-weight:900;font-size:15px;color:#04230f;background:var(--neon);
+  box-shadow:0 0 20px rgba(77,255,171,.5);z-index:1;
+}
+.ticker-label i{width:8px;height:8px;border-radius:50%;background:#04230f;animation:blink 1.2s ease-in-out infinite;}
+@keyframes blink{50%{opacity:.2;}}
+.ticker-track{flex:1;overflow:hidden;display:flex;align-items:center;
+  -webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+          mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);}
+.ticker-move{display:flex;width:max-content;animation:ticker 40s linear infinite;}
+.ticker:hover .ticker-move,.ticker:focus-within .ticker-move{animation-play-state:paused;}
+.ticker-set{display:flex;align-items:center;gap:18px;padding-inline-end:18px;white-space:nowrap;}
+.ticker-set a{color:var(--text-2);font-size:15.5px;}
+.ticker-set a:hover{color:var(--neon);}
+.ticker-dot{color:var(--neon);font-size:9px;opacity:.7;}
+@keyframes ticker{from{transform:translateX(0);}to{transform:translateX(50%);}}
+@media (prefers-reduced-motion:reduce){ .ticker-move{animation:none;} .ticker-track{overflow-x:auto;} }
 
 /* ================= بەشی هەواڵەکان ================= */
 .news{margin-top:46px;}
@@ -157,18 +208,27 @@ img{max-width:100%;}
   margin-top:24px;padding:40px 20px;text-align:center;color:var(--muted);
   border:1px dashed var(--line);border-radius:24px;
 }
+.result-note{color:var(--muted);font-size:15px;margin:12px 0 0;}
+.read-more{margin-top:10px;color:var(--neon);font-weight:700;font-size:15.5px;}
 .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:30px;}
 .pager-num{color:var(--muted);font-size:15px;}
 
 /* ================= دەربارە و پەیوەندی ================= */
 #about,#contact{margin-top:46px;}
+.about-grid{display:grid;grid-template-columns:150px 1fr;gap:26px;align-items:center;margin-top:8px;}
+.about-logo{width:150px;height:150px;border-radius:50%;display:block;margin-inline:auto;
+  box-shadow:0 0 0 5px rgba(0,0,0,.6),0 0 30px rgba(77,255,171,.25);}
 .about-text p{color:var(--text-2);margin:18px 0 0;}
-.contact-row{
-  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
-  padding:14px 0;border-bottom:1px solid var(--line-soft);
+@media (max-width:620px){ .about-grid{grid-template-columns:1fr;} .about-logo{width:110px;height:110px;margin-top:16px;} }
+.contact-grid{display:grid;gap:14px;margin-top:22px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));}
+.contact-item{
+  display:flex;flex-direction:column;gap:2px;padding:16px 20px;border-radius:18px;
+  color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--line-soft);
+  transition:border-color .2s, box-shadow .2s;
 }
-.contact-row span{color:var(--muted);}
-.contact-row b{font-weight:400;}
+a.contact-item:hover{text-decoration:none;border-color:var(--line);box-shadow:0 0 22px rgba(77,255,171,.15);}
+.contact-item span{color:var(--muted);font-size:14px;}
+.contact-item b{font-weight:700;font-size:17px;color:#e3ffef;text-align:start;}
 .socials{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:22px;}
 .social{
   font-size:15px;font-weight:700;padding:7px 18px;border-radius:999px;
@@ -177,7 +237,11 @@ img{max-width:100%;}
 .social:hover{text-decoration:none;color:var(--neon);box-shadow:0 0 18px rgba(77,255,171,.25);}
 
 /* ================= لاپەڕەی بابەت ================= */
-.page-post .wrap{padding-top:26px;}
+.post-hero{position:absolute;inset:0 0 auto;height:560px;overflow:hidden;z-index:0;pointer-events:none;}
+.post-hero img{width:100%;height:100%;object-fit:cover;filter:blur(40px) saturate(1.3);opacity:.35;transform:scale(1.2);}
+.post-hero{-webkit-mask:linear-gradient(to bottom,#000 20%,transparent 100%);mask:linear-gradient(to bottom,#000 20%,transparent 100%);}
+.page-post .wrap{padding-top:26px;position:relative;z-index:1;}
+.draft-badge{color:#ffd28a;border:1px solid rgba(255,210,138,.45);border-radius:999px;padding:0 10px;font-size:13px;}
 .back-link{display:inline-block;color:var(--muted);font-size:16px;}
 .back-link:hover{color:var(--neon);}
 .article{margin-top:14px;}
@@ -232,6 +296,18 @@ img{max-width:100%;}
 
 /* ================= پێپەڕ ================= */
 .footer{padding:0 16px 40px;}
+.footer-logo{width:74px;height:74px;border-radius:50%;display:block;margin:0 auto 12px;
+  box-shadow:0 0 0 4px rgba(0,0,0,.6),0 0 24px rgba(77,255,171,.25);}
+
+/* ================= گەڕانەوە بۆ سەرەوە ================= */
+.to-top{
+  position:fixed;bottom:22px;inset-inline-start:18px;z-index:35;
+  width:48px;height:48px;padding:0;border-radius:50%;font-size:22px;
+  color:#04230f;background:var(--neon);
+  box-shadow:0 0 22px rgba(77,255,171,.5),0 10px 24px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .3s,transform .3s;
+}
+.to-top.show{opacity:1;transform:none;pointer-events:auto;}
 .footer-org{margin:0;font-weight:700;color:var(--text-2);}
 .footer .dev-by{display:block;}
 .footer-copy{margin:6px 0 22px;font-size:14px;color:var(--muted);}
@@ -240,4 +316,15 @@ img{max-width:100%;}
 @media (max-width:520px){
   .post-grid{gap:16px;}
   .pager .btn-sm{padding:8px 12px;}
+}
+@media (max-width:520px){
+  .board-logo{width:112px;height:112px;margin-top:-20px;}
+  .ticker-label{padding:6px 12px;font-size:14px;}
+}
+/* لەسەر مۆبایل شریتەکە لەسەر بانەرەکە نییە، لە سەرەوەیەتی */
+@media (max-width:640px){
+  .page-home .topbar{position:sticky;background:rgba(1,12,7,.82);border-bottom-color:var(--line-soft);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+  .page-home .topbar .topbar-logo,.page-home .topbar .topbar-name{opacity:1;}
+  .hero-actions .btn,.hero-actions .btn-2{font-size:16px;padding:11px 22px;}
 }

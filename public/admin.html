@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>کۆنترۆڵ پانێڵ | بۆردی وەرزش</title>
-<link rel="icon" href="/img/logo.svg">
+<link rel="icon" href="/img/logo.png">
 <link rel="stylesheet" href="/css/fonts.css">
 <link rel="stylesheet" href="/css/tokens.css">
 <link rel="stylesheet" href="/css/components.css">
@@ -17,7 +17,7 @@
 <!-- ========== چوونەژوورەوە ========== -->
 <main class="login" id="loginView" hidden>
   <form class="card login-card" id="loginForm" autocomplete="off">
-    <div class="board-logo no-banner"><img src="/img/logo.svg" alt=""></div>
+    <div class="board-logo no-banner"><img src="/img/logo.png" alt=""></div>
     <h1 class="sec-title">کۆنترۆڵ پانێڵ</h1>
     <p class="muted">تەنها بەڕێوەبەرانی سایتەکە دەتوانن بچنە ژوورەوە.</p>
     <div class="field">
@@ -34,7 +34,7 @@
 <div id="appView" hidden>
   <header class="topbar">
     <a class="topbar-brand" href="/" target="_blank">
-      <span class="topbar-logo"><img src="/img/logo.svg" alt="" id="topLogo"></span>
+      <span class="topbar-logo"><img src="/img/logo.png" alt="" id="topLogo"></span>
       <span>کۆنترۆڵ پانێڵ</span>
     </a>
     <nav class="topbar-nav tabs" role="tablist">
@@ -74,7 +74,7 @@
           <div class="dropzone" id="dropzone" tabindex="0" role="button">
             <input type="file" id="pFiles" accept="image/*" multiple hidden>
             <strong>وێنە هەڵبژێرە یان ڕایبکێشە ئێرە</strong>
-            <span>دەتوانیت چەند وێنەیەک پێکەوە دابنێیت — خۆکار بچووک دەکرێنەوە</span>
+            <span>دەتوانیت چەند وێنەیەک پێکەوە دابنێیت — خۆکار بچووک دەکرێنەوە و دەنێردرێن</span>
           </div>
           <div class="thumbs" id="thumbs"></div>
         </div>
@@ -119,7 +119,7 @@
             <div class="img-preview logo-prev" id="logoPrev"></div>
             <div class="row">
               <label class="btn-2 btn btn-sm file-btn">هەڵبژاردن<input type="file" accept="image/*" id="logoFile" hidden></label>
-              <button type="button" class="btn-2 btn btn-sm btn-danger" data-clear="logo">لابردن</button>
+              <button type="button" class="btn-2 btn btn-sm btn-danger" data-clear="logo">گەڕانەوە بۆ بنەڕەت</button>
             </div>
           </div>
           <div class="img-setting">
@@ -127,7 +127,7 @@
             <div class="img-preview banner-prev" id="bannerPrev"></div>
             <div class="row">
               <label class="btn-2 btn btn-sm file-btn">هەڵبژاردن<input type="file" accept="image/*" id="bannerFile" hidden></label>
-              <button type="button" class="btn-2 btn btn-sm btn-danger" data-clear="banner">لابردن</button>
+              <button type="button" class="btn-2 btn btn-sm btn-danger" data-clear="banner">گەڕانەوە بۆ بنەڕەت</button>
             </div>
           </div>
         </div>
@@ -155,6 +155,7 @@
           <div><label for="s_youtube">یوتیوب</label><input type="text" id="s_youtube" name="youtube" dir="ltr"></div>
           <div><label for="s_tiktok">تیکتۆک</label><input type="text" id="s_tiktok" name="tiktok" dir="ltr"></div>
         </div>
+        <div class="field"><label for="s_telegram">تێلێگرام</label><input type="text" id="s_telegram" name="telegram" dir="ltr" placeholder="https://t.me/..."></div>
         <div class="field two">
           <div><label for="s_devName">ناوی دروستکەر (پێپەڕ)</label><input type="text" id="s_devName" name="devName" dir="ltr"></div>
           <div><label for="s_devMotto">ووتەی ژێر ناوەکە</label><input type="text" id="s_devMotto" name="devMotto"></div>

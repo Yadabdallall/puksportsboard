@@ -51,6 +51,18 @@
     });
   }
 
+  /* ---------- شریتی سەرەوە و دوگمەی گەڕانەوە بۆ سەرەوە ---------- */
+  var topbar = document.getElementById("topbar");
+  var toTop = document.getElementById("toTop");
+  function onScroll(){
+    var y = window.pageYOffset || document.documentElement.scrollTop;
+    if(topbar) topbar.classList.toggle("is-solid", y > 60);
+    if(toTop) toTop.classList.toggle("show", y > 900);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  if(toTop) toTop.addEventListener("click", function(){ window.scrollTo({ top: 0, behavior: "smooth" }); });
+
   /* ---------- کۆپیکردنی بەستەر ---------- */
   var toast = document.getElementById("toast");
   function say(msg){

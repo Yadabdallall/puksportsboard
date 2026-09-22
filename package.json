@@ -5,9 +5,12 @@
   "description": "وێبسایتی بۆردی وەرزشیی یەکێتیی نیشتمانیی کوردستان",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "type": "module"
 }
