@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>کۆنترۆڵ پانێڵ | بۆردی وەرزش</title>
+<link rel="icon" href="/img/logo.svg">
+<link rel="stylesheet" href="/css/fonts.css">
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/site.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="page-admin">
+
+<!-- ========== چوونەژوورەوە ========== -->
+<main class="login" id="loginView" hidden>
+  <form class="card login-card" id="loginForm" autocomplete="off">
+    <div class="board-logo no-banner"><img src="/img/logo.svg" alt=""></div>
+    <h1 class="sec-title">کۆنترۆڵ پانێڵ</h1>
+    <p class="muted">تەنها بەڕێوەبەرانی سایتەکە دەتوانن بچنە ژوورەوە.</p>
+    <div class="field">
+      <label for="code">کۆدی چوونەژوورەوە</label>
+      <input type="password" id="code" autocomplete="current-password" required dir="ltr">
+    </div>
+    <p class="form-error" id="loginError" role="alert"></p>
+    <button class="btn" type="submit">چوونەژوورەوە</button>
+    <a class="back-link" href="/">→ گەڕانەوە بۆ سایتەکە</a>
+  </form>
+</main>
+
+<!-- ========== پانێڵ ========== -->
+<div id="appView" hidden>
+  <header class="topbar">
+    <a class="topbar-brand" href="/" target="_blank">
+      <span class="topbar-logo"><img src="/img/logo.svg" alt="" id="topLogo"></span>
+      <span>کۆنترۆڵ پانێڵ</span>
+    </a>
+    <nav class="topbar-nav tabs" role="tablist">
+      <a href="#new" data-tab="editor">＋ بابەتی نوێ</a>
+      <a href="#posts" data-tab="posts">بابەتەکان</a>
+      <a href="#settings" data-tab="settings">ڕێکخستنەکان</a>
+      <a href="/" target="_blank">بینینی سایت ↗</a>
+      <a href="#" id="logoutBtn">دەرچوون</a>
+    </nav>
+  </header>
+
+  <div class="wrap admin-wrap">
+
+    <!-- ---------- دانان / دەستکاریکردنی بابەت ---------- -->
+    <section class="card" id="tab-editor" hidden>
+      <div class="sec-head">
+        <div class="sec-num">＋</div>
+        <h2 class="sec-title" id="editorTitle">بابەتی نوێ<span>وێنە و نووسین دابنێ و بڵاوی بکەرەوە</span></h2>
+      </div>
+      <form id="postForm">
+        <div class="field">
+          <label for="pTitle">ناونیشان <span class="req">*</span></label>
+          <input type="text" id="pTitle" maxlength="300" required placeholder="بۆ نموونە: کۆتایی هاتنی پاڵەوانێتیی تۆپی پێی گەنجان">
+        </div>
+        <div class="field two">
+          <div>
+            <label for="pCategory">بەش</label>
+            <select id="pCategory"></select>
+          </div>
+          <div>
+            <label for="pDate">بەروار</label>
+            <input type="date" id="pDate" dir="ltr">
+          </div>
+        </div>
+        <div class="field">
+          <label>وێنەکان <span class="opt">یەکەم وێنە دەبێتە وێنەی سەرەکی</span></label>
+          <div class="dropzone" id="dropzone" tabindex="0" role="button">
+            <input type="file" id="pFiles" accept="image/*" multiple hidden>
+            <strong>وێنە هەڵبژێرە یان ڕایبکێشە ئێرە</strong>
+            <span>دەتوانیت چەند وێنەیەک پێکەوە دابنێیت — خۆکار بچووک دەکرێنەوە</span>
+          </div>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+        <div class="field">
+          <label for="pBody">نووسین
+            <span class="hint">بۆ پەرەگرافی نوێ دێڕێکی بەتاڵ جێبهێڵە. بۆ تۆخکردن: **وشە**</span>
+          </label>
+          <textarea id="pBody" rows="12" placeholder="دەقی هەواڵەکە لێرە بنووسە..."></textarea>
+        </div>
+        <div class="field checks">
+          <label class="check"><input type="checkbox" id="pPublished" checked> بڵاوکراوە (خەڵک دەیبینن)</label>
+          <label class="check"><input type="checkbox" id="pFeatured"> بابەتی سەرەکی (بە گەورەیی لە سەرەوە دەردەکەوێت)</label>
+        </div>
+        <p class="form-error" id="postError" role="alert"></p>
+        <div class="actions">
+          <button class="btn" type="submit" id="saveBtn">بڵاوکردنەوە</button>
+          <button class="btn-2 btn" type="button" id="cancelEdit" hidden>هەڵوەشاندنەوەی دەستکاری</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ---------- لیستی بابەتەکان ---------- -->
+    <section class="card" id="tab-posts" hidden>
+      <div class="sec-head">
+        <div class="sec-num" id="postTotal">0</div>
+        <h2 class="sec-title">بابەتەکان<span>دەستکاری بکە یان بیسڕەوە</span></h2>
+      </div>
+      <input type="search" id="postFilter" class="list-filter" placeholder="گەڕان...">
+      <div class="post-list" id="postList"></div>
+    </section>
+
+    <!-- ---------- ڕێکخستنەکان ---------- -->
+    <section class="card" id="tab-settings" hidden>
+      <div class="sec-head">
+        <div class="sec-num">⚙</div>
+        <h2 class="sec-title">ڕێکخستنەکانی سایت<span>ناو، لۆگۆ، وێنەی سەرەوە و زانیاریی پەیوەندی</span></h2>
+      </div>
+      <form id="settingsForm">
+        <div class="field two">
+          <div class="img-setting">
+            <label>لۆگۆ</label>
+            <div class="img-preview logo-prev" id="logoPrev"></div>
+            <div class="row">
+              <label class="btn-2 btn btn-sm file-btn">هەڵبژاردن<input type="file" accept="image/*" id="logoFile" hidden></label>
+              <button type="button" class="btn-2 btn btn-sm btn-danger" data-clear="logo">لابردن</button>
+            </div>
+          </div>
+          <div class="img-setting">
+            <label>وێنەی سەرەوە (بانەر)</label>
+            <div class="img-preview banner-prev" id="bannerPrev"></div>
+            <div class="row">
+              <label class="btn-2 btn btn-sm file-btn">هەڵبژاردن<input type="file" accept="image/*" id="bannerFile" hidden></label>
+              <button type="button" class="btn-2 btn btn-sm btn-danger" data-clear="banner">لابردن</button>
+            </div>
+          </div>
+        </div>
+        <div class="field"><label for="s_siteTitle">ناوی تەواوی سایت</label><input type="text" id="s_siteTitle" name="siteTitle"></div>
+        <div class="field two">
+          <div><label for="s_shortTitle">ناوی کورت</label><input type="text" id="s_shortTitle" name="shortTitle"></div>
+          <div><label for="s_orgLatin">ناو بە ئینگلیزی</label><input type="text" id="s_orgLatin" name="orgLatin" dir="ltr"></div>
+        </div>
+        <div class="field"><label for="s_tagline">دروشم / ووتەی کورت</label><input type="text" id="s_tagline" name="tagline"></div>
+        <div class="field"><label for="s_about">دەربارەی بۆرد</label><textarea id="s_about" name="about" rows="6"></textarea></div>
+        <div class="field">
+          <label for="s_categories">بەشەکان <span class="hint">هەر بەشێک لە دێڕێکی جیا</span></label>
+          <textarea id="s_categories" rows="5"></textarea>
+        </div>
+        <div class="field two">
+          <div><label for="s_phone">تەلەفۆن</label><input type="text" id="s_phone" name="phone" dir="ltr"></div>
+          <div><label for="s_email">ئیمەیڵ</label><input type="email" id="s_email" name="email" dir="ltr"></div>
+        </div>
+        <div class="field"><label for="s_address">ناونیشان</label><input type="text" id="s_address" name="address"></div>
+        <div class="field two">
+          <div><label for="s_facebook">فەیسبووک</label><input type="text" id="s_facebook" name="facebook" dir="ltr" placeholder="https://facebook.com/..."></div>
+          <div><label for="s_instagram">ئینستاگرام</label><input type="text" id="s_instagram" name="instagram" dir="ltr" placeholder="https://instagram.com/..."></div>
+        </div>
+        <div class="field two">
+          <div><label for="s_youtube">یوتیوب</label><input type="text" id="s_youtube" name="youtube" dir="ltr"></div>
+          <div><label for="s_tiktok">تیکتۆک</label><input type="text" id="s_tiktok" name="tiktok" dir="ltr"></div>
+        </div>
+        <div class="field two">
+          <div><label for="s_devName">ناوی دروستکەر (پێپەڕ)</label><input type="text" id="s_devName" name="devName" dir="ltr"></div>
+          <div><label for="s_devMotto">ووتەی ژێر ناوەکە</label><input type="text" id="s_devMotto" name="devMotto"></div>
+        </div>
+        <p class="form-error" id="settingsError" role="alert"></p>
+        <div class="actions"><button class="btn" type="submit" id="settingsSave">پاشەکەوتکردن</button></div>
+      </form>
+
+      <form id="codeForm" class="code-form">
+        <div class="sec-head"><h2 class="sec-title">گۆڕینی کۆدی چوونەژوورەوە</h2></div>
+        <p class="muted" id="envNote" hidden>تێبینی: کۆدێک لە ڕێکخستنی سێرڤەرەوە (ADMIN_CODE) دانراوە و هەمیشە کار دەکات.</p>
+        <div class="field two">
+          <div><label for="cCurrent">کۆدی ئێستا</label><input type="password" id="cCurrent" required dir="ltr" autocomplete="current-password"></div>
+          <div><label for="cNext">کۆدی نوێ (لانیکەم ٦ پیت)</label><input type="password" id="cNext" required minlength="6" dir="ltr" autocomplete="new-password"></div>
+        </div>
+        <p class="form-error" id="codeError" role="alert"></p>
+        <div class="actions"><button class="btn-2 btn" type="submit">گۆڕینی کۆد</button></div>
+      </form>
+    </section>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/js/admin.js"></script>
+</body>
+</html>

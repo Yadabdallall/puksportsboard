@@ -1,0 +1,13 @@
+{
+  "name": "puk-sports-board",
+  "version": "1.0.0",
+  "private": true,
+  "description": "وێبسایتی بۆردی وەرزشیی یەکێتیی نیشتمانیی کوردستان",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

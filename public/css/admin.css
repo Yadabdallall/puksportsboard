@@ -1,0 +1,113 @@
+/* ستایلی کۆنترۆڵ پانێڵ */
+
+.admin-wrap{padding-top:10px;}
+.login{min-height:100vh;display:grid;place-items:center;padding:20px;}
+.login-card{width:min(440px,100%);text-align:center;}
+.login-card .board-logo{margin:0 auto 10px;}
+.login-card .field{text-align:start;}
+.login-card .btn{width:100%;margin-top:10px;}
+.login-card .back-link{margin-top:18px;}
+
+.form-error{color:var(--alert);min-height:1.6em;margin:12px 0 0;font-size:16px;}
+.form-error:empty{min-height:0;margin:0;}
+
+.field.two{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));}
+.field.two::after,.field.two::before{display:none;}
+
+select{
+  font-family:inherit;font-size:17px;line-height:1.8;
+  width:100%;padding:14px 16px;
+  color:var(--text);background:rgba(255,255,255,.04);
+  border:1px solid rgba(77,255,171,.34);border-radius:18px;
+  box-shadow:0 0 16px rgba(77,255,171,.14),inset 0 0 16px rgba(77,255,171,.05);
+}
+select:focus{outline:none;border-color:rgba(77,255,171,.75);}
+select option{background:#031a0f;color:var(--text);}
+input[type=date]{color-scheme:dark;}
+
+.checks{display:grid;gap:10px;}
+label.check{
+  display:flex;align-items:center;gap:12px;margin:0;cursor:pointer;
+  font-size:16.5px;font-weight:400;color:var(--text-2);text-shadow:none;
+}
+label.check input{width:22px;height:22px;flex:0 0 auto;padding:0;accent-color:var(--neon);box-shadow:none;}
+
+/* ---------- وێنەکان ---------- */
+.dropzone{
+  display:grid;gap:4px;text-align:center;cursor:pointer;
+  padding:28px 16px;border-radius:20px;
+  border:2px dashed rgba(77,255,171,.35);
+  background:rgba(77,255,171,.03);
+  transition:background .2s,border-color .2s;
+}
+.dropzone:hover,.dropzone.is-over,.dropzone:focus-visible{outline:none;background:rgba(77,255,171,.09);border-color:var(--neon);}
+.dropzone strong{color:var(--neon);font-size:18px;}
+.dropzone span{color:var(--muted);font-size:14.5px;}
+
+.thumbs{display:grid;gap:12px;margin-top:14px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+.thumb{
+  position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;
+  box-shadow:0 0 0 1px var(--line);background:#010a06;
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.thumb.is-cover{box-shadow:0 0 0 2px var(--neon),0 0 18px rgba(77,255,171,.35);}
+.thumb .badge{
+  position:absolute;top:6px;inset-inline-start:6px;
+  font-size:12px;font-weight:700;padding:1px 9px;border-radius:999px;
+  color:#04230f;background:var(--neon);
+}
+.thumb .tools{
+  position:absolute;inset-inline:0;bottom:0;display:flex;justify-content:center;gap:4px;padding:6px;
+  background:linear-gradient(to top,rgba(0,0,0,.85),transparent);
+}
+.thumb .tools button{
+  width:32px;height:32px;padding:0;border-radius:50%;
+  font-size:16px;color:#fff;background:rgba(2,17,10,.9);border:1px solid var(--line);
+}
+.thumb .tools button:hover{color:var(--neon);}
+.thumb .tools button.del:hover{color:var(--alert);border-color:var(--alert);}
+.thumb.is-loading::after{
+  content:"...";position:absolute;inset:0;display:grid;place-items:center;
+  background:rgba(0,0,0,.6);color:var(--neon);font-size:26px;
+}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;}
+.actions .btn{min-width:180px;}
+
+/* ---------- لیستی بابەتەکان ---------- */
+.list-filter{margin-top:20px;border-radius:999px;padding:10px 18px;}
+.post-list{display:grid;gap:12px;margin-top:18px;}
+.post-row{
+  display:grid;grid-template-columns:84px 1fr auto;gap:14px;align-items:center;
+  padding:10px;border-radius:18px;
+  background:rgba(255,255,255,.03);border:1px solid var(--line-soft);
+}
+.post-row img{width:84px;height:64px;object-fit:cover;border-radius:12px;display:block;background:#010a06;}
+.post-row h3{margin:0;font-size:17px;line-height:1.5;color:var(--text);}
+.post-row .meta{font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;}
+.post-row .tag{padding:0 8px;border-radius:999px;border:1px solid var(--line);}
+.post-row .tag.draft{color:#ffd28a;border-color:rgba(255,210,138,.45);}
+.post-row .tag.star{color:#04230f;background:var(--neon);border-color:var(--neon);}
+.post-row .row-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+@media (max-width:560px){
+  .post-row{grid-template-columns:64px 1fr;}
+  .post-row img{width:64px;height:54px;}
+  .post-row .row-actions{grid-column:1 / -1;justify-content:stretch;}
+  .post-row .row-actions > *{flex:1;}
+}
+
+/* ---------- ڕێکخستنەکان ---------- */
+.img-preview{
+  border-radius:18px;overflow:hidden;display:grid;place-items:center;
+  background:rgba(255,255,255,.03);border:1px solid var(--line-soft);
+  color:var(--muted);font-size:14px;
+}
+.img-preview img{width:100%;height:100%;object-fit:contain;display:block;}
+.logo-prev{width:120px;height:120px;border-radius:50%;}
+.banner-prev{aspect-ratio:1600/595;}
+.banner-prev img{object-fit:cover;}
+.img-setting .row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.file-btn{margin:0;text-shadow:none;}
+.code-form{margin-top:40px;padding-top:24px;border-top:1px solid var(--line-soft);}
+.code-form .sec-head{border:none;padding-bottom:0;}
+.topbar-nav a.is-on{color:#04230f;background:var(--neon);}
