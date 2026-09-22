@@ -120,7 +120,7 @@ function excerpt(text, n) {
 }
 
 const upl = name => '/uploads/' + encodeURIComponent(name);
-const logoUrl = s => s.logo ? upl(s.logo) : '/img/logo.png';
+const logoUrl = s => s.logo ? upl(s.logo) : '/img/logo.webp';
 const bannerUrl = s => s.banner ? upl(s.banner) : '/img/banner.jpg';
 
 function origin(request, env) {
@@ -149,8 +149,8 @@ ${noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:description" content="${esc(description || s.tagline)}">
 ${url ? `<meta property="og:url" content="${esc(url)}">` : ''}
 ${image ? `<meta property="og:image" content="${esc(image)}">\n<meta name="twitter:card" content="summary_large_image">` : ''}
-<link rel="icon" href="${logoUrl(s)}">
-<link rel="apple-touch-icon" href="${logoUrl(s)}">
+<link rel="icon" href="${s.logo ? upl(s.logo) : '/img/icon.png'}">
+<link rel="apple-touch-icon" href="${s.logo ? upl(s.logo) : '/img/icon.png'}">
 <link rel="alternate" type="application/rss+xml" title="${esc(s.siteTitle)}" href="/feed.xml">
 <link rel="preload" href="/fonts/zain-arabic-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/fonts.css">

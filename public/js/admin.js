@@ -308,7 +308,7 @@
     $("postList").innerHTML = list.length ? list.map(function(p){
       var cover = p.images && p.images[0];
       return '<div class="post-row">' +
-        '<img src="' + (cover ? uploadUrl(cover) : "/img/logo.png") + '" alt="" loading="lazy">' +
+        '<img src="' + (cover ? uploadUrl(cover) : "/img/logo.webp") + '" alt="" loading="lazy">' +
         '<div><h3>' + esc(p.title) + '</h3><div class="meta">' +
           '<span>' + esc(p.date) + '</span>' +
           (p.category ? '<span class="tag">' + esc(p.category) + '</span>' : "") +
@@ -346,7 +346,7 @@
 
   function previewImg(kind){
     var v = pendingImg[kind] !== undefined ? pendingImg[kind] : settings[kind];
-    var def = kind === "logo" ? "/img/logo.png" : "/img/banner.jpg";
+    var def = kind === "logo" ? "/img/logo.webp" : "/img/banner.jpg";
     $(kind + "Prev").innerHTML = '<img src="' + esc(v ? uploadUrl(v) : def) + '" alt="">';
   }
 
@@ -356,7 +356,7 @@
     pendingImg = { logo: undefined, banner: undefined };
     previewImg("logo");
     previewImg("banner");
-    $("topLogo").src = settings.logo ? uploadUrl(settings.logo) : "/img/logo.png";
+    $("topLogo").src = settings.logo ? uploadUrl(settings.logo) : "/img/logo.webp";
   }
 
   [["logo", 512, "image/png"], ["banner", 2400, "image/jpeg"]].forEach(function(cfg){
