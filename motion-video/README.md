@@ -13,7 +13,9 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 Soft, clay-like 3D objects in cream on deep green, rendered with three.js. It has
 depth of field, soft shadows and a single glowing green accent. There are no
-people in it. Each shot is two bars of the music (96 bpm):
+people in it. The 3D is antialiased (4× multisampling), the video is encoded at high
+quality (CRF 12) and the audio is 320 kbps. `--scale 2` renders it in 4K (2160×3840),
+at about four times the render time. Each shot is two bars of the music (96 bpm):
 
 | Time | Shot | Phrase |
 | --- | --- | --- |
@@ -87,7 +89,7 @@ motion-video/
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
-│   └── fonts/          # Zain (SIL Open Font License, see OFL.txt)
+│   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits
 └── output/
     ├── puk-sports-board-3d-cinematic.mp4
     ├── puk-sports-board-3d-warm.mp4
@@ -121,16 +123,22 @@ cd motion-video
 node render.mjs --page sport3d.html --cues audio/sport3d-cues.json
 python3 audio/sport3d.py audio/sport3d-cues.json output/sport3d-sfx.wav
 python3 audio/sport3d_warm.py audio/sport3d-cues.json output/sport3d-warm-sfx.wav
-node render.mjs --page sport3d.html --fps 30 --out picture.mp4        # ~20 min
+# three processes render 200 lossless frames each (~20 min; add --scale 2 for 4K, ~75 min)
+for k in 0 1 2; do
+  node render.mjs --page sport3d.html --fps 30 --frames $((k*200)):$((k*200+200)) --lossless --out part$k.mkv &
+done; wait
+printf "file 'part%d.mkv'\n" 0 1 2 > parts.txt
+ffmpeg -f concat -i parts.txt -c:v libx264 -preset slow -crf 12 -pix_fmt yuv420p -profile:v high \
+  -x264-params aq-mode=3 picture.mp4
 for v in cinematic:sport3d-sfx warm:sport3d-warm-sfx; do
-  ffmpeg -i picture.mp4 -i output/${v#*:}.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k \
+  ffmpeg -i picture.mp4 -i output/${v#*:}.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k \
     -shortest -movflags +faststart output/puk-sports-board-3d-${v%%:*}.mp4
 done
-# If only one shot changed (e.g. its text), re-render just that keyframe interval and
-# splice it in. patch_video.py lists the keyframes if the range doesn't line up.
-node render.mjs --page sport3d.html --fps 30 --frames 250:460 --out part.mp4
-python3 patch_video.py output/puk-sports-board-3d-cinematic.mp4 part.mp4 250 picture.mp4
-# ...then run the ffmpeg loop above again
+# If only one shot changed (e.g. its text): render just the keyframe interval around it with
+# --lossless, encode it with the same x264 settings as picture.mp4, and splice it in
+# (patch_video.py lists the keyframes if the range doesn't line up):
+#   python3 patch_video.py output/puk-sports-board-3d-cinematic.mp4 part.mp4 FIRST_FRAME picture.mp4
+# ...then run the audio loop above again
 
 # footballer video
 node render.mjs --cues audio/cues.json            # 1. export sound cue times
@@ -153,6 +161,7 @@ Other options:
 ## Credits
 
 - Font: [Zain](https://fonts.google.com/specimen/Zain), SIL Open Font License 1.1 (`assets/fonts/OFL.txt`)
+- Podium digits ١ ٢ ٣: DejaVu Sans Bold, Bitstream Vera licence (`assets/fonts/DejaVu-LICENSE.txt`). Zain draws Arabic-Indic digits in Western shapes.
 - Piano (3D video): Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0, via the `@audio-samples/piano-mp3-*` npm packages
 - Strings, horn and harp (3D video): [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky, CC-BY 3.0, via the `tonejs-instrument-*-mp3` npm packages
 - Everything else (the player, ball, 3D objects, effects and the other videos' sounds) is drawn or generated in code for this project.
