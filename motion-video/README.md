@@ -1,11 +1,30 @@
-# بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان — Motion Video
+# بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان — Motion Videos
 
-A 14-second motion-graphics clip (1920×1080, 60 fps, MP4/H.264 with AAC audio)
-for the PUK Sports Board.
+Two motion-graphics clips for the PUK Sports Board. Both are 1920×1080, 60 fps,
+MP4/H.264 with AAC audio.
 
-**Output:** [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4)
+| Video | Length | Source |
+| --- | --- | --- |
+| [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 14 s | `index.html`, `audio/audio.py` |
+| [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 20 s | `minimal.html`, `audio/minimal.py` |
 
-## What happens in the clip
+## Minimal video (20 s)
+
+Thin white line art on black and dark green, with one green accent. There are no
+people in it, only sports objects. Each phrase has its own object:
+
+| Time | Object | Phrase |
+| --- | --- | --- |
+| 0 – 4 s | A football pitch draws itself and a ball rolls to the centre spot | وەرزش ژیانە |
+| 4 – 8.5 s | The camera dives into the centre circle, which becomes a stopwatch whose hand sweeps once | هەر هەنگاوێک سەرەتای سەرکەوتنێکە |
+| 8.5 – 12.7 s | Five points fly in and join into a ball | پێکەوە بەهێزترین |
+| 12.7 – 16.6 s | A trophy draws on, a star appears inside it, and a light sweeps across | ڕۆحی وەرزشی، ڕۆحی ئێمەیە |
+| 16.6 – 20 s | A ring draws and the logo appears | بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان, then وەرزش بۆ هەمووان |
+
+The sound is a calm pad and a soft arpeggio, with light effects: the ball rolling,
+the stopwatch ticking, and the logo chime.
+
+## Footballer video (14 s)
 
 | Time | What you see |
 | --- | --- |
@@ -23,16 +42,19 @@ All text uses the **Zain** font. It covers every Kurdish (Sorani) letter used he
 
 ```
 motion-video/
-├── index.html          # the whole animation: canvas, drawn as a pure function of time
-├── render.mjs          # renders index.html frame by frame and encodes it with ffmpeg
+├── index.html          # footballer video: canvas, drawn as a pure function of time
+├── minimal.html        # minimal line-art video
+├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
 ├── audio/
-│   ├── audio.py        # generates every sound effect and the music bed (no samples)
-│   └── cues.json       # sound cue times exported from the animation timeline
+│   ├── audio.py        # sound for the footballer video (every sound generated, no samples)
+│   ├── minimal.py      # sound for the minimal video
+│   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   └── fonts/          # Zain (SIL Open Font License, see OFL.txt)
 └── output/
-    └── puk-sports-board-motion.mp4   # sfx.wav is also written here but not committed
+    ├── puk-sports-board-motion.mp4
+    └── puk-sports-board-minimal.mp4  # the .wav tracks are also written here but not committed
 ```
 
 ## Preview and editing
@@ -40,7 +62,10 @@ motion-video/
 Serve the folder and open `index.html` to watch the animation live in a browser
 (`npx serve motion-video`, or `python3 -m http.server` inside the folder).
 
-These are the easy things to change, all near the top of `index.html`:
+The same live preview works for `minimal.html`. There you edit the phrases in
+`PHRASES`, `NAME` and `SUBLINE`, and the timing in `S`, `TXT` and `T`.
+
+In `index.html`:
 
 - **Text:** `TEXT_TITLE_1`, `TEXT_TITLE_2`, `TEXT_TAGLINE`
 - **Timing:** the `T` object (run-up, kick, logo, title, slogan and outro times) and `DURATION`
@@ -55,6 +80,11 @@ cd motion-video
 node render.mjs --cues audio/cues.json            # 1. export sound cue times
 python3 audio/audio.py audio/cues.json output/sfx.wav   # 2. build the audio
 node render.mjs --audio output/sfx.wav            # 3. render the video with sound
+
+# minimal video
+node render.mjs --page minimal.html --cues audio/minimal-cues.json
+python3 audio/minimal.py audio/minimal-cues.json output/minimal-sfx.wav
+node render.mjs --page minimal.html --audio output/minimal-sfx.wav --out output/puk-sports-board-minimal.mp4
 ```
 
 Other options:

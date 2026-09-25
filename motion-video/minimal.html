@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Minimal</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+/*
+ * Minimal line-art ident for the PUK Sports Board: four short phrases, each
+ * with one sports object drawn in thin lines, ending on the logo.
+ * renderFrame(t) is a pure function of time (see render.mjs --page).
+ */
+const W = 1920, H = 1080, DURATION = 20;
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+const PHRASES = [
+  'وەرزش ژیانە',
+  'هەر هەنگاوێک سەرەتای سەرکەوتنێکە',
+  'پێکەوە بەهێزترین',
+  'ڕۆحی وەرزشی، ڕۆحی ئێمەیە',
+];
+const NAME = 'بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان';
+const SUBLINE = 'وەرزش بۆ هەمووان';
+
+const INK = 'rgba(236, 246, 239, 0.92)';
+const ACCENT = '#3ddc6e';
+const CX = 960, CY = 420, TEXT_Y = 858;
+
+// scenes: [start, end]; phrases enter a little after the object starts drawing
+const S = {
+  pitch: [0, 4.3], watch: [4.0, 8.5], team: [8.3, 12.7], trophy: [12.5, 16.6], logo: [16.4, 20],
+};
+const TXT = [[2.0, 3.95], [5.3, 8.15], [9.6, 12.35], [13.7, 16.2]];
+const T = { ballIn: 1.2, ballStop: 2.7, sweep: [5.0, 7.7], dots: 8.55, trophyShine: 14.5, logoHit: 16.95, name: 17.5, sub: 17.95, outro: 19.3 };
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const rad = d => d * Math.PI / 180;
+const ease = {
+  inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  out: u => 1 - Math.pow(1 - u, 3),
+  outQuint: u => 1 - Math.pow(1 - u, 5),
+  in: u => u * u * u,
+  outBack: u => { const c1 = 1.5, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+};
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let r = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r;
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// SVG path strings -> Path2D plus their length, so lines can "draw on".
+const svgNS = 'http://www.w3.org/2000/svg';
+const measurer = document.createElementNS(svgNS, 'path');
+function shape(d) {
+  measurer.setAttribute('d', d);
+  return { path: new Path2D(d), len: measurer.getTotalLength() };
+}
+const circleD = (r, x = 0, y = 0) => `M ${x} ${y - r} A ${r} ${r} 0 1 1 ${x} ${y + r} A ${r} ${r} 0 1 1 ${x} ${y - r}`;
+function draw(s, p, width = 2.5, color = INK) {
+  if (p <= 0) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (p < 1) ctx.setLineDash([s.len * p, s.len + 1]);
+  ctx.stroke(s.path);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- assets
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+const fontFaces = [['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['400', 'Zain-Regular.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.forEach(f => document.fonts.add(f));
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => true);
+
+// ---------------------------------------------------------------- shapes
+const PITCH = [
+  shape('M -440 -270 H 440 V 270 H -440 Z'),
+  shape('M 0 -270 V 270'),
+  shape(circleD(70)),
+  shape('M -440 -140 H -300 V 140 H -440'),
+  shape('M 440 -140 H 300 V 140 H 440'),
+  shape('M -440 -62 H -392 V 62 H -440'),
+  shape('M 440 -62 H 392 V 62 H 440'),
+  shape('M -300 -48 A 60 60 0 0 1 -300 48'),
+  shape('M 300 -48 A 60 60 0 0 0 300 48'),
+];
+const WATCH_R = 150;
+const WATCH = {
+  face: shape(circleD(WATCH_R)),
+  crown: shape('M -20 -186 H 20 V -170 H -20 Z M 0 -170 V -151'),
+  button: shape('M 104 -128 L 118 -142 M 111 -135 L 101 -125'),
+};
+const TROPHY = [
+  shape('M -95 -150 H 95 V -95 C 95 -15 52 28 0 28 C -52 28 -95 -15 -95 -95 Z'),
+  shape('M 95 -128 C 168 -128 162 -42 72 -32'),
+  shape('M -95 -128 C -168 -128 -162 -42 -72 -32'),
+  shape('M -13 28 C -10 60 -14 80 -34 100 H 34 C 14 80 10 60 13 28'),
+  shape('M -72 100 H 72 V 138 H -72 Z'),
+  shape('M -96 160 H 96'),
+];
+const starD = (() => {
+  let d = '';
+  for (let k = 0; k < 10; k++) {
+    const r = k % 2 ? 11 : 26, a = rad(-90 + k * 36);
+    d += (k ? 'L ' : 'M ') + (Math.cos(a) * r).toFixed(2) + ' ' + (-72 + Math.sin(a) * r).toFixed(2) + ' ';
+  }
+  return d + 'Z';
+})();
+const STAR = shape(starD);
+
+const dust = (() => {
+  const r = rng(5), a = [];
+  for (let i = 0; i < 46; i++) a.push({ x: r() * W, y: r() * H, s: 0.6 + r() * 1.6, v: 6 + r() * 16, ph: r() * 6.3 });
+  return a;
+})();
+
+// ---------------------------------------------------------------- pieces
+function pentagon(r, rot = 0, cx = 0, cy = 0) {
+  return Array.from({ length: 5 }, (_, k) => {
+    const a = rot - Math.PI / 2 + k * Math.PI * 2 / 5;
+    return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+  });
+}
+
+// Minimal ball: outer circle, centre pentagon, five seams.
+function ballArt(r, rot, p = 1, width = 2.5, fill = true) {
+  const pts = pentagon(r * 0.38, rot);
+  const outer = pentagon(r, rot);
+  ctx.save();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.arc(0, 0, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+  ctx.stroke();
+  const q = clamp(p * 1.4 - 0.2);
+  if (q > 0) {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = ACCENT; ctx.globalAlpha = q; ctx.fill(); ctx.globalAlpha = 1; }
+    ctx.stroke();
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => {
+      ctx.moveTo(x, y);
+      ctx.lineTo(lerp(x, outer[i][0], q), lerp(y, outer[i][1], q));
+    });
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function sceneAlpha(t, [a, b], fin = 0.35, fout = 0.4) {
+  return Math.min(prog(t, a, a + fin), 1 - prog(t, b - fout, b));
+}
+
+// ---------------------------------------------------------------- scenes
+function scenePitch(t) {
+  const [a, b] = S.pitch;
+  if (t > b) return;
+  // at the end the camera dives into the centre circle, which becomes the watch face
+  const zoom = ease.in(prog(t, b - 0.55, b));
+  const s = lerp(1, WATCH_R / 70, zoom);
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.scale(s, s);
+  ctx.globalAlpha = sceneAlpha(t, S.pitch, 0.3, 0.001);
+  PITCH.forEach((sh, i) => {
+    const p = ease.inOut(prog(t, 0.2 + i * 0.12, 1.3 + i * 0.12));
+    const isCircle = i === 2;
+    ctx.globalAlpha = sceneAlpha(t, S.pitch, 0.3, 0.001) * (isCircle ? 1 : 1 - zoom);
+    draw(sh, p, (isCircle ? 2.5 + zoom * 1 : 2) / s, isCircle ? INK : 'rgba(236,246,239,0.55)');
+  });
+  // centre spot
+  ctx.globalAlpha = prog(t, 1.2, 1.5) * (1 - zoom);
+  ctx.fillStyle = INK;
+  ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+  // the ball rolls in from the left and settles on the spot
+  const u = ease.outQuint(prog(t, T.ballIn, T.ballStop));
+  if (t > T.ballIn) {
+    const r = 22, x = lerp(-520, 0, u);
+    ctx.globalAlpha = prog(t, T.ballIn, T.ballIn + 0.2) * (1 - zoom);
+    ctx.save();
+    ctx.translate(x, 0);
+    ballArt(r, (x + 520) / r, 1, 2 / s);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function sceneWatch(t) {
+  const [a, b] = S.watch;
+  if (t < a || t > b) return;
+  const out = ease.in(prog(t, b - 0.5, b));
+  const s = 1 - 0.25 * out;
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.scale(s, s);
+  ctx.globalAlpha = 1 - out;
+  // the face circle arrives from the pitch's centre circle
+  draw(WATCH.face, 1, 3.5);
+  draw(WATCH.crown, ease.inOut(prog(t, 4.3, 4.9)), 3);
+  draw(WATCH.button, ease.inOut(prog(t, 4.45, 4.95)), 3);
+  // ticks
+  for (let k = 0; k < 60; k++) {
+    const p = ease.out(prog(t, 4.35 + k * 0.008, 4.65 + k * 0.008));
+    if (p <= 0) continue;
+    const major = k % 5 === 0;
+    const ang = rad(-90 + k * 6);
+    const r1 = WATCH_R - 14, r0 = r1 - (major ? 18 : 7) * p;
+    ctx.strokeStyle = major ? INK : 'rgba(236,246,239,0.45)';
+    ctx.lineWidth = major ? 3 : 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(ang) * r0, Math.sin(ang) * r0);
+    ctx.lineTo(Math.cos(ang) * r1, Math.sin(ang) * r1);
+    ctx.stroke();
+  }
+  // one sweep of the hand fills a green arc
+  const sw = ease.inOut(prog(t, ...T.sweep));
+  const hand = rad(-90 + 360 * sw);
+  if (sw > 0) {
+    ctx.strokeStyle = ACCENT;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 0, WATCH_R + 16, rad(-90), hand);
+    ctx.stroke();
+  }
+  const hp = ease.outBack(prog(t, 4.6, 5.0));
+  ctx.strokeStyle = ACCENT;
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(-Math.cos(hand) * 22 * hp, -Math.sin(hand) * 22 * hp);
+  ctx.lineTo(Math.cos(hand) * (WATCH_R - 34) * hp, Math.sin(hand) * (WATCH_R - 34) * hp);
+  ctx.stroke();
+  ctx.fillStyle = INK;
+  ctx.beginPath(); ctx.arc(0, 0, 7 * hp, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.arc(0, 0, 3 * hp, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// five points come together into one ball: the team metaphor
+const TEAM_R = 150;
+const dotStarts = [[-700, -420], [760, -380], [820, 300], [-40, 560], [-820, 260]];
+function sceneTeam(t) {
+  const [a, b] = S.team;
+  if (t < a || t > b) return;
+  const out = ease.in(prog(t, b - 0.5, b));
+  const rot = rad(8) * Math.sin((t - a) * 0.5) + (t - a) * 0.12;
+  const pts = pentagon(TEAM_R * 0.38, rot);
+  ctx.save();
+  ctx.translate(CX, CY);
+  const s = 1 - 0.6 * out;
+  ctx.scale(s, s);
+  ctx.globalAlpha = 1 - out;
+  // dots fly in
+  const arrive = pts.map((p, i) => ease.outQuint(prog(t, T.dots + i * 0.1, T.dots + 0.9 + i * 0.1)));
+  const edges = ease.inOut(prog(t, 9.55, 10.2));
+  const ball = ease.inOut(prog(t, 10.1, 10.9));
+  if (ball > 0) ballArt(TEAM_R, rot, ball, 2.5, true);
+  else {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 5; i++) {
+      const p0 = pts[i], p1 = pts[(i + 1) % 5];
+      const e = clamp(edges * 5 - i);
+      if (e <= 0) continue;
+      ctx.beginPath();
+      ctx.moveTo(...p0);
+      ctx.lineTo(lerp(p0[0], p1[0], e), lerp(p0[1], p1[1], e));
+      ctx.stroke();
+    }
+  }
+  pts.forEach((p, i) => {
+    const u = arrive[i];
+    if (u <= 0) return;
+    const x = lerp(dotStarts[i][0], p[0], u), y = lerp(dotStarts[i][1], p[1], u);
+    // short motion trail
+    ctx.strokeStyle = `rgba(61, 220, 110, ${0.5 * (1 - u)})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(lerp(x, dotStarts[i][0], 0.12), lerp(y, dotStarts[i][1], 0.12));
+    ctx.stroke();
+    ctx.fillStyle = u >= 1 ? ACCENT : INK;
+    ctx.beginPath();
+    ctx.arc(x, y, 7 * (1 - 0.4 * ball), 0, Math.PI * 2);
+    ctx.fill();
+  });
+  // a soft ring pulse once the ball closes
+  const pu = prog(t, 10.9, 11.8);
+  if (pu > 0 && pu < 1) {
+    ctx.strokeStyle = `rgba(61, 220, 110, ${0.6 * (1 - pu)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, TEAM_R + 10 + 90 * ease.out(pu), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function sceneTrophy(t) {
+  const [a, b] = S.trophy;
+  if (t < a || t > b) return;
+  const out = ease.in(prog(t, b - 0.45, b));
+  ctx.save();
+  ctx.translate(CX, CY + 10 - 40 * out);
+  ctx.globalAlpha = 1 - out;
+  TROPHY.forEach((sh, i) => draw(sh, ease.inOut(prog(t, 12.65 + i * 0.13, 13.55 + i * 0.13)), 3));
+  const sp = ease.outBack(prog(t, 13.7, 14.2));
+  if (sp > 0) {
+    ctx.save();
+    ctx.translate(0, -72);
+    ctx.scale(sp, sp);
+    ctx.translate(0, 72);
+    ctx.fillStyle = ACCENT;
+    ctx.fill(STAR.path);
+    ctx.restore();
+  }
+  // a single light sweep across the cup
+  const su = prog(t, T.trophyShine, T.trophyShine + 0.8);
+  if (su > 0 && su < 1) {
+    ctx.save();
+    ctx.clip(TROPHY[0].path);
+    ctx.rotate(rad(20));
+    const x = lerp(-200, 200, ease.inOut(su));
+    const g = ctx.createLinearGradient(x - 40, 0, x + 40, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.35)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-300, -300, 600, 600);
+    ctx.restore();
+  }
+  // tiny sparkles
+  for (const [sx, sy, st] of [[-150, -170, 14.3], [160, -150, 14.55], [130, 40, 14.8], [-140, 10, 15.05]]) {
+    const u = prog(t, st, st + 0.7);
+    if (u <= 0 || u >= 1) continue;
+    const k = Math.sin(u * Math.PI);
+    ctx.strokeStyle = `rgba(61, 220, 110, ${k})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx - 10 * k, sy); ctx.lineTo(sx + 10 * k, sy);
+    ctx.moveTo(sx, sy - 10 * k); ctx.lineTo(sx, sy + 10 * k);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function sceneLogo(t) {
+  const [a] = S.logo;
+  if (t < a) return;
+  const r = 150;
+  ctx.save();
+  ctx.translate(CX, CY - 40);
+  // ring draws, then the logo grows out of it
+  const ring = ease.inOut(prog(t, a + 0.05, a + 0.75));
+  ctx.strokeStyle = ACCENT;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, r + 22, rad(-90), rad(-90) + Math.PI * 2 * ring);
+  ctx.stroke();
+  const lu = prog(t, T.logoHit, T.logoHit + 0.7);
+  if (lu > 0) {
+    const s = lerp(0.6, 1, ease.outBack(lu));
+    ctx.save();
+    ctx.globalAlpha = clamp(lu * 2);
+    ctx.scale(s, s);
+    const d = r * 2 * (logoImg.width / (logoImg.width - 8));
+    ctx.imageSmoothingQuality = 'high';
+    ctx.shadowColor = 'rgba(61, 220, 110, 0.35)';
+    ctx.shadowBlur = 40;
+    ctx.drawImage(logoImg, -d / 2, -d / 2, d, d);
+    ctx.restore();
+  }
+  const pu = prog(t, T.logoHit, T.logoHit + 1.1);
+  if (pu > 0 && pu < 1) {
+    ctx.strokeStyle = `rgba(61, 220, 110, ${0.5 * (1 - pu)})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + 22 + 160 * ease.out(pu), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- type
+// Words fade and sharpen in from right to left, then leave together.
+function phrase(t, t0, t1, text, y, size, weight = 800, color = '#ffffff', stagger = 0.13) {
+  if (t < t0 || t > t1 + 0.1) return 0;
+  ctx.save();
+  ctx.font = `${weight} ${size}px Zain`;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'alphabetic';
+  const words = text.split(' ');
+  const ws = words.map(w => ctx.measureText(w).width);
+  const space = ctx.measureText(' ').width;
+  const total = ws.reduce((s, w) => s + w, 0) + space * (words.length - 1);
+  const leave = ease.in(prog(t, t1 - 0.4, t1));
+  let xr = CX + total / 2;
+  words.forEach((w, i) => {
+    const u = ease.out(prog(t, t0 + i * stagger, t0 + 0.7 + i * stagger));
+    if (u > 0) {
+      ctx.save();
+      ctx.globalAlpha = u * (1 - leave);
+      const blur = (1 - u) * 14 + leave * 8;
+      if (blur > 0.3) ctx.filter = `blur(${blur.toFixed(1)}px)`;
+      ctx.fillStyle = color;
+      ctx.fillText(w, xr, y + (1 - u) * 26 - leave * 18);
+      ctx.restore();
+    }
+    xr -= ws[i] + space;
+  });
+  ctx.restore();
+  return total;
+}
+
+function accentLine(t, t0, t1, y, w = 64) {
+  const u = ease.inOut(prog(t, t0, t0 + 0.6)) * (1 - ease.in(prog(t, t1 - 0.4, t1)));
+  if (u <= 0) return;
+  ctx.save();
+  ctx.strokeStyle = ACCENT;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(CX - w / 2 * u, y);
+  ctx.lineTo(CX + w / 2 * u, y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- frame chrome
+function background(t) {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(CX, CY + 40, 0, CX, CY + 40, 1000);
+  g.addColorStop(0, 'rgba(14, 74, 34, 0.75)');
+  g.addColorStop(0.5, 'rgba(6, 34, 16, 0.55)');
+  g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  for (const p of dust) {
+    const y = ((p.y - t * p.v) % H + H) % H;
+    ctx.fillStyle = `rgba(150, 240, 175, ${0.18 + 0.2 * Math.abs(Math.sin(t * 0.7 + p.ph))})`;
+    ctx.beginPath();
+    ctx.arc(p.x + Math.sin(t * 0.3 + p.ph) * 12, y, p.s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function chrome(t) {
+  const u = ease.inOut(prog(t, 0.3, 1.3));
+  ctx.save();
+  ctx.strokeStyle = 'rgba(236,246,239,0.35)';
+  ctx.lineWidth = 2;
+  const m = 56, l = 34 * u;
+  for (const [x, y, sx, sy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + sy * l); ctx.lineTo(x, y); ctx.lineTo(x + sx * l, y);
+    ctx.stroke();
+  }
+  // progress hairline
+  ctx.strokeStyle = 'rgba(236,246,239,0.12)';
+  ctx.beginPath(); ctx.moveTo(W / 2 - 180, H - 58); ctx.lineTo(W / 2 + 180, H - 58); ctx.stroke();
+  ctx.strokeStyle = ACCENT;
+  ctx.beginPath(); ctx.moveTo(W / 2 + 180, H - 58); ctx.lineTo(W / 2 + 180 - 360 * prog(t, 0, DURATION), H - 58); ctx.stroke();
+  ctx.restore();
+}
+
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.filter = 'none';
+  background(t);
+  chrome(t);
+  scenePitch(t);
+  sceneWatch(t);
+  sceneTeam(t);
+  sceneTrophy(t);
+  sceneLogo(t);
+  TXT.forEach(([a, b], i) => {
+    phrase(t, a, b, PHRASES[i], TEXT_Y, i === 1 ? 74 : 84);
+    accentLine(t, a + 0.15, b, TEXT_Y + 64);
+  });
+  phrase(t, T.name, DURATION + 1, NAME, 780, 66, 800, '#ffffff', 0.09);
+  phrase(t, T.sub, DURATION + 1, SUBLINE, 866, 46, 700, ACCENT, 0.12);
+  ctx.restore();
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.6)), ease.inOut(prog(t, T.outro, DURATION)));
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION,
+  phrases: TXT.map(([a, b], i) => ({ start: a, end: b, words: PHRASES[i].split(' ').length })),
+  ballIn: T.ballIn, ballStop: T.ballStop,
+  transitions: [S.pitch[1] - 0.55, S.watch[1] - 0.5, S.team[1] - 0.5, S.trophy[1] - 0.45],
+  ticks: Array.from({ length: 12 }, (_, k) => +(T.sweep[0] + (T.sweep[1] - T.sweep[0]) * k / 12).toFixed(3)),
+  dots: Array.from({ length: 5 }, (_, i) => +(T.dots + 0.55 + i * 0.1).toFixed(3)),
+  ballClose: 10.9, trophyStar: 13.8, trophyShine: T.trophyShine,
+  logoHit: T.logoHit, name: T.name, outro: T.outro,
+});
+
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.8)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 //   node render.mjs --fps 30 --out a.mp4  -> custom frame rate / path
 //   node render.mjs --audio sfx.wav       -> mux an audio track
 //   node render.mjs --stills 1,2.9,8      -> PNG snapshots only (for review)
+//   node render.mjs --page minimal.html   -> render another page in this folder
 //   node render.mjs --cues audio/cues.json -> sound cue times for audio.py
 //
 // Needs Playwright (npm i playwright) and ffmpeg (on PATH or via $FFMPEG).
@@ -28,6 +29,7 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
   return acc;
 }, []));
 const fps = Number(args.fps || 60);
+const pageFile = args.page || 'index.html';
 const out = path.resolve(here, args.out || 'output/puk-sports-board-motion.mp4');
 const ffmpeg = process.env.FFMPEG || 'ffmpeg';
 
@@ -44,7 +46,7 @@ await page.route('http://motion.local/**', async route => {
   }
 });
 page.on('pageerror', e => { console.error('page error:', e); process.exitCode = 1; });
-await page.goto('http://motion.local/index.html?capture');
+await page.goto(`http://motion.local/${pageFile}?capture`);
 await page.evaluate(() => window.ready);
 const duration = await page.evaluate(() => window.DURATION);
 
