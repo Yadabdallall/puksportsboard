@@ -21,7 +21,7 @@ pill button ("هەواڵەکان ببینە" → the news). Flanking the pill, c
 sit two glowing neon ORBS (a ring with the sport's line icon in the visible half) with labels.
 
 Instead of 3 planets there are 14 sports popular in Kurdistan and Sulaymaniyah, in this order:
-football (تۆپی پێ), futsal (فوتسال), volleyball (تۆپی باڵە), basketball (تۆپی سەبەتە),
+football (دووگۆڵی), futsal (فوتسال), volleyball (تۆپی باڵە), basketball (تۆپی سەبەتە),
 handball (تۆپی دەست), running (ڕاکردن), swimming (مەلەکردن), table tennis (تێنسی سەر مێز),
 tennis (تێنسی سەر زەوی), wrestling (زۆرانبازی), boxing (بۆکسێن), mountaineering (شاخەوانی),
 cycling (پاسکیلسواری), taekwondo (تایکواندۆ). Each has a name and a 1–2 sentence intro in Kurdish,
@@ -55,12 +55,12 @@ and turns into a blurred solid bar once the page scrolls; a scroll-spy moves the
   switching only toggles .is-shown — never re-create or re-point an image, so the swap is same-frame.
 
 ════════════════════════════════════════════════════════════════════════
-3. FONTS (Google Fonts)
+3. FONT (Google Fonts)
 ════════════════════════════════════════════════════════════════════════
-Noto Kufi Arabic 400–800 (Kurdish Sorani + Arabic: headings and body), Bebas Neue (English display),
-Hanken Grotesk 400–700 (English body), Poppins 500–700 (English wordmark).
-:root:lang(ckb), :root:lang(ar) switch the font variables and set --ls:0 — Arabic script is never
-letter-spaced (every tracking value is calc(N * var(--u) * var(--ls))).
+ALL text uses one typeface: Zain (weights 300/400/700/800/900). It covers Arabic, every Kurdish
+Sorani letter (ڕ ڵ ێ ۆ ە ڤ) and Latin. Zain draws small for its size, so type is set ~15–20% larger
+than usual (hero title 140u, lede 21–22u, body copy 17.5–20px). :root:lang(ckb), :root:lang(ar) set
+--ls:0 — Arabic script is never letter-spaced (every tracking value is calc(N * var(--u) * var(--ls))).
 
 ════════════════════════════════════════════════════════════════════════
 4. DESIGN SYSTEM
@@ -108,15 +108,28 @@ data/news.json  { "items": [ { id, date "YYYY-MM-DD", sport (key or "general"), 
                   image, gallery[], title_ku, summary_ku, body_ku, title_ar, …, body_en } ] }
 data/site.json  { founded, about_ku/ar/en, address_ku/ar/en, phone, email, facebook, instagram,
                   youtube, tiktok, telegram, x, whatsapp, hero_photos: [ { sport, image } ] }
-Missing translations fall back to Kurdish. Sorted newest first; a "featured" story leads.
+Each story belongs to ONE section: one of the 14 sports, "هەمەڕەنگ" (misc — festivals, work and
+activities) or "گشتی" (general — board announcements). Missing translations fall back to Kurdish.
+Sorted newest first; a "featured" story leads.
 News: filter chips (only sports that have stories), lead card spanning the row, cards with photo or a
 neon placeholder, sport tag, photo count, "more" button. Reader = <dialog> deep-linked as #news/<id>
 (Back closes it), photo viewer with thumbnails and arrows, share (Web Share / copy link).
-Sports grid (14 tiles, 7+7 on desktop) filters the news. Photos section = latest photos from the news.
+Sections grid (16 tiles: 8+8 on desktop, 4 on tablets, 3 on phones) filters the news; tapping a
+sport also features it in the hero. Photos section = latest photos from the news.
 About = emblem with a spinning neon ring, text, stats (14 sports · founded · stories · 3 languages),
 contacts and social links (only the ones filled in).
-Editing: /admin/ = Sveltia CMS (classic <script>, not type=module) with GitHub backend, "Sign In Using
-Access Token", images auto-converted to WebP ≤2000px, Kurdish/Arabic/English labelled fields.
+Editing: a 🔒 "بەڕێوەبردن" button in the footer opens /admin/, a lock screen in the same neon style.
+Only whoever knows the lock code can publish. No server: at one-time setup a fine-grained GitHub token
+(Contents: read/write, this repository only) is encrypted in the browser with the code
+(PBKDF2-SHA256, 600,000 iterations → AES-256-GCM) and committed as data/admin.json. The code itself is
+never stored. Unlocking decrypts the token in memory, and the panel auto-locks after 30 minutes idle;
+wrong codes back off exponentially.
+Panel tabs: New story (1. pick the section from 16 icon tiles — required; 2. photos with camera
+support, first = main, ★ to promote, resized in-browser to JPEG ≤1600px; 3. Kurdish text + optional
+Arabic / English; pin to top; draft) · Stories (edit / delete; photos no longer used are removed) ·
+Settings (about, address, phone, email, 7 social links, per-sport hero photos, change code).
+Every save is ONE atomic commit through the Git Data API (blobs → tree → commit → move branch),
+re-reading the JSON at the new head and retrying if someone else committed in between.
 All text is rendered with textContent / escaped; URLs are sanitised (no javascript: / data:).
 
 ════════════════════════════════════════════════════════════════════════
@@ -145,6 +158,6 @@ transforms, instant scrolling.
 · Field, headline, lede, both orbs and both labels update together; language switch keeps the sport.
 · body never scrolls horizontally from 320px to 2560px, in all three languages.
 · Entrance runs once; afterwards <html> carries neither .anim nor .play.
-· Adding a story to data/news.json (or via /admin/) shows it on the site and in the installed app
-  without changing any code.
+· Adding a story in /admin/ (code required) shows it on the site and in the installed app, in its
+  section, without changing any code. A wrong code never unlocks the panel.
 ```

@@ -1,7 +1,7 @@
 # بۆردی وەرزش — ماڵپەڕ و ئەپی فەرمی
 **PUK Sports Board — official website & app**
 
-ماڵپەڕێکی نیۆنی ڕەش و سەوز بە سێ زمان (کوردی، عەرەبی، ئینگلیزی). هەواڵ و وێنەکان ڕۆژانە زیاد دەکرێن و ماڵپەڕەکە دەتوانرێت بکرێت بە ئەپ بۆ App Store و Google Play.
+ماڵپەڕێکی نیۆنی ڕەش و سەوز بە سێ زمان (کوردی، عەرەبی، ئینگلیزی) و بە فۆنتی **Zain**. هەواڵ و وێنەکان ڕۆژانە لە پانێڵێکی قفڵکراوەوە زیاد دەکرێن، و ماڵپەڕەکە دەتوانرێت بکرێت بە ئەپ.
 
 > ئامادەکراوە لە لایەن ڕاگەیاندنی بۆردی وەرزش
 
@@ -11,105 +11,89 @@
 
 | فایل | چییە |
 |---|---|
-| `index.html` | هەموو ماڵپەڕەکە (بەشی سەرەوەی وەرزشەکان، هەواڵ، وەرزشەکان، وێنەکان، دەربارە، پەیوەندی) |
-| `data/news.json` | **هەواڵەکان** — ڕۆژانە لێرە زیاد دەکرێن |
+| `index.html` | هەموو ماڵپەڕەکە: بەشی سەرەوەی وەرزشەکان، هەواڵ، بەشەکان، وێنەکان، دەربارە، پەیوەندی |
+| `admin/` | **پانێڵی بەڕێوەبردن بە قفڵ** — زیادکردن / دەستکاری / سڕینەوەی هەواڵ و وێنە |
+| `data/news.json` | هەواڵەکان |
 | `data/site.json` | دەربارە، ناونیشان، تەلەفۆن، ئیمەیڵ، سۆشیاڵ میدیا، وێنەی پاشبنەمای وەرزشەکان |
-| `uploads/news/` | وێنەی هەواڵەکان |
-| `uploads/sports/` | وێنەی پاشبنەمای وەرزشەکان (ئارەزوومەندانە) |
-| `admin/` | پانێڵی نووسینی هەواڵ (Sveltia CMS) |
-| `manifest.webmanifest`, `sw.js`, `assets/icons/` | ئەوانەی ماڵپەڕەکە دەکەن بە ئەپ (PWA) و بێ ئینتەرنێتیش کار دەکات |
+| `data/admin.json` | کلیلی GitHub، بە کۆدی قفڵەکە شفرەکراوە (دوای ڕێکخستنی یەکەمجار دروست دەبێت) |
+| `uploads/` | وێنەکان |
+| `manifest.webmanifest`, `sw.js`, `assets/icons/` | ئەپ (PWA) و کارکردن بێ ئینتەرنێت |
 
-وەرزشەکان (١٤): تۆپی پێ، فوتسال، تۆپی باڵە، تۆپی سەبەتە، تۆپی دەست، ڕاکردن، مەلەکردن، تێنسی سەر مێز، تێنسی سەر زەوی، زۆرانبازی، بۆکسێن، شاخەوانی، پاسکیلسواری، تایکواندۆ.
+**بەشەکانی هەواڵ (١٦):** دووگۆڵی، فوتسال، تۆپی باڵە، تۆپی سەبەتە، تۆپی دەست، ڕاکردن، مەلەکردن، تێنسی سەر مێز، تێنسی سەر زەوی، زۆرانبازی، بۆکسێن، شاخەوانی، پاسکیلسواری، تایکواندۆ، **هەمەڕەنگ** (فیستیڤاڵ، کار و چالاکی) و **گشتی** (ڕاگەیاندنی بۆرد).
 
 ---
 
-## ١. بڵاوکردنەوە · Publish (GitHub Pages — free)
+## ١. بڵاوکردنەوە · Publish (GitHub Pages — بەخۆڕایی)
 
 1. ئەم لقە (branch) تێکەڵی `main` بکە.
-2. لە GitHub: **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `(root)` → Save**.
+2. لە GitHub: **Settings → Pages → Deploy from a branch → `main` / `(root)` → Save**.
 3. دوای یەک دوو خولەک ماڵپەڕەکە لێرە دەبێت: `https://yadabdallall.github.io/puksportsboard/`
 
-> Custom domain? Add it in **Settings → Pages → Custom domain**, then update `site_url` and `logo.src` in `admin/config.yml`.
+---
+
+## ٢. قفڵ و زیادکردنی هەواڵ · The lock & daily news
+
+لە خوارەوەی ماڵپەڕەکە دوگمەی **🔒 بەڕێوەبردن** هەیە (یان ڕاستەوخۆ `…/puksportsboard/admin/`).
+
+### ڕێکخستنی یەکەمجار (تەنها یەکجار، ٢ خولەک)
+ماڵپەڕەکە سێرڤەری نییە، بۆیە کلیلێکی GitHub پێویستە بۆ ئەوەی هەواڵەکان پاشەکەوت بکات. ئەم کلیلە بە کۆدی قفڵەکە شفرە دەکرێت.
+
+1. لە پانێڵەکە کلیک لە **«ڕێکخستنی قفڵ (یەکەمجار)»** بکە.
+2. بە هەژماری GitHubـی خاوەنی ماڵپەڕەکە بڕۆ بۆ [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new):
+   - **Expiration**: ماوەیەکی درێژ (بۆ نموونە ساڵێک)
+   - **Repository access** → **Only select repositories** → `puksportsboard`
+   - **Permissions** → **Contents** → **Read and write**
+   - **Generate token** → کۆپی بکە.
+3. تۆکنەکە لە پانێڵەکە دابنێ، و **کۆدی قفڵ** بنووسە (دووجار) → **پاشەکەوتکردن و کردنەوە**.
+
+### هەموو ڕۆژێک
+1. **🔒 بەڕێوەبردن** ← کۆدەکە بنووسە ← **کردنەوە**
+2. **١. بەش هەڵبژێرە** (بۆ نموونە دووگۆڵی، هەمەڕەنگ…) ← هەواڵەکە لەو بەشەدا دەردەکەوێت.
+3. **٢. وێنە زیاد بکە** (لە مۆبایل ڕاستەوخۆ کامێراش دەکرێتەوە). یەکەم وێنە دەبێتە وێنەی سەرەکی، و وێنەکان خۆکار بچووک دەکرێنەوە.
+4. **٣. دەق** بە کوردی بنووسە. عەرەبی و ئینگلیزی ئارەزوومەندانەن.
+5. **بڵاوکردنەوە** — لە ماوەی نزیکەی یەک خولەکدا لە ماڵپەڕ و ئەپەکەدا دەردەکەوێت.
+
+- **هەواڵەکان**: دەستکاری یان سڕینەوەی هەواڵە کۆنەکان.
+- **ڕێکخستنەکان**: دەربارە، تەلەفۆن، ئیمەیڵ، سۆشیاڵ میدیا، وێنەی پاشبنەمای وەرزشەکان، **گۆڕینی کۆد**.
+- پانێڵەکە دوای ٣٠ خولەک بێ جوڵە خۆی قفڵ دەکات.
+
+### ئاسایش · Security notes
+- کۆدەکە خۆی لە هیچ شوێنێک هەڵناگیرێت. تەنها کلیلی GitHub، شفرەکراو بە AES-256 (PBKDF2، 600,000 خول)، لە `data/admin.json`دا هەیە.
+- ئەم فایلە گشتییە، بۆیە هێزی قفڵەکە بەندە بە **درێژی و نەزانراوی کۆدەکە**. بە کەس مەیدە و کاتێک پێویست بوو بیگۆڕە (ڕێکخستنەکان ← گۆڕینی کۆد).
+- ئەگەر گومانت هەبوو کۆدەکە ئاشکرا بووە، تۆکنەکە لە GitHub بسڕەوە (Settings → Developer settings → Personal access tokens) و ڕێکخستنی یەکەمجار دووبارە بکەرەوە. هەر گۆڕانکارییەک لە GitHubدا مێژووی هەیە و دەگەڕێنرێتەوە.
+- کاتێک تۆکنەکە بەسەردەچێت، پانێڵەکە ئاگادارت دەکاتەوە. تۆکنێکی نوێ دروست بکە و «ڕێکخستنی قفڵ» دووبارە بکەرەوە.
 
 ---
 
-## ٢. زیادکردنی هەواڵ و وێنە ڕۆژانە · Add news every day
+## ٣. کردن بە ئەپ · Turn it into an App — بەخۆڕایی؟
 
-### ڕێگای ئاسان: پانێڵی نووسین · The admin panel (recommended)
+| ڕێگا | نرخ | تێبینی |
+|---|---|---|
+| **ئەپی وێب (PWA)**: لە iPhone و Android، ماڵپەڕەکە بکەرەوە ← **Add to Home Screen** | **بەخۆڕایی** | ئایکۆنی خۆی هەیە، وەک ئەپ دەکرێتەوە و بێ ئینتەرنێتیش کار دەکات. پێویستی بە ستۆر نییە. |
+| **APK بۆ Android** لە [pwabuilder.com](https://www.pwabuilder.com) | **بەخۆڕایی** | دروستکردنی بەخۆڕاییە. دەتوانیت فایلەکە ڕاستەوخۆ بڵاو بکەیتەوە (بێ Google Play). |
+| **Google Play** | ٢٥ دۆلار، یەکجار | هەمان فایلی PWABuilder. |
+| **App Store (iPhone)** | ٩٩ دۆلار، ساڵانە | پێویستی بە کۆمپیوتەری **Mac** و Xcode هەیە. ڕێگای بەخۆڕایی نییە، تەنها ئەپڵ بۆ هەندێک ڕێکخراوی ناقازانج و دامەزراوەی حکومی لە وڵاتانی دیاریکراو **لێخۆشبوون** دەدات (Apple Developer fee waiver). |
 
-**یەکجار (One-time setup) — دروستکردنی تۆکن:**
-1. GitHub → وێنەی پرۆفایل → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**
-2. *Repository access*: **Only select repositories → `puksportsboard`**
-3. *Permissions → Repository permissions → **Contents: Read and write***
-4. **Generate token** و کۆپی بکە (لە شوێنێکی پارێزراو هەڵیبگرە).
+> Apple may reject apps that are only a website (guideline 4.2). Daily news, photo galleries and offline support help. [Capacitor](https://capacitorjs.com) is an alternative wrapper that uses the same files.
 
-**هەموو ڕۆژێک (Every day):**
-1. بکەرەوە: `https://yadabdallall.github.io/puksportsboard/admin/`
-2. **Sign In Using Access Token** → تۆکنەکە دابنێ.
-3. **هەواڵەکان · News → هەواڵ · Story → Add** (هەواڵی نوێ لە سەرەوە زیاد دەبێت).
-4. بەروار، وەرزش، وێنەی سەرەکی، وێنەی زیاتر، و سەردێڕ/پوختە/دەق بە کوردی (عەرەبی و ئینگلیزی ئارەزوومەندانەن — ئەگەر بەتاڵ بن کوردییەکە پیشان دەدرێت).
-5. **Save** — ماڵپەڕ و ئەپەکە لە ماوەی یەک خولەکدا نوێ دەبنەوە.
-
-- وێنە گەورەکانی مۆبایل خۆکار بچووک دەکرێنەوە و دەکرێن بە WebP.
-- **لە سەرەوە بێت؟ (Pin to top)** — هەواڵەکە لە سەرووی لیستەکە دەمێنێتەوە.
-- **ڕەشنووس (Draft)** — هەڵدەگیرێت بەڵام پیشان نادرێت.
-- بۆ پەرەگرافی نوێ لە دەقی هەواڵدا، دێڕێکی بەتاڵ دابنێ.
-
-### ڕێگای دووەم: ڕاستەوخۆ لە GitHub · Directly on GitHub
-1. وێنەکان بار بکە بۆ `uploads/news/` (**Add file → Upload files**).
-2. `data/news.json` بکەرەوە → ✏️ → هەواڵێکی نوێ لە سەرەتای لیستی `items` زیاد بکە:
-
-```json
-{
-  "id": "2026-09-26-futsal-final",
-  "date": "2026-09-26",
-  "sport": "futsal",
-  "image": "uploads/news/final-1.jpg",
-  "gallery": ["uploads/news/final-2.jpg", "uploads/news/final-3.jpg"],
-  "title_ku": "…", "summary_ku": "…", "body_ku": "…",
-  "title_ar": "…", "summary_ar": "…", "body_ar": "…",
-  "title_en": "…", "summary_en": "…", "body_en": "…"
-}
-```
-
-`sport` values: `general`, `football`, `futsal`, `volleyball`, `basketball`, `handball`, `running`, `swimming`, `tabletennis`, `tennis`, `wrestling`, `boxing`, `mountain`, `cycling`, `taekwondo`.
+هەواڵە نوێکان **بێ نوێکردنەوەی ئەپەکە** تێیدا دەردەکەون.
 
 ---
 
-## ٣. کردن بە ئەپ · Turn it into an App
+## ٤. گۆڕینی دەق · Editing texts in code
 
-**ئێستا:** ماڵپەڕەکە PWAـیە — لە مۆبایل بیکەرەوە و **Add to Home Screen** (iPhone: Share → Add to Home Screen) بکە، وەک ئەپ دەکرێتەوە و بێ ئینتەرنێتیش دوایین هەواڵە هەڵگیراوەکان پیشان دەدات.
-
-**بۆ App Store و Google Play:**
-1. بڕۆ بۆ **[pwabuilder.com](https://www.pwabuilder.com)** و لینکی ماڵپەڕەکە دابنێ.
-2. **Package For Stores**:
-   - **Android** → فایلێک بۆ Google Play Console (هەژماری گەشەپێدەر: ٢٥ دۆلار، یەکجار).
-   - **iOS** → پرۆژەیەکی Xcode. پێویستی بە **Apple Developer Program** (٩٩ دۆلار ساڵانە) و کۆمپیوتەری **Mac** بە Xcode هەیە بۆ ناردن بۆ App Store.
-3. ئایکۆن و وێنەی شاشەکان ئامادەن: `assets/icons/`، `assets/screenshots/`.
-
-> Apple sometimes rejects apps that are "just a website" (guideline 4.2). Daily news, photo galleries, offline support and the installable app shell help — keep publishing regularly. An alternative wrapper is [Capacitor](https://capacitorjs.com) (`npx cap add ios`), which uses the same files.
-
-هەر هەواڵێک لە پانێڵەکەوە زیاد بکەیت، **بێ نوێکردنەوەی ئەپەکە** لە ئەپیش دەردەکەوێت.
-
----
-
-## ٤. گۆڕینی دەق و ڕێکخستنەکان · Editing texts & settings
-
-- **دەربارە، ناونیشان، تەلەفۆن، ئیمەیڵ، فەیسبووک، ئینستاگرام، یوتیوب، تیکتۆک، تێلێگرام، X، واتسئەپ** → پانێڵ: **ڕێکخستنەکان · Settings** (یان `data/site.json`). ئەوانەی بەتاڵن پیشان نادرێن.
-- **وێنەی پاشبنەمای وەرزشەکان** لە بەشی سەرەوە → **Settings → Hero background photos** (بە ڕەنگی سەوزی نیۆن پیشان دەدرێن).
-- **ناوی وەرزشەکان و دەقی کورتیان** → `index.html` → لیستی `SPORTS`.
-- **دەقەکانی ماڵپەڕ (مینیو، دوگمەکان، …)** → `index.html` → لیستی `T` (هەر دێڕێک: `[کوردی, عەرەبی, ئینگلیزی]`).
-- ئەگەر `index.html` دەگۆڕیت، لە `sw.js` ژمارەی `VERSION` زیاد بکە (نموونە `psb-v2`) بۆ ئەوەی ئەپی سەر مۆبایلەکان نوێ ببێتەوە.
+- **ناوی وەرزشەکان و دەقی کورتیان** → `index.html` → لیستی `SPORTS` (و ناوەکان لە `admin/index.html` → `CATS`).
+- **دەقەکانی ماڵپەڕ** → `index.html` → لیستی `T` (هەر دێڕێک: `[کوردی, عەرەبی, ئینگلیزی]`).
+- ئەگەر `index.html` دەگۆڕیت، لە `sw.js` ژمارەی `VERSION` زیاد بکە (بۆ نموونە `psb-v3`) بۆ ئەوەی ئەپەکە لەسەر مۆبایلەکان نوێ ببێتەوە.
 
 ## Local preview
 
 ```bash
 npx serve .      # then open http://localhost:3000
 ```
-(Opening `index.html` directly from disk works for the design, but news loads only when served over http.)
 
 ---
 
 ## English summary
 
-Single-page, framework-free site (`index.html`) with a full-viewport neon hero whose "planets" are 14 sports popular in Kurdistan and Sulaymaniyah. Each sport has a glowing field/court drawing, trilingual name and intro; the side orbs rotate through them (click, arrow keys or swipe). News, photos, contacts and optional hero photos are loaded from `data/*.json`, edited daily through the Sveltia CMS panel at `/admin/` (GitHub token sign-in, no server). A manifest + service worker make it installable, offline-capable, and ready for PWABuilder/Capacitor packaging for the App Store and Google Play. See `PROMPT.md` for the full design brief.
+Framework-free site (`index.html`, Zain font throughout) with a neon hero whose "planets" are 14 sports popular in Kurdistan and Sulaymaniyah. News sections are the 14 sports plus Miscellaneous (festivals, work, activities) and General. Content lives in `data/*.json` and is edited in `/admin/`, a code-locked panel: a fine-grained GitHub token (Contents: read/write on this repo only) is encrypted in the browser with the lock code (PBKDF2-SHA256 600k → AES-GCM) and stored as `data/admin.json`. Entering the code decrypts it, and each publish is one atomic commit (photos resized to JPEG ≤1600px + JSON), retried on concurrent edits. The manifest and service worker make it installable and offline-capable, ready for PWABuilder/Capacitor. See `PROMPT.md` for the full brief.

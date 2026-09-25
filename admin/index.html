@@ -1,13 +1,790 @@
 <!doctype html>
-<html lang="en">
+<html lang="ckb" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex">
-  <title>بۆردی وەرزش — CMS</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#020805">
+<meta name="color-scheme" content="dark">
+<title>بەڕێوەبردن — بۆردی وەرزش</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font:'Zain',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;
+  --black:#010403;--panel:rgba(6,28,16,.72);--line:rgba(57,255,143,.2);--neon:#39ff8f;--neon-hi:#9dffc8;
+  --ink:#effff5;--muted:rgba(200,255,222,.66);--btn-ink:#02140a;--danger:#ff6b7a;
+  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
+}
+html{background:var(--black);-webkit-text-size-adjust:100%}
+body{min-height:100vh;font-family:var(--font);font-size:19px;line-height:1.6;color:var(--ink);
+  background:
+    radial-gradient(900px 520px at 85% -10%, rgba(0,230,118,.12), transparent 62%),
+    radial-gradient(800px 600px at 0% 100%, rgba(0,230,118,.08), transparent 62%),var(--black);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+a{color:var(--neon-hi)}
+[hidden]{display:none !important}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+svg.i{fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+.top{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:calc(10px + var(--safe-t)) clamp(14px, 4vw, 32px) 10px;background:rgba(2,10,6,.82);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.brand img{width:46px;height:46px;filter:drop-shadow(0 0 10px rgba(57,255,143,.45))}
+.brand b{display:block;font-size:22px;font-weight:900;line-height:1.1}
+.brand i{font-style:normal;color:var(--neon);text-shadow:0 0 10px rgba(57,255,143,.7)}
+.brand small{display:block;font-size:14px;color:var(--muted);line-height:1.2}
+.top-actions{display:flex;gap:8px;flex:none}
+.brand{min-width:0}.brand b{white-space:nowrap}
+/* the logo already links back to the site, so phones drop the extra link */
+@media (max-width:520px){
+  .brand small,.top-actions .to-site{display:none}
+  .brand img{width:40px;height:40px}
+  .brand b{font-size:20px}
+}
+
+main{max-width:980px;margin:0 auto;padding:clamp(20px, 4vw, 40px) clamp(14px, 4vw, 32px) calc(60px + var(--safe-b))}
+h1{font-size:clamp(32px, 6vw, 46px);font-weight:900;line-height:1.25;
+  background:linear-gradient(180deg,#fff 10%,#c8ffe0 56%,#3cf88e 100%);-webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 16px rgba(57,255,143,.35))}
+h2{font-size:30px;font-weight:900;line-height:1.3;margin-bottom:6px}
+h3{font-size:22px;font-weight:800;margin:22px 0 8px}
+p{color:rgba(226,255,238,.86)}
+code{direction:ltr;unicode-bidi:embed;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8em;
+  background:rgba(57,255,143,.1);padding:1px 6px;border-radius:6px}
+
+.primary,.ghost,.danger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 24px;
+  border-radius:999px;font-size:19px;font-weight:800;cursor:pointer;text-decoration:none;transition:filter .2s, background-color .2s, color .2s, box-shadow .2s}
+.primary{border:0;color:var(--btn-ink);background:linear-gradient(180deg,#e3fff0 0%,#8dffc0 14%,#3bf28c 64%,#16c95f 88%,#bfffdc 100%);
+  box-shadow:0 0 20px rgba(57,255,143,.5), inset 0 0 0 2px rgba(226,255,238,.85)}
+.primary:hover{filter:brightness(1.06)}
+.primary:disabled{filter:grayscale(.6) brightness(.7);cursor:progress}
+.ghost{border:1px solid rgba(57,255,143,.45);background:rgba(6,28,16,.7);color:var(--neon-hi);min-height:42px;padding:0 16px;font-size:16.5px}
+.ghost:hover{background:var(--neon);color:var(--btn-ink)}
+.danger{border:1px solid rgba(255,107,122,.5);background:rgba(40,6,10,.6);color:#ffb3bb;min-height:42px;padding:0 16px;font-size:16.5px}
+.danger:hover{background:var(--danger);color:#1a0003}
+.link{border:0;background:none;color:var(--neon-hi);text-decoration:underline;cursor:pointer;font-size:17px;padding:6px}
+:focus-visible{outline:2px solid var(--neon);outline-offset:3px}
+
+/* lock */
+.lock-card{max-width:460px;margin:clamp(20px, 8vh, 80px) auto 0;text-align:center;padding:36px 26px 26px;border-radius:28px;
+  border:1px solid var(--line);background:linear-gradient(180deg, rgba(9,40,22,.78), rgba(3,14,8,.94));
+  box-shadow:0 0 60px rgba(57,255,143,.12), 0 30px 60px -30px rgba(0,0,0,.9)}
+.lock-ico{width:108px;height:108px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;color:var(--neon);
+  border:2px solid rgba(57,255,143,.7);background:radial-gradient(circle, rgba(12,64,34,.9), rgba(2,12,7,.96));
+  box-shadow:0 0 26px rgba(57,255,143,.45), inset 0 0 24px rgba(57,255,143,.3)}
+.lock-ico svg{width:54px;height:54px;filter:drop-shadow(0 0 6px rgba(57,255,143,.9))}
+.lock-card p{margin:8px 0 20px}
+.lock-card form{display:flex;flex-direction:column;gap:12px}
+.lock-card input{text-align:center;font-size:24px;letter-spacing:.12em;direction:ltr}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+/* forms */
+input[type=text],input[type=password],input[type=date],input[type=email],input[type=tel],input[type=url],input:not([type]),textarea,select{
+  width:100%;min-height:52px;padding:10px 16px;border-radius:14px;border:1px solid rgba(57,255,143,.28);
+  background:rgba(1,8,4,.75);color:#fff;font-size:19px;line-height:1.5;transition:border-color .2s, box-shadow .2s}
+textarea{min-height:90px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--neon);box-shadow:0 0 0 3px rgba(57,255,143,.2)}
+input[dir=ltr]{text-align:left}
+label{display:flex;flex-direction:column;gap:6px;font-size:17px;font-weight:700;color:var(--neon-hi)}
+label + label,details + label,label + details{margin-top:14px}
+.check{flex-direction:row;align-items:center;gap:12px;color:#eafff2;font-weight:400;cursor:pointer}
+.check input{width:24px;height:24px;accent-color:#39ff8f}
+details{border:1px solid var(--line);border-radius:14px;padding:10px 14px;background:rgba(4,20,11,.5)}
+details[open]{padding-bottom:16px}
+summary{cursor:pointer;font-weight:800;color:var(--neon-hi);font-size:18px}
+details > label:first-of-type{margin-top:12px}
+.hint,.note{font-size:15.5px;color:var(--muted)}
+.note{margin-top:18px}
+.msg{min-height:1.6em;margin-top:12px;font-weight:700;color:#ffb3bb}
+.msg.ok{color:var(--neon-hi)}
+.err{min-height:1.2em;font-size:16px;font-weight:700;color:#ffb3bb;margin-top:6px}
+
+.panel,fieldset{border:1px solid var(--line);border-radius:22px;background:var(--panel);padding:clamp(18px, 3vw, 28px)}
+fieldset + fieldset{margin-top:18px}
+legend{float:right;width:100%;display:flex;align-items:center;gap:10px;font-size:22px;font-weight:900;margin-bottom:14px;color:#fff}
+[dir=ltr] legend{float:left}
+legend + *{clear:both}
+legend .n{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:18px;
+  background:var(--neon);color:var(--btn-ink);box-shadow:0 0 12px rgba(57,255,143,.6)}
+.steps{margin:14px 22px 20px 0;display:grid;gap:8px}
+.steps li{line-height:1.7}
+
+/* tabs */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 16px;scrollbar-width:none}
+.tabs button{flex:none;min-height:48px;padding:0 20px;border-radius:999px;border:1px solid rgba(57,255,143,.3);background:rgba(6,28,16,.62);
+  font-size:18px;font-weight:800;cursor:pointer;color:#dcffea}
+.tabs button[aria-selected=true]{background:linear-gradient(180deg,#a9ffd0,#35ea85);color:var(--btn-ink);border-color:transparent;box-shadow:0 0 18px rgba(57,255,143,.45)}
+.tabs .count{font-size:15px;opacity:.75}
+
+/* category picker */
+.cats{display:grid;grid-template-columns:repeat(auto-fill, minmax(118px, 1fr));gap:10px}
+.cat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 10px;border-radius:16px;cursor:pointer;
+  border:1px solid rgba(57,255,143,.2);background:rgba(2,12,7,.7);color:#eafff2;font-size:17px;font-weight:800;line-height:1.25;text-align:center;
+  transition:border-color .2s, box-shadow .2s, background-color .2s}
+.cat svg{width:40px;height:40px;color:var(--neon);filter:drop-shadow(0 0 4px rgba(57,255,143,.7))}
+.cat small{font-size:13px;font-weight:400;color:var(--muted)}
+.cat:hover{border-color:rgba(57,255,143,.6)}
+.cat[aria-checked=true]{background:linear-gradient(180deg, rgba(57,255,143,.28), rgba(10,60,32,.7));border-color:var(--neon);
+  box-shadow:0 0 0 2px var(--neon), 0 0 22px rgba(57,255,143,.45)}
+.cat.wide{grid-column:span 2}
+
+/* photos */
+.photos{display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:10px}
+.photo{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#03130a}
+.photo img{width:100%;height:100%;object-fit:cover;display:block}
+.photo .main{position:absolute;top:8px;inset-inline-start:8px;padding:2px 10px;border-radius:999px;background:var(--neon);color:var(--btn-ink);font-size:14px;font-weight:800}
+.photo .tools{position:absolute;bottom:8px;inset-inline-end:8px;display:flex;gap:6px}
+.photo .tools button{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.65);color:#fff;
+  font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.add-photo{margin-top:12px;display:flex;align-items:center;justify-content:center;gap:10px;min-height:64px;border-radius:16px;cursor:pointer;
+  border:2px dashed rgba(57,255,143,.45);color:var(--neon-hi);font-size:19px;font-weight:800;flex-direction:row}
+.add-photo:hover{background:rgba(57,255,143,.08)}
+.add-photo svg{width:26px;height:26px}
+.add-photo input{position:absolute;width:1px;height:1px;opacity:0}
+
+.actions{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px;
+  padding:14px 0 calc(14px + var(--safe-b));background:linear-gradient(180deg, transparent, var(--black) 30%)}
+.status{margin-top:10px;font-weight:700;color:var(--neon-hi);min-height:1.6em}
+.status.bad{color:#ffb3bb}
+
+/* list */
+.list{display:grid;gap:10px}
+.row{display:grid;grid-template-columns:76px 1fr auto;gap:14px;align-items:center;padding:10px;border-radius:18px;border:1px solid var(--line);background:var(--panel)}
+.row .thumb{width:76px;height:76px;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:#03130a}
+.row .thumb img{width:100%;height:100%;object-fit:cover}
+.row .thumb svg{width:40px;height:40px;color:var(--neon)}
+.row b{display:block;font-size:19px;line-height:1.35}
+.row small{display:flex;flex-wrap:wrap;gap:4px 10px;color:var(--muted);font-size:15px}
+.badge{padding:0 8px;border-radius:999px;background:rgba(57,255,143,.15);color:var(--neon-hi);font-weight:700}
+.badge.draft{background:rgba(255,200,80,.15);color:#ffd88a}
+.row .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){
+  .row{grid-template-columns:60px 1fr}
+  .row .thumb{width:60px;height:60px}
+  .row .btns{grid-column:1 / -1;justify-content:stretch}
+  .row .btns button{flex:1}
+}
+.empty{padding:36px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px}
+
+.grid2{display:grid;gap:14px}
+@media (min-width:700px){ .grid2{grid-template-columns:1fr 1fr} .grid2 > label + label{margin-top:0} }
+.hero-add{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.hero-add select{width:auto;flex:1;min-width:180px}
+.spin{width:18px;height:18px;border-radius:50%;border:3px solid rgba(2,20,10,.35);border-top-color:var(--btn-ink);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));z-index:60;transform:translate(-50%, 16px);opacity:0;pointer-events:none;max-width:calc(100% - 32px);
+  padding:12px 22px;border-radius:999px;background:var(--neon);color:var(--btn-ink);font-weight:800;font-size:18px;text-align:center;
+  box-shadow:0 0 24px rgba(57,255,143,.6);transition:opacity .25s, transform .3s}
+.toast.show{opacity:1;transform:translate(-50%, 0)}
+.toast.bad{background:var(--danger);color:#1a0003;box-shadow:0 0 24px rgba(255,107,122,.5)}
+@media (prefers-reduced-motion:reduce){ .shake,.spin{animation:none} }
+</style>
 </head>
 <body>
-  <!-- Sveltia CMS: a free, Git-based content editor. Settings live in ./config.yml -->
-  <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+<header class="top">
+  <a class="brand" href="../"><img src="../assets/img/logo-160.png" alt="" width="160" height="160"><span><b>بۆردی <i>وەرزش</i></b><small>بەڕێوەبردنی ماڵپەڕ</small></span></a>
+  <div class="top-actions">
+    <a class="ghost to-site" href="../">ماڵپەڕەکە</a>
+    <button class="ghost" type="button" id="lock-btn" hidden><svg class="i" viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><use href="#u-lock"/></svg>قفڵکردن</button>
+  </div>
+</header>
+
+<main>
+  <!-- ═══ LOCK ═══ -->
+  <section id="view-lock" aria-labelledby="lock-h">
+    <div class="lock-card" id="lock-card">
+      <div class="lock-ico"><svg class="i" viewBox="0 0 48 48" aria-hidden="true"><use href="#u-lock"/></svg></div>
+      <h1 id="lock-h">قفڵی بەڕێوەبردن</h1>
+      <p>تەنها ئەو کەسەی کۆدەکەی لایە دەتوانێت هەواڵ زیاد بکات.</p>
+      <form id="unlock-form" autocomplete="off">
+        <label class="sr" for="code">کۆد</label>
+        <input id="code" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="کۆدەکە بنووسە" required>
+        <button class="primary" type="submit" id="unlock-btn">کردنەوە</button>
+      </form>
+      <p class="msg" id="lock-msg" role="alert"></p>
+      <button class="link" type="button" id="to-setup">ڕێکخستنی قفڵ (یەکەمجار)</button>
+    </div>
+  </section>
+
+  <!-- ═══ ONE-TIME SETUP ═══ -->
+  <section id="view-setup" hidden aria-labelledby="setup-h">
+    <div class="panel">
+      <h1 id="setup-h">ڕێکخستنی قفڵ</h1>
+      <p>ئەم هەنگاوە تەنها یەکجار دەکرێت. کلیلێکی GitHub دروست دەکەیت و ئێمە بە کۆدەکەت قفڵی دەکەین. دواتر بۆ زیادکردنی هەواڵ تەنها کۆدەکە پێویستە.</p>
+      <ol class="steps">
+        <li>بە هەژماری GitHubـی خاوەنی ماڵپەڕەکە ئەم لینکە بکەرەوە: <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">دروستکردنی تۆکن ↗</a></li>
+        <li><b>Token name</b>: هەر ناوێک (بۆ نموونە <code>puk-news</code>). <b>Expiration</b>: ماوەیەکی درێژ هەڵبژێرە، بۆ نموونە ساڵێک.</li>
+        <li><b>Repository access</b> ← <b>Only select repositories</b> ← <code>puksportsboard</code></li>
+        <li><b>Permissions</b> ← <b>Contents</b> ← <b>Read and write</b></li>
+        <li><b>Generate token</b>، ئینجا کۆپی بکە و لێرە دایبنێ.</li>
+      </ol>
+      <form id="setup-form" autocomplete="off">
+        <label>تۆکنی GitHub <input id="s-token" type="password" required autocomplete="off" spellcheck="false" dir="ltr" placeholder="github_pat_…"></label>
+        <div class="grid2" style="margin-top:14px">
+          <label>کۆدی قفڵ <input id="s-code" type="password" required autocomplete="new-password" autocapitalize="off" spellcheck="false" dir="ltr"></label>
+          <label>دووبارە کۆدەکە <input id="s-code2" type="password" required autocomplete="new-password" autocapitalize="off" spellcheck="false" dir="ltr"></label>
+        </div>
+        <details>
+          <summary>ڕێکخستنی پێشکەوتوو</summary>
+          <label>Owner <input id="s-owner" dir="ltr" spellcheck="false"></label>
+          <label>Repository <input id="s-repo" dir="ltr" spellcheck="false"></label>
+          <label>Branch <input id="s-branch" dir="ltr" spellcheck="false"></label>
+        </details>
+        <div class="actions">
+          <button class="primary" type="submit" id="setup-btn">پاشەکەوتکردن و کردنەوە</button>
+          <button class="ghost" type="button" id="setup-back">گەڕانەوە</button>
+        </div>
+      </form>
+      <p class="msg" id="setup-msg" role="alert"></p>
+      <p class="note">🔒 تۆکنەکە بە کۆدەکەت شفرە دەکرێت (AES-256) و وەک <code>data/admin.json</code> هەڵدەگیرێت. کۆدەکە خۆی لە هیچ شوێنێک هەڵناگیرێت، بۆیە لەبیری مەکە.</p>
+    </div>
+  </section>
+
+  <!-- ═══ EDITOR ═══ -->
+  <section id="view-editor" hidden>
+    <nav class="tabs" role="tablist" aria-label="بەشەکان">
+      <button type="button" role="tab" id="t-compose" aria-controls="tab-compose" aria-selected="true">+ هەواڵی نوێ</button>
+      <button type="button" role="tab" id="t-list" aria-controls="tab-list" aria-selected="false">هەواڵەکان <span class="count" id="count"></span></button>
+      <button type="button" role="tab" id="t-settings" aria-controls="tab-settings" aria-selected="false">ڕێکخستنەکان</button>
+    </nav>
+
+    <!-- compose / edit -->
+    <div role="tabpanel" id="tab-compose" aria-labelledby="t-compose">
+      <form id="story-form" novalidate>
+        <h2 id="compose-h">هەواڵی نوێ</h2>
+        <p class="hint" id="compose-sub">بەش هەڵبژێرە، وێنە زیاد بکە و دەقەکە بنووسە.</p>
+        <fieldset style="margin-top:16px">
+          <legend><span class="n">١</span>هەواڵەکە سەر بە چ بەشێکە؟</legend>
+          <div class="cats" id="cats" role="radiogroup" aria-label="بەش"></div>
+          <p class="err" id="err-cat"></p>
+        </fieldset>
+        <fieldset>
+          <legend><span class="n">٢</span>وێنەکان</legend>
+          <div class="photos" id="photos"></div>
+          <label class="add-photo"><svg class="i" viewBox="0 0 48 48" aria-hidden="true"><use href="#u-camera"/></svg>زیادکردنی وێنە<input type="file" id="photo-input" accept="image/*" multiple></label>
+          <p class="hint" style="margin-top:8px">یەکەم وێنە دەبێتە وێنەی سەرەکی — بە ★ وێنەیەک بکە بە سەرەکی. وێنە گەورەکان خۆکار بچووک دەکرێنەوە.</p>
+        </fieldset>
+        <fieldset>
+          <legend><span class="n">٣</span>دەقی هەواڵ</legend>
+          <label>بەروار <input type="date" id="f-date" required dir="ltr"></label>
+          <label>سەردێڕ — کوردی <input id="f-title_ku" maxlength="200"></label>
+          <label>پوختە — کوردی <textarea id="f-summary_ku" rows="2" maxlength="600" placeholder="یەک دوو دێڕ بۆ کارتی هەواڵەکە"></textarea></label>
+          <label>دەقی تەواو — کوردی <textarea id="f-body_ku" rows="7" placeholder="بۆ پەرەگرافی نوێ دێڕێکی بەتاڵ دابنێ"></textarea></label>
+          <details>
+            <summary>عەرەبی — العربية (ئارەزوومەندانە)</summary>
+            <label lang="ar">العنوان <input id="f-title_ar" lang="ar" maxlength="200"></label>
+            <label lang="ar">الملخص <textarea id="f-summary_ar" lang="ar" rows="2" maxlength="600"></textarea></label>
+            <label lang="ar">نص الخبر <textarea id="f-body_ar" lang="ar" rows="6"></textarea></label>
+          </details>
+          <details dir="ltr" style="margin-top:12px">
+            <summary>English (optional)</summary>
+            <label lang="en">Title <input id="f-title_en" lang="en" maxlength="200"></label>
+            <label lang="en">Summary <textarea id="f-summary_en" lang="en" rows="2" maxlength="600"></textarea></label>
+            <label lang="en">Story <textarea id="f-body_en" lang="en" rows="6"></textarea></label>
+          </details>
+          <p class="hint" style="margin-top:10px">ئەگەر عەرەبی یان ئینگلیزی بەتاڵ بێت، کوردییەکە پیشان دەدرێت.</p>
+          <p class="err" id="err-title"></p>
+        </fieldset>
+        <fieldset>
+          <label class="check"><input type="checkbox" id="f-featured"> لە سەرەوەی هەموو هەواڵەکان بێت</label>
+          <label class="check"><input type="checkbox" id="f-draft"> ڕەشنووس — هێشتا بڵاوی مەکەرەوە</label>
+        </fieldset>
+        <div class="actions">
+          <button class="primary" type="submit" id="publish">بڵاوکردنەوە</button>
+          <button class="ghost" type="button" id="cancel-edit" hidden>هەڵوەشاندنەوەی دەستکاری</button>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </form>
+    </div>
+
+    <!-- list -->
+    <div role="tabpanel" id="tab-list" aria-labelledby="t-list" hidden>
+      <div class="list" id="list"></div>
+    </div>
+
+    <!-- settings -->
+    <div role="tabpanel" id="tab-settings" aria-labelledby="t-settings" hidden>
+      <form id="settings-form" class="panel" novalidate>
+        <h2>زانیاری ماڵپەڕ</h2>
+        <p class="hint">ئەوانەی بەتاڵ بن لە ماڵپەڕەکە پیشان نادرێن.</p>
+        <label style="margin-top:14px">دەربارە — کوردی <textarea id="st-about_ku" rows="4"></textarea></label>
+        <label lang="ar">من نحن — عربي <textarea id="st-about_ar" rows="3"></textarea></label>
+        <label lang="en" dir="ltr">About — English <textarea id="st-about_en" rows="3"></textarea></label>
+        <div class="grid2" style="margin-top:14px">
+          <label>ناونیشان — کوردی <input id="st-address_ku"></label>
+          <label lang="ar">العنوان — عربي <input id="st-address_ar"></label>
+          <label lang="en">Address — English <input id="st-address_en" dir="ltr"></label>
+          <label>ساڵی دامەزراندن <input id="st-founded" inputmode="numeric" dir="ltr"></label>
+          <label>تەلەفۆن <input id="st-phone" type="tel" dir="ltr"></label>
+          <label>ئیمەیڵ <input id="st-email" type="email" dir="ltr"></label>
+        </div>
+        <h3>سۆشیاڵ میدیا (لینک)</h3>
+        <div class="grid2">
+          <label>Facebook <input id="st-facebook" type="url" dir="ltr" placeholder="https://facebook.com/…"></label>
+          <label>Instagram <input id="st-instagram" type="url" dir="ltr" placeholder="https://instagram.com/…"></label>
+          <label>YouTube <input id="st-youtube" type="url" dir="ltr"></label>
+          <label>TikTok <input id="st-tiktok" type="url" dir="ltr"></label>
+          <label>Telegram <input id="st-telegram" type="url" dir="ltr"></label>
+          <label>X (Twitter) <input id="st-x" type="url" dir="ltr"></label>
+          <label>WhatsApp <input id="st-whatsapp" type="url" dir="ltr" placeholder="https://wa.me/964…"></label>
+        </div>
+        <h3>وێنەی پاشبنەمای وەرزشەکان (بەشی سەرەوە)</h3>
+        <p class="hint">ئارەزوومەندانە — وێنەکە بە ڕەنگی سەوزی نیۆن لە پشت هێڵەکانی یاریگاکەوە پیشان دەدرێت.</p>
+        <div class="photos" id="hero-photos" style="margin-top:10px"></div>
+        <div class="hero-add">
+          <select id="hero-sport" aria-label="وەرزش"></select>
+          <label class="ghost" style="flex-direction:row;cursor:pointer">+ وێنە<input type="file" id="hero-input" accept="image/*" class="sr"></label>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit" id="settings-btn">پاشەکەوتکردن</button>
+        </div>
+        <p class="status" id="settings-status" role="status"></p>
+      </form>
+
+      <form id="code-form" class="panel" style="margin-top:18px" autocomplete="off">
+        <h2>گۆڕینی کۆدی قفڵ</h2>
+        <div class="grid2" style="margin-top:12px">
+          <label>کۆدی نوێ <input id="c-code" type="password" required autocomplete="new-password" autocapitalize="off" dir="ltr"></label>
+          <label>دووبارە <input id="c-code2" type="password" required autocomplete="new-password" autocapitalize="off" dir="ltr"></label>
+        </div>
+        <div class="actions"><button class="primary" type="submit" id="code-btn">گۆڕینی کۆد</button></div>
+        <p class="status" id="code-status" role="status"></p>
+      </form>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+/* Where the news lives. Setup can override these (they are saved, unencrypted, in data/admin.json). */
+var DEFAULT_REPO={owner:'Yadabdallall',repo:'puksportsboard',branch:'main'};
+var KDF_ITERATIONS=600000, MAX_PHOTO=1600, JPEG_QUALITY=0.82, AUTO_LOCK_MS=30*60*1000;
+/* sections: key, Kurdish name, small hint */
+var CATS=[
+  ['football','دووگۆڵی','Football'],['futsal','فوتسال','Futsal'],['volleyball','تۆپی باڵە','Volleyball'],
+  ['basketball','تۆپی سەبەتە','Basketball'],['handball','تۆپی دەست','Handball'],['running','ڕاکردن','Running'],
+  ['swimming','مەلەکردن','Swimming'],['tabletennis','تێنسی سەر مێز','Table tennis'],['tennis','تێنسی سەر زەوی','Tennis'],
+  ['wrestling','زۆرانبازی','Wrestling'],['boxing','بۆکسێن','Boxing'],['mountain','شاخەوانی','Mountaineering'],
+  ['cycling','پاسکیلسواری','Cycling'],['taekwondo','تایکواندۆ','Taekwondo'],
+  ['misc','هەمەڕەنگ','فیستیڤاڵ، کار و چالاکی'],['general','گشتی','ڕاگەیاندنی بۆرد']
+];
+var SPORTS=CATS.slice(0,14);
+function catName(k){for(var i=0;i<CATS.length;i++)if(CATS[i][0]===k)return CATS[i][1];return 'گشتی';}
+
+var cfg=null, token=null, keyFile=null, data={news:{items:[]},site:{}};
+var editingId=null, selectedCat=null, photos=[], heroPhotos=[], failures=0, lockTimer=null;
+
+/* ─── small helpers ─── */
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function icon(id){return '<svg class="i" viewBox="0 0 48 48" aria-hidden="true"><use href="#'+id+'"/></svg>';}
+function kuDigits(s){return String(s).replace(/[0-9]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.charAt(+d);});}
+function siteUrl(p){return /^https?:\/\//.test(p)?p:'../'+String(p).replace(/^\/+/,'');}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function rid(){return Math.random().toString(36).slice(2,7);}
+var toastTimer;
+function toast(msg,bad){var el=$('toast');el.textContent=msg;el.classList.toggle('bad',!!bad);el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},3800);}
+function busy(btn,on,label){
+  if(on){btn.dataset.label=btn.innerHTML;btn.disabled=true;btn.innerHTML='<span class="spin" aria-hidden="true"></span>'+esc(label||'…');}
+  else if(btn.dataset.label!=null){btn.disabled=false;btn.innerHTML=btn.dataset.label;delete btn.dataset.label;}
+}
+function show(view){['lock','setup','editor'].forEach(function(v){$('view-'+v).hidden=v!==view;});$('lock-btn').hidden=view!=='editor';window.scrollTo(0,0);}
+
+/* ─── bytes / base64 ─── */
+var enc=new TextEncoder(), dec=new TextDecoder();
+function b64(bytes){bytes=new Uint8Array(bytes);var s='';for(var i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(s);}
+function unb64(str){var s=atob(str),b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b;}
+
+/* ─── the lock: the GitHub token is encrypted with the code (PBKDF2 → AES-GCM) ─── */
+function deriveKey(code,salt,iter){
+  return crypto.subtle.importKey('raw',enc.encode(code),'PBKDF2',false,['deriveKey']).then(function(base){
+    return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  });
+}
+function sealToken(tok,code,where){
+  var salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  return deriveKey(code,salt,KDF_ITERATIONS).then(function(key){
+    return crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,enc.encode(JSON.stringify({token:tok})));
+  }).then(function(ct){
+    return {v:1,kdf:'PBKDF2-SHA256',iter:KDF_ITERATIONS,salt:b64(salt),iv:b64(iv),ct:b64(ct),owner:where.owner,repo:where.repo,branch:where.branch};
+  });
+}
+function openToken(file,code){
+  return deriveKey(code,unb64(file.salt),file.iter||KDF_ITERATIONS).then(function(key){
+    return crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(file.iv)},key,unb64(file.ct));
+  }).then(function(pt){return JSON.parse(dec.decode(pt)).token;});
+}
+function loadKeyFile(){
+  function get(u){return fetch(u,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});}
+  return get('../data/admin.json?t='+Date.now()).then(function(f){
+    /* right after setup GitHub Pages may not have published the file yet */
+    return f||get('https://raw.githubusercontent.com/'+DEFAULT_REPO.owner+'/'+DEFAULT_REPO.repo+'/'+DEFAULT_REPO.branch+'/data/admin.json?t='+Date.now());
+  });
+}
+
+/* ─── GitHub API ─── */
+function gh(path,opt){
+  opt=opt||{};
+  var headers={'Accept':opt.raw?'application/vnd.github.raw+json':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Authorization':'Bearer '+token};
+  if(opt.body)headers['Content-Type']='application/json';
+  return fetch('https://api.github.com'+path,{method:opt.method||'GET',headers:headers,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'})
+    .then(function(r){
+      if(!r.ok){return r.text().then(function(t){var e=new Error('GitHub '+r.status+': '+t.slice(0,200));e.status=r.status;throw e;});}
+      if(r.status===204)return null;
+      return opt.raw?r.text():r.json();
+    });
+}
+function rp(p){return '/repos/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+p;}
+function branchPath(){return cfg.branch.split('/').map(encodeURIComponent).join('/');}
+function headSha(){return gh(rp('/git/ref/heads/'+branchPath())).then(function(r){return r.object.sha;});}
+function readJSON(path,ref){
+  return gh(rp('/contents/'+path+'?ref='+ref),{raw:true}).then(function(t){return JSON.parse(t);},function(e){if(e.status===404)return null;throw e;});
+}
+function readAll(ref){
+  return Promise.all([readJSON('data/news.json',ref),readJSON('data/site.json',ref)]).then(function(r){
+    var n=r[0]&&Array.isArray(r[0].items)?r[0]:{items:[]};return {news:n,site:r[1]||{}};
+  });
+}
+/* One atomic commit: upload new photos as blobs, then re-read the JSON at the current head,
+   apply the change, write tree + commit, move the branch. Retries if someone else committed meanwhile. */
+function commit(message,images,apply,progress){
+  var blobs=[];
+  function up(i){
+    if(i>=images.length)return Promise.resolve();
+    if(progress)progress('بارکردنی وێنەکان… '+kuDigits(i+1)+' / '+kuDigits(images.length));
+    return gh(rp('/git/blobs'),{method:'POST',body:{content:images[i].base64,encoding:'base64'}}).then(function(b){
+      blobs.push({path:images[i].path,mode:'100644',type:'blob',sha:b.sha});return up(i+1);
+    });
+  }
+  function attempt(n){
+    if(progress)progress('پاشەکەوتکردن…');
+    var head,base,fresh,out;
+    return headSha().then(function(sha){head=sha;return gh(rp('/git/commits/'+head));})
+      .then(function(c){base=c.tree.sha;return readAll(head);})
+      .then(function(f){
+        fresh=f;out=apply(fresh)||{};
+        var dels=(out.deletes||[]).filter(function(p){return /^uploads\//.test(p);});
+        if(!dels.length)return [];
+        return gh(rp('/git/trees/'+base+'?recursive=1')).then(function(t){
+          var have={};(t.tree||[]).forEach(function(e){have[e.path]=1;});
+          return dels.filter(function(p){return have[p];});
+        });
+      })
+      .then(function(dels){
+        var tree=blobs.slice();
+        (out.files||[]).forEach(function(f){tree.push({path:f.path,mode:'100644',type:'blob',content:f.text});});
+        dels.forEach(function(p){tree.push({path:p,mode:'100644',type:'blob',sha:null});});
+        return gh(rp('/git/trees'),{method:'POST',body:{base_tree:base,tree:tree}});
+      })
+      .then(function(t){return gh(rp('/git/commits'),{method:'POST',body:{message:message,tree:t.sha,parents:[head]}});})
+      .then(function(c){return gh(rp('/git/refs/heads/'+branchPath()),{method:'PATCH',body:{sha:c.sha,force:false}});})
+      .then(function(){return fresh;},function(e){if(e.status===422&&n<3)return attempt(n+1);throw e;});
+  }
+  return up(0).then(function(){return attempt(1);});
+}
+function json(o){return JSON.stringify(o,null,2)+'\n';}
+function explain(e){
+  if(!navigator.onLine)return 'ئینتەرنێت نییە — دواتر هەوڵ بدەرەوە.';
+  if(e&&e.status===401)return 'کلیلی GitHub بەسەرچووە یان هەڵوەشاوەتەوە. «ڕێکخستنی قفڵ» دووبارە بکەرەوە.';
+  if(e&&(e.status===403||e.status===404))return 'کلیلی GitHub ڕێگەی نووسینی نییە بۆ ئەم ماڵپەڕە (Contents: Read and write).';
+  return 'هەڵەیەک ڕوویدا: '+(e&&e.message||e);
+}
+
+/* ─── auto-lock after inactivity ─── */
+function lockNow(){token=null;location.reload();}
+function bump(){clearTimeout(lockTimer);if(token)lockTimer=setTimeout(lockNow,AUTO_LOCK_MS);}
+['pointerdown','keydown'].forEach(function(ev){document.addEventListener(ev,bump,{passive:true});});
+$('lock-btn').addEventListener('click',lockNow);
+
+/* ════════ LOCK SCREEN ════════ */
+$('unlock-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var code=$('code').value.trim(), btn=$('unlock-btn'), msg=$('lock-msg');
+  if(!code)return;
+  msg.textContent='';msg.className='msg';
+  busy(btn,true,'کردنەوە…');
+  loadKeyFile().then(function(f){
+    if(!f){busy(btn,false);msg.textContent='قفڵەکە هێشتا ڕێکنەخراوە. «ڕێکخستنی قفڵ» بکە.';return;}
+    keyFile=f;
+    return openToken(f,code).then(function(tok){
+      token=tok;failures=0;
+      cfg={owner:f.owner||DEFAULT_REPO.owner,repo:f.repo||DEFAULT_REPO.repo,branch:f.branch||DEFAULT_REPO.branch};
+      return enterEditor().then(function(){busy(btn,false);$('code').value='';},function(err){busy(btn,false);token=null;msg.textContent=explain(err);});
+    },function(){
+      failures++;
+      var wait=Math.min(30,Math.pow(2,failures-1));
+      msg.textContent='کۆدەکە هەڵەیە.';
+      var card=$('lock-card');card.classList.remove('shake');void card.offsetWidth;card.classList.add('shake');
+      btn.disabled=true;
+      setTimeout(function(){busy(btn,false);$('code').select();},wait*1000);
+    });
+  });
+});
+$('to-setup').addEventListener('click',function(){
+  var d=keyFile||DEFAULT_REPO;
+  $('s-owner').value=d.owner||DEFAULT_REPO.owner;$('s-repo').value=d.repo||DEFAULT_REPO.repo;$('s-branch').value=d.branch||DEFAULT_REPO.branch;
+  show('setup');$('s-token').focus();
+});
+$('setup-back').addEventListener('click',function(){show('lock');});
+
+/* ════════ SETUP ════════ */
+$('setup-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var msg=$('setup-msg'), btn=$('setup-btn');
+  var tok=$('s-token').value.trim(), c1=$('s-code').value.trim(), c2=$('s-code2').value.trim();
+  msg.className='msg';
+  if(!tok){msg.textContent='تۆکنەکە دابنێ.';return;}
+  if(c1.length<8){msg.textContent='کۆدەکە دەبێت لانیکەم ٨ پیت یان ژمارە بێت.';return;}
+  if(c1!==c2){msg.textContent='دوو کۆدەکە وەک یەک نین.';return;}
+  var where={owner:$('s-owner').value.trim()||DEFAULT_REPO.owner,repo:$('s-repo').value.trim()||DEFAULT_REPO.repo,branch:$('s-branch').value.trim()||DEFAULT_REPO.branch};
+  token=tok;cfg=where;
+  busy(btn,true,'پشکنین…');msg.textContent='';
+  sealToken(tok,c1,where).then(function(file){
+    return commit('Admin: set up the news lock',[],function(){return {files:[{path:'data/admin.json',text:json(file)}]};},function(t){btn.lastChild.textContent=t;})
+      .then(function(){keyFile=file;});
+  }).then(function(){
+    $('s-token').value=$('s-code').value=$('s-code2').value='';
+    busy(btn,false);toast('قفڵەکە ڕێکخرا ✓');
+    return enterEditor();
+  }).catch(function(err){busy(btn,false);token=null;msg.textContent=explain(err);});
+});
+
+/* ════════ EDITOR ════════ */
+function enterEditor(){
+  return headSha().then(readAll).then(function(d){
+    data=d;show('editor');bump();
+    renderCats();resetForm();renderList();fillSettings();
+  });
+}
+function tab(name){
+  ['compose','list','settings'].forEach(function(t){$('t-'+t).setAttribute('aria-selected',String(t===name));$('tab-'+t).hidden=t!==name;});
+}
+['compose','list','settings'].forEach(function(t){$('t-'+t).addEventListener('click',function(){tab(t);});});
+
+/* section picker */
+function renderCats(){
+  $('cats').innerHTML=CATS.map(function(c){
+    return '<button type="button" class="cat'+(c[0]==='misc'?' wide':'')+'" role="radio" aria-checked="'+(selectedCat===c[0])+'" data-k="'+c[0]+'">'
+      +icon('i-'+c[0])+'<span>'+esc(c[1])+'</span><small>'+esc(c[2])+'</small></button>';
+  }).join('');
+}
+$('cats').addEventListener('click',function(e){
+  var b=e.target.closest('.cat');if(!b)return;
+  selectedCat=b.getAttribute('data-k');$('err-cat').textContent='';
+  [].forEach.call($('cats').children,function(x){x.setAttribute('aria-checked',String(x===b));});
+});
+
+/* photos */
+function renderPhotos(){
+  $('photos').innerHTML=photos.map(function(p,i){
+    return '<div class="photo"><img src="'+esc(p.preview)+'" alt="">'+(i===0?'<span class="main">سەرەکی</span>':'')
+      +'<div class="tools">'+(i?'<button type="button" data-a="main" data-i="'+i+'" aria-label="کردنی بە وێنەی سەرەکی">★</button>':'')
+      +'<button type="button" data-a="del" data-i="'+i+'" aria-label="لابردن">✕</button></div></div>';
+  }).join('');
+}
+$('photo-input').addEventListener('change',function(){
+  [].forEach.call(this.files,function(f){if(/^image\//.test(f.type)||/\.(jpe?g|png|webp|heic|heif|gif)$/i.test(f.name))photos.push({file:f,preview:URL.createObjectURL(f)});});
+  this.value='';renderPhotos();
+});
+$('photos').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  var i=+b.getAttribute('data-i');
+  if(b.getAttribute('data-a')==='main'){photos.unshift(photos.splice(i,1)[0]);}
+  else{var p=photos.splice(i,1)[0];if(p.file)URL.revokeObjectURL(p.preview);}
+  renderPhotos();
+});
+function toJpegBase64(file){
+  function viaImage(){
+    return new Promise(function(res,rej){var u=URL.createObjectURL(file),im=new Image();im.onload=function(){res(im);};im.onerror=function(){rej(new Error('وێنەکە ناخوێنرێتەوە: '+file.name));};im.src=u;});
+  }
+  var src=window.createImageBitmap?createImageBitmap(file,{imageOrientation:'from-image'}).catch(viaImage):viaImage();
+  return src.then(function(img){
+    var w=img.width||img.naturalWidth,h=img.height||img.naturalHeight,k=Math.min(1,MAX_PHOTO/Math.max(w,h));
+    var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+    var ctx=c.getContext('2d');ctx.fillStyle='#020805';ctx.fillRect(0,0,c.width,c.height);ctx.imageSmoothingQuality='high';
+    ctx.drawImage(img,0,0,c.width,c.height);
+    return new Promise(function(res){c.toBlob(res,'image/jpeg',JPEG_QUALITY);});
+  }).then(function(blob){return blob.arrayBuffer();}).then(b64);
+}
+function prepareImages(list,folder,stem,progress){
+  var out=[],paths=[],n=0,stamp=Date.now().toString(36);
+  return list.reduce(function(chain,p){
+    return chain.then(function(){
+      if(!p.file){paths.push(p.url);return;}
+      n++;if(progress)progress('ئامادەکردنی وێنەکان… '+kuDigits(n));
+      return toJpegBase64(p.file).then(function(b){
+        var path=folder+'/'+stem+'-'+stamp+'-'+n+'.jpg';out.push({path:path,base64:b});paths.push(path);
+      });
+    });
+  },Promise.resolve()).then(function(){return {images:out,paths:paths};});
+}
+function usedPaths(d,skipId){
+  var used={};
+  d.news.items.forEach(function(it){if(it.id===skipId)return;[it.image].concat(it.gallery||[]).forEach(function(u){if(u)used[String(u).replace(/^\/+/,'')]=1;});});
+  (d.site.hero_photos||[]).forEach(function(h){if(h&&h.image)used[String(h.image).replace(/^\/+/,'')]=1;});
+  return used;
+}
+
+var FIELDS=['title_ku','summary_ku','body_ku','title_ar','summary_ar','body_ar','title_en','summary_en','body_en'];
+function resetForm(){
+  editingId=null;selectedCat=null;
+  photos.forEach(function(p){if(p.file)URL.revokeObjectURL(p.preview);});photos=[];
+  FIELDS.forEach(function(f){$('f-'+f).value='';});
+  $('f-date').value=today();$('f-featured').checked=false;$('f-draft').checked=false;
+  $('compose-h').textContent='هەواڵی نوێ';$('t-compose').textContent='+ هەواڵی نوێ';
+  $('publish').textContent='بڵاوکردنەوە';$('cancel-edit').hidden=true;
+  $('err-cat').textContent=$('err-title').textContent='';
+  renderCats();renderPhotos();
+}
+function editStory(id){
+  var it=data.news.items.filter(function(x){return x.id===id;})[0];if(!it)return;
+  resetForm();editingId=id;selectedCat=it.sport||'general';
+  FIELDS.forEach(function(f){$('f-'+f).value=it[f]||'';});
+  $('f-date').value=it.date||today();$('f-featured').checked=!!it.featured;$('f-draft').checked=!!it.draft;
+  photos=[it.image].concat(it.gallery||[]).filter(Boolean).map(function(u){return {url:u,preview:siteUrl(u)};});
+  $('compose-h').textContent='دەستکاریکردنی هەواڵ';$('t-compose').textContent='دەستکاری';
+  $('publish').textContent='پاشەکەوتکردنی گۆڕانکاری';$('cancel-edit').hidden=false;
+  renderCats();renderPhotos();tab('compose');window.scrollTo(0,0);
+}
+$('cancel-edit').addEventListener('click',function(){resetForm();$('status').textContent='';});
+
+$('story-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var ok=true,status=$('status'),btn=$('publish');
+  if(!selectedCat){$('err-cat').textContent='بەشی هەواڵەکە هەڵبژێرە (بۆ نموونە دووگۆڵی یان هەمەڕەنگ).';ok=false;}
+  if(!$('f-title_ku').value.trim()&&!$('f-title_ar').value.trim()&&!$('f-title_en').value.trim()){$('err-title').textContent='سەردێڕی هەواڵەکە بنووسە.';ok=false;}
+  if(!ok){(document.querySelector('.err:not(:empty)')||status).scrollIntoView({block:'center',behavior:'smooth'});return;}
+  var id=editingId||(($('f-date').value||today())+'-'+rid());
+  var item={id:id,date:$('f-date').value||today(),sport:selectedCat,featured:$('f-featured').checked,draft:$('f-draft').checked};
+  FIELDS.forEach(function(f){item[f]=$('f-'+f).value.trim();});
+  var before=editingId?data.news.items.filter(function(x){return x.id===editingId;})[0]:null;
+  var title=item.title_ku||item.title_ar||item.title_en;
+  status.className='status';
+  busy(btn,true,'…');
+  function progress(t){status.textContent=t;}
+  prepareImages(photos,'uploads/news',id,progress).then(function(prep){
+    item.image=prep.paths[0]||'';item.gallery=prep.paths.slice(1);
+    return commit((editingId?'Edit news: ':'Add news: ')+title,prep.images,function(fresh){
+      var items=fresh.news.items.filter(function(x){return x.id!==id;});
+      if(editingId){var idx=fresh.news.items.map(function(x){return x.id;}).indexOf(id);items.splice(idx<0?0:idx,0,item);}
+      else items.unshift(item);
+      if(item.featured)items.forEach(function(x){if(x.id!==id)x.featured=false;});
+      fresh.news={items:items};
+      var dels=[];
+      if(before){var used=usedPaths(fresh,null);[before.image].concat(before.gallery||[]).forEach(function(u){if(u&&!used[String(u).replace(/^\/+/,'')])dels.push(String(u).replace(/^\/+/,''));});}
+      return {files:[{path:'data/news.json',text:json(fresh.news)}],deletes:dels};
+    },progress);
+  }).then(function(fresh){
+    data=fresh;busy(btn,false);
+    status.textContent=item.draft?'وەک ڕەشنووس پاشەکەوت کرا ✓':'بڵاوکرایەوە ✓ — لە ماوەی یەک خولەکدا لە ماڵپەڕ و ئەپەکەدا دەردەکەوێت.';
+    toast(item.draft?'پاشەکەوت کرا ✓':'بڵاوکرایەوە ✓');
+    resetForm();renderList();
+  }).catch(function(err){busy(btn,false);status.className='status bad';status.textContent=explain(err);});
+});
+
+/* list */
+function renderList(){
+  var items=data.news.items.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  $('count').textContent='('+kuDigits(items.length)+')';
+  if(!items.length){$('list').innerHTML='<p class="empty">هێشتا هیچ هەواڵێک نییە.</p>';return;}
+  $('list').innerHTML=items.map(function(it){
+    var img=it.image?'<img src="'+esc(siteUrl(it.image))+'" alt="" loading="lazy">':icon('i-'+(it.sport||'general'));
+    return '<div class="row"><div class="thumb">'+img+'</div><div><b>'+esc(it.title_ku||it.title_ar||it.title_en||'—')+'</b>'
+      +'<small><span>'+esc(kuDigits(it.date||''))+'</span><span class="badge">'+esc(catName(it.sport))+'</span>'
+      +(it.featured?'<span class="badge">لە سەرەوە</span>':'')+(it.draft?'<span class="badge draft">ڕەشنووس</span>':'')+'</small></div>'
+      +'<div class="btns"><button type="button" class="ghost" data-a="edit" data-id="'+esc(it.id)+'">دەستکاری</button>'
+      +'<button type="button" class="danger" data-a="del" data-id="'+esc(it.id)+'">سڕینەوە</button></div></div>';
+  }).join('');
+}
+$('list').addEventListener('click',function(e){
+  var b=e.target.closest('button[data-a]');if(!b)return;
+  var id=b.getAttribute('data-id');
+  if(b.getAttribute('data-a')==='edit'){editStory(id);return;}
+  var it=data.news.items.filter(function(x){return x.id===id;})[0];if(!it)return;
+  if(!confirm('دڵنیایت لە سڕینەوەی ئەم هەواڵە؟\n\n'+(it.title_ku||it.title_ar||it.title_en||'')))return;
+  busy(b,true,'…');
+  commit('Delete news: '+(it.title_ku||it.title_en||id),[],function(fresh){
+    var gone=fresh.news.items.filter(function(x){return x.id===id;})[0]||it;
+    fresh.news={items:fresh.news.items.filter(function(x){return x.id!==id;})};
+    var used=usedPaths(fresh,null),dels=[];
+    [gone.image].concat(gone.gallery||[]).forEach(function(u){if(u&&!used[String(u).replace(/^\/+/,'')])dels.push(String(u).replace(/^\/+/,''));});
+    return {files:[{path:'data/news.json',text:json(fresh.news)}],deletes:dels};
+  }).then(function(fresh){data=fresh;renderList();toast('سڕایەوە ✓');if(editingId===id)resetForm();})
+    .catch(function(err){busy(b,false);toast(explain(err),true);});
+});
+
+/* settings */
+var ST=['about_ku','about_ar','about_en','address_ku','address_ar','address_en','founded','phone','email','facebook','instagram','youtube','tiktok','telegram','x','whatsapp'];
+function fillSettings(){
+  ST.forEach(function(k){$('st-'+k).value=data.site[k]||'';});
+  heroPhotos=(data.site.hero_photos||[]).filter(function(h){return h&&h.sport&&h.image;}).map(function(h){return {sport:h.sport,url:h.image,preview:siteUrl(h.image)};});
+  $('hero-sport').innerHTML=SPORTS.map(function(c){return '<option value="'+c[0]+'">'+esc(c[1])+'</option>';}).join('');
+  renderHero();
+}
+function renderHero(){
+  $('hero-photos').innerHTML=heroPhotos.map(function(p,i){
+    return '<div class="photo"><img src="'+esc(p.preview)+'" alt=""><span class="main">'+esc(catName(p.sport))+'</span>'
+      +'<div class="tools"><button type="button" data-i="'+i+'" aria-label="لابردن">✕</button></div></div>';
+  }).join('');
+}
+$('hero-input').addEventListener('change',function(){
+  var f=this.files[0];this.value='';if(!f)return;
+  var sport=$('hero-sport').value;
+  heroPhotos=heroPhotos.filter(function(p){return p.sport!==sport;});
+  heroPhotos.push({sport:sport,file:f,preview:URL.createObjectURL(f)});renderHero();
+});
+$('hero-photos').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;heroPhotos.splice(+b.getAttribute('data-i'),1);renderHero();});
+$('settings-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var btn=$('settings-btn'),status=$('settings-status');status.className='status';
+  var values={};ST.forEach(function(k){values[k]=$('st-'+k).value.trim();});
+  busy(btn,true,'…');
+  var list=heroPhotos.slice();
+  prepareImages(list,'uploads/sports','hero',function(t){status.textContent=t;}).then(function(prep){
+    var hero=list.map(function(p,i){return {sport:p.sport,image:prep.paths[i]};});
+    return commit('Update site settings',prep.images,function(fresh){
+      var old=(fresh.site.hero_photos||[]).map(function(h){return h&&h.image;}).filter(Boolean);
+      var site=Object.assign({},fresh.site,values,{hero_photos:hero});
+      fresh.site=site;
+      var used=usedPaths(fresh,null),dels=old.filter(function(u){return !used[String(u).replace(/^\/+/,'')];}).map(function(u){return String(u).replace(/^\/+/,'');});
+      return {files:[{path:'data/site.json',text:json(site)}],deletes:dels};
+    },function(t){status.textContent=t;});
+  }).then(function(fresh){data=fresh;busy(btn,false);fillSettings();status.textContent='پاشەکەوت کرا ✓';toast('پاشەکەوت کرا ✓');})
+    .catch(function(err){busy(btn,false);status.className='status bad';status.textContent=explain(err);});
+});
+$('code-form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var c1=$('c-code').value.trim(),c2=$('c-code2').value.trim(),status=$('code-status'),btn=$('code-btn');status.className='status bad';
+  if(c1.length<8){status.textContent='کۆدەکە دەبێت لانیکەم ٨ پیت یان ژمارە بێت.';return;}
+  if(c1!==c2){status.textContent='دوو کۆدەکە وەک یەک نین.';return;}
+  status.className='status';busy(btn,true,'…');
+  sealToken(token,c1,cfg).then(function(file){
+    return commit('Admin: change the news lock code',[],function(){return {files:[{path:'data/admin.json',text:json(file)}]};}).then(function(){keyFile=file;});
+  }).then(function(){busy(btn,false);$('c-code').value=$('c-code2').value='';status.textContent='کۆدەکە گۆڕدرا ✓ — لەمەودوا کۆدە نوێیەکە بەکاربهێنە.';})
+    .catch(function(err){busy(btn,false);status.className='status bad';status.textContent=explain(err);});
+});
+
+/* icons come from the site's own sprite so both pages always match */
+fetch('../index.html').then(function(r){return r.text();}).then(function(h){
+  var sp=new DOMParser().parseFromString(h,'text/html').querySelector('svg.sprite');
+  if(sp)document.body.insertBefore(document.importNode(sp,true),document.body.firstChild);
+}).catch(function(){});
+
+if(!window.crypto||!crypto.subtle){$('lock-msg').textContent='ئەم وێبگەڕە پشتگیری قفڵەکە ناکات — تکایە Chrome یان Safariـی نوێ بەکاربهێنە.';}
+loadKeyFile().then(function(f){keyFile=f;if(!f){$('lock-msg').className='msg ok';$('lock-msg').textContent='قفڵەکە هێشتا ڕێکنەخراوە — «ڕێکخستنی قفڵ» بکە.';}});
+$('code').focus();
+})();
+</script>
 </body>
 </html>
