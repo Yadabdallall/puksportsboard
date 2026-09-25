@@ -35,6 +35,8 @@ import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const W = 1080, H = 1920, DURATION = 20;
+// Layout is in 1080x1920 units; ?scale=2 renders every pixel at 2x (2160x3840, 4K).
+const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
 const BEAT = 60 / 96; // the music runs at 96 bpm: 2.5 s per bar
 
 // Each shot: [start, end]. Phrases are [line 1, line 2]; the words listed in
@@ -86,7 +88,7 @@ glCanvas.id = 'gl';
 document.body.appendChild(glCanvas);
 const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1);
-renderer.setSize(W, H, false);
+renderer.setSize(W * SCALE, H * SCALE, false);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.9;
 renderer.shadowMap.enabled = true;
@@ -96,6 +98,8 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const stage = document.getElementById('stage');
+stage.width = W * SCALE;
+stage.height = H * SCALE;
 const ctx = stage.getContext('2d');
 
 function makeScene(fogNear, fogFar) {
@@ -109,7 +113,7 @@ function makeScene(fogNear, fogFar) {
   const key = new THREE.DirectionalLight('#fff6e6', 1.5);
   key.position.set(-4, 7, 5);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(2048, 2048); // fixed, so the shadow softness is the same at any scale
   key.shadow.radius = 5;
   key.shadow.bias = -0.0004;
   const sc = key.shadow.camera;
@@ -302,17 +306,25 @@ const S2 = (() => {
 })();
 
 // ---------------------------------------------------------------- shot 3: podium
-function numberPlate(txt) {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  const g = c.getContext('2d');
+// The digits are (re)drawn once the Zain font has loaded, see window.ready.
+const plates = [];
+function drawPlate({ canvas, txt, tex }) {
+  const g = canvas.getContext('2d');
+  g.clearRect(0, 0, 512, 512);
   g.fillStyle = 'rgba(40, 70, 50, 0.55)';
-  g.font = '800 170px Zain';
+  g.font = '700 300px PodiumDigits'; // Zain draws ١٢٣ as Western digits
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText(txt, 128, 140);
-  const tex = new THREE.CanvasTexture(c);
+  g.fillText(txt, 256, 280);
+  tex.needsUpdate = true;
+}
+function numberPlate(txt) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 512;
+  const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  plates.push({ canvas, txt, tex });
   return new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8 }));
 }
 const S3 = (() => {
@@ -409,12 +421,13 @@ const S4 = (() => {
 const SCENES = { hurdles: S1, ball: S2, podium: S3, end: S4 };
 
 // ---------------------------------------------------------------- post-processing
-const composer = new EffectComposer(renderer);
+// a multisampled target, so the 3D edges are antialiased through the post-processing
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * SCALE, H * SCALE, { type: THREE.HalfFloatType, samples: 4 }));
 composer.setPixelRatio(1);
-composer.setSize(W, H);
+composer.setSize(W * SCALE, H * SCALE);
 const renderPass = new RenderPass(S1.scene, S1.cam);
 const bokeh = new BokehPass(S1.scene, S1.cam, { focus: 7, aperture: 0.002, maxblur: 0.009 });
-const bloom = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.45, 0.6, 1.05);
+const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE / 2, H * SCALE / 2), 0.45, 0.6, 1.05);
 composer.addPass(renderPass);
 composer.addPass(bokeh);
 composer.addPass(bloom);
@@ -439,6 +452,7 @@ const logoImg = new Image();
 logoImg.src = 'assets/logo.png';
 const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
   .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.push(new FontFace('PodiumDigits', 'url(assets/fonts/DejaVuSans-Bold.ttf)', { weight: '700' }));
 fontFaces.forEach(f => document.fonts.add(f));
 
 // A line of words, right to left; accent words in green.
@@ -458,7 +472,7 @@ function wordsLine(text, accent, x, y, size, weight, alpha = 1) {
   let xr = x + total / 2;
   ctx.globalAlpha = alpha;
   ctx.shadowColor = 'rgba(0, 20, 10, 0.55)';
-  ctx.shadowBlur = 24;
+  ctx.shadowBlur = 24 * SCALE;
   words.forEach((w, i) => {
     ctx.fillStyle = accent.includes(w.replace(/[،,.!؟?]/g, '')) ? ACCENT_CSS : '#ffffff';
     ctx.fillText(w, xr, y);
@@ -524,9 +538,9 @@ function endCard(t) {
     const s = 470 * lerp(0.7, 1, ease.outBack(lu));
     ctx.save();
     ctx.globalAlpha = clamp(lu * 2);
-    ctx.filter = lu < 0.5 ? `blur(${((0.5 - lu) * 30).toFixed(1)}px)` : 'none';
+    ctx.filter = lu < 0.5 ? `blur(${((0.5 - lu) * 30 * SCALE).toFixed(1)}px)` : 'none';
     ctx.shadowColor = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur = 50;
+    ctx.shadowBlur = 50 * SCALE;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(logoImg, W / 2 - s / 2, 780 - s / 2, s, s);
     ctx.restore();
@@ -549,7 +563,7 @@ function endCard(t) {
     ctx.textAlign = 'center';
     ctx.fillStyle = color;
     ctx.shadowColor = 'rgba(0, 20, 10, 0.5)';
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 20 * SCALE;
     ctx.fillText(txt, W / 2, y);
     ctx.restore();
   }
@@ -590,7 +604,7 @@ function wipe(t) {
 // ---------------------------------------------------------------- frame
 function renderFrame(t) {
   ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   ctx.globalAlpha = 1;
   ctx.filter = 'none';
   ctx.fillStyle = '#0d271b';
@@ -600,7 +614,7 @@ function renderFrame(t) {
   live.forEach((s, i) => {
     const a = i === 0 ? 1 : ease.inOut(prog(t, s.start, s.start + 0.4));
     ctx.globalAlpha = a;
-    ctx.drawImage(render3D(s, t), 0, 0);
+    ctx.drawImage(render3D(s, t), 0, 0, W, H);
   });
   ctx.globalAlpha = 1;
   // soft vignette
@@ -622,6 +636,7 @@ function renderFrame(t) {
 }
 
 window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => {
+  plates.forEach(drawPlate);
   // warm up shaders for every shot so frame times stay even
   for (const s of SHOTS) render3D(s, s.start + 0.5);
   return true;

@@ -6,6 +6,9 @@
 //   node render.mjs --audio sfx.wav       -> mux an audio track
 //   node render.mjs --stills 1,2.9,8      -> PNG snapshots only (for review)
 //   node render.mjs --page minimal.html   -> render another page in this folder
+//   node render.mjs --scale 2             -> pages that support it render at 2x (4K)
+//   node render.mjs --lossless --out a.mkv -> lossless intermediate, e.g. one of several
+//                                            --frames ranges rendered in parallel
 //   node render.mjs --cues audio/cues.json -> sound cue times for audio.py
 //   node render.mjs --frames 250:460      -> only frames 250..459, no audio (to patch
 //                                            one keyframe interval of an earlier render)
@@ -48,7 +51,7 @@ await page.route('http://motion.local/**', async route => {
   }
 });
 page.on('pageerror', e => { console.error('page error:', e); process.exitCode = 1; });
-await page.goto(`http://motion.local/${pageFile}?capture`);
+await page.goto(`http://motion.local/${pageFile}?capture${args.scale ? `&scale=${args.scale}` : ''}`);
 await page.evaluate(() => window.ready);
 const duration = await page.evaluate(() => window.DURATION);
 
@@ -89,7 +92,8 @@ if (args.frames && args.audio) throw new Error('--frames renders a silent part; 
 await mkdir(path.dirname(out), { recursive: true });
 const ffArgs = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-i', '-'];
 if (args.audio) ffArgs.push('-i', path.resolve(args.audio));
-ffArgs.push('-c:v', 'libx264', '-preset', 'slow', '-crf', String(args.crf || 18), '-pix_fmt', 'yuv420p',
+if (args.lossless) ffArgs.push('-c:v', 'libx264', '-preset', 'ultrafast', '-qp', '0', '-pix_fmt', 'yuv444p', '-r', String(fps));
+else ffArgs.push('-c:v', 'libx264', '-preset', 'slow', '-crf', String(args.crf || 18), '-pix_fmt', 'yuv420p',
   '-profile:v', 'high', '-movflags', '+faststart', '-r', String(fps));
 if (args.audio) ffArgs.push('-c:a', 'aac', '-b:a', '192k', '-shortest');
 ffArgs.push(out);
