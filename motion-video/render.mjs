@@ -7,6 +7,7 @@
 //   node render.mjs --stills 1,2.9,8      -> PNG snapshots only (for review)
 //   node render.mjs --page minimal.html   -> render another page in this folder
 //   node render.mjs --scale 2             -> pages that support it render at 2x (4K)
+//   node render.mjs --dof 0               -> sport3d.html without depth-of-field blur
 //   node render.mjs --lossless --out a.mkv -> lossless intermediate, e.g. one of several
 //                                            --frames ranges rendered in parallel
 //   node render.mjs --cues audio/cues.json -> sound cue times for audio.py
@@ -51,7 +52,7 @@ await page.route('http://motion.local/**', async route => {
   }
 });
 page.on('pageerror', e => { console.error('page error:', e); process.exitCode = 1; });
-await page.goto(`http://motion.local/${pageFile}?capture${args.scale ? `&scale=${args.scale}` : ''}`);
+await page.goto(`http://motion.local/${pageFile}?capture${args.scale ? `&scale=${args.scale}` : ''}${args.dof === '0' ? '&dof=0' : ''}`);
 await page.evaluate(() => window.ready);
 const duration = await page.evaluate(() => window.DURATION);
 

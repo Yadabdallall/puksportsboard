@@ -37,6 +37,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 const W = 1080, H = 1920, DURATION = 20;
 // Layout is in 1080x1920 units; ?scale=2 renders every pixel at 2x (2160x3840, 4K).
 const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
+// ?dof=0 turns the depth-of-field blur off: crisper objects and ~40% faster renders.
+const DOF = new URLSearchParams(location.search).get('dof') !== '0';
 const BEAT = 60 / 96; // the music runs at 96 bpm: 2.5 s per bar
 
 // Each shot: [start, end]. Phrases are [line 1, line 2]; the words listed in
@@ -429,7 +431,7 @@ const renderPass = new RenderPass(S1.scene, S1.cam);
 const bokeh = new BokehPass(S1.scene, S1.cam, { focus: 7, aperture: 0.002, maxblur: 0.009 });
 const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE / 2, H * SCALE / 2), 0.45, 0.6, 1.05);
 composer.addPass(renderPass);
-composer.addPass(bokeh);
+if (DOF) composer.addPass(bokeh);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 

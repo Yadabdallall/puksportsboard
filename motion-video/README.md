@@ -12,9 +12,10 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 ## 3D vertical video (20 s)
 
 Soft, clay-like 3D objects in cream on deep green, rendered with three.js. It has
-depth of field, soft shadows and a single glowing green accent. There are no
-people in it. The 3D is antialiased (4× multisampling), the video is encoded at high
-quality (CRF 12) and the audio is 320 kbps. `--scale 2` renders it in 4K (2160×3840),
+soft shadows and a single glowing green accent. There are no people in it. It is
+rendered sharp, with the depth-of-field blur turned off (`--dof 0`). The 3D is
+antialiased (4× multisampling), the video is encoded at very high quality (CRF 10)
+and the audio is 320 kbps. `--scale 2` renders it in 4K (2160×3840),
 at about four times the render time. Each shot is two bars of the music (96 bpm):
 
 | Time | Shot | Phrase |
@@ -123,12 +124,12 @@ cd motion-video
 node render.mjs --page sport3d.html --cues audio/sport3d-cues.json
 python3 audio/sport3d.py audio/sport3d-cues.json output/sport3d-sfx.wav
 python3 audio/sport3d_warm.py audio/sport3d-cues.json output/sport3d-warm-sfx.wav
-# three processes render 200 lossless frames each (~20 min; add --scale 2 for 4K, ~75 min)
-for k in 0 1 2; do
-  node render.mjs --page sport3d.html --fps 30 --frames $((k*200)):$((k*200+200)) --lossless --out part$k.mkv &
+# four processes render 150 lossless frames each (~12 min; add --scale 2 for 4K, ~75 min)
+for k in 0 1 2 3; do
+  node render.mjs --page sport3d.html --dof 0 --fps 30 --frames $((k*150)):$((k*150+150)) --lossless --out part$k.mkv &
 done; wait
-printf "file 'part%d.mkv'\n" 0 1 2 > parts.txt
-ffmpeg -f concat -i parts.txt -c:v libx264 -preset slow -crf 12 -pix_fmt yuv420p -profile:v high \
+printf "file 'part%d.mkv'\n" 0 1 2 3 > parts.txt
+ffmpeg -f concat -i parts.txt -c:v libx264 -preset slow -crf 10 -pix_fmt yuv420p -profile:v high \
   -x264-params aq-mode=3 picture.mp4
 for v in cinematic:sport3d-sfx warm:sport3d-warm-sfx; do
   ffmpeg -i picture.mp4 -i output/${v#*:}.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k \
