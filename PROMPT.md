@@ -39,7 +39,7 @@ filter. Featured field cross-fades (.35s); the others are visibility:hidden so t
 
 At the bottom of the hero, glowing: "ئامادەکراوە لە لایەن ڕاگەیاندنی بۆردی وەرزش"
 (ar: "إعداد: إعلام هيئة الرياضة" — Arabic name of the board: "هيئة الرياضة للاتحاد الوطني الكوردستاني", en: "Prepared by the Sports Board Media"). The same credit closes the
-page footer, large and neon, with all three languages listed under it.
+page footer, large and neon, once, in the current language only.
 
 Below the hero the page scrolls: News → Sports → Photos → About + Contact → Footer. The nav is fixed
 and turns into a blurred solid bar once the page scrolls; a scroll-spy moves the neon underline.
