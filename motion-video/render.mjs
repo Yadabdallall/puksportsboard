@@ -7,6 +7,8 @@
 //   node render.mjs --stills 1,2.9,8      -> PNG snapshots only (for review)
 //   node render.mjs --page minimal.html   -> render another page in this folder
 //   node render.mjs --cues audio/cues.json -> sound cue times for audio.py
+//   node render.mjs --frames 250:460      -> only frames 250..459, no audio (to patch
+//                                            one keyframe interval of an earlier render)
 //
 // Needs Playwright (npm i playwright) and ffmpeg (on PATH or via $FFMPEG).
 import { spawn } from 'node:child_process';
@@ -80,6 +82,10 @@ if (args.stills) {
   process.exit();
 }
 
+const total = Math.round(duration * fps);
+const [first, last] = args.frames ? String(args.frames).split(':').map(Number) : [0, total];
+if (args.frames && args.audio) throw new Error('--frames renders a silent part; add the audio to the finished video');
+
 await mkdir(path.dirname(out), { recursive: true });
 const ffArgs = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-i', '-'];
 if (args.audio) ffArgs.push('-i', path.resolve(args.audio));
@@ -90,12 +96,11 @@ ffArgs.push(out);
 const enc = spawn(ffmpeg, ffArgs, { stdio: ['pipe', 'inherit', 'inherit'] });
 const done = new Promise((res, rej) => enc.on('close', c => (c ? rej(new Error('ffmpeg exited ' + c)) : res())));
 
-const frames = Math.round(duration * fps);
 const t0 = Date.now();
-for (let i = 0; i < frames; i++) {
+for (let i = first; i < last; i++) {
   const buf = await grab(i / fps);
   if (!enc.stdin.write(buf)) await new Promise(r => enc.stdin.once('drain', r));
-  if (i % fps === 0) process.stdout.write(`\rframe ${i}/${frames} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
+  if (i % fps === 0) process.stdout.write(`\rframe ${i}/${last} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
 }
 enc.stdin.end();
 await done;

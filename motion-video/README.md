@@ -4,7 +4,8 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
-| [`output/puk-sports-board-3d.mp4`](output/puk-sports-board-3d.mp4): soft 3D sports objects, vertical for Reels and Stories | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d.py` |
+| [`output/puk-sports-board-3d-cinematic.mp4`](output/puk-sports-board-3d-cinematic.mp4): soft 3D sports objects, vertical for Reels and Stories, with the cinematic score | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d.py` |
+| [`output/puk-sports-board-3d-warm.mp4`](output/puk-sports-board-3d-warm.mp4): the same picture with the warm, lighter music | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d_warm.py` |
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
 
@@ -18,10 +19,12 @@ people in it. Each shot is two bars of the music (96 bpm):
 | --- | --- | --- |
 | 0 – 5 s | A row of hurdles rises from the floor, and a green ball bounces over them on the beat | هەر بەربەستێک، دەرفەتێکی نوێیە |
 | 5 – 10 s | A football turns slowly while a small green light orbits it | وەرزش، زمانی هەموومانە |
-| 10 – 15 s | Podium blocks 1-2-3 rise, and the green ball drops onto the top step | هەموو سەرکەوتنێک بە خەونێک دەست پێدەکات |
+| 10 – 15 s | Podium blocks 1-2-3 rise, and the green ball drops onto the top step | هەموو سەرکەوتنێک بەدیهێنانی خەونێکە، then, as the ball lands: و بۆردی وەرزشی هاوکار دەبێت لە بەدیهێنانی خەونەکانتان |
 | 15 – 20 s | A cream circle wipe, then the logo inside gently turning rings | بۆردی وەرزشی · یەکێتیی نیشتمانیی کوردستان · پێکەوە بەرەو لووتکە |
 
-The music is a cinematic score made from **real instrument recordings**: a Salamander
+There are two versions with the same picture and different music.
+
+The main version has a cinematic score made from **real instrument recordings**: a Salamander
 grand piano, violins, cello, contrabass and French horns. It is in D minor and resolves
 to F major when the logo appears:
 
@@ -32,6 +35,9 @@ to F major when the logo appears:
 - **Logo:** a harp glissando into the final chord.
 
 Every bar was checked to land on its intended chord.
+
+The warm version (`audio/sport3d_warm.py`) is a lighter, synthesised piece in C major.
+Its ball bounces play marimba notes, and a bell melody runs over soft drums.
 
 ## Minimal video (20 s)
 
@@ -72,16 +78,19 @@ motion-video/
 ├── sport3d.html        # 3D vertical video (three.js)
 ├── package.json        # three.js + Playwright (npm install)
 ├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
+├── patch_video.py      # splices a re-rendered keyframe interval into a finished video
 ├── audio/
 │   ├── audio.py        # sound for the footballer video (every sound generated, no samples)
 │   ├── minimal.py      # sound for the minimal video
-│   ├── sport3d.py      # music for the 3D video
+│   ├── sport3d.py      # cinematic score for the 3D video
+│   ├── sport3d_warm.py # warm alternative music for the 3D video
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   └── fonts/          # Zain (SIL Open Font License, see OFL.txt)
 └── output/
-    ├── puk-sports-board-3d.mp4
+    ├── puk-sports-board-3d-cinematic.mp4
+    ├── puk-sports-board-3d-warm.mp4
     ├── puk-sports-board-motion.mp4
     └── puk-sports-board-minimal.mp4  # the .wav tracks are also written here but not committed
 ```
@@ -102,17 +111,26 @@ In `index.html`:
 
 ## Rendering again
 
-Requirements: Node 18+, ffmpeg, and Python 3 with numpy and scipy. Run `npm install`
-in `motion-video/` to get three.js and Playwright.
+Requirements: Node 18+, ffmpeg, and Python 3 with numpy, scipy and imageio-ffmpeg.
+`patch_video.py` also needs PyAV. Run `npm install` in `motion-video/` to get three.js,
+Playwright and the instrument samples.
 
 ```bash
 cd motion-video
-# 3D vertical video
+# 3D vertical video: render the picture once, then add each score
 node render.mjs --page sport3d.html --cues audio/sport3d-cues.json
 python3 audio/sport3d.py audio/sport3d-cues.json output/sport3d-sfx.wav
-node render.mjs --page sport3d.html --fps 30 --audio output/sport3d-sfx.wav --out output/puk-sports-board-3d.mp4
-# changed only the music? swap the audio track without re-rendering the picture:
-#   ffmpeg -i output/puk-sports-board-3d.mp4 -i output/sport3d-sfx.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest new.mp4
+python3 audio/sport3d_warm.py audio/sport3d-cues.json output/sport3d-warm-sfx.wav
+node render.mjs --page sport3d.html --fps 30 --out picture.mp4        # ~20 min
+for v in cinematic:sport3d-sfx warm:sport3d-warm-sfx; do
+  ffmpeg -i picture.mp4 -i output/${v#*:}.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k \
+    -shortest -movflags +faststart output/puk-sports-board-3d-${v%%:*}.mp4
+done
+# If only one shot changed (e.g. its text), re-render just that keyframe interval and
+# splice it in. patch_video.py lists the keyframes if the range doesn't line up.
+node render.mjs --page sport3d.html --fps 30 --frames 250:460 --out part.mp4
+python3 patch_video.py output/puk-sports-board-3d-cinematic.mp4 part.mp4 250 picture.mp4
+# ...then run the ffmpeg loop above again
 
 # footballer video
 node render.mjs --cues audio/cues.json            # 1. export sound cue times

@@ -38,11 +38,21 @@ const W = 1080, H = 1920, DURATION = 20;
 const BEAT = 60 / 96; // the music runs at 96 bpm: 2.5 s per bar
 
 // Each shot: [start, end]. Phrases are [line 1, line 2]; the words listed in
-// `accent` are set in green.
+// `accent` are set in green. A shot can instead list its own `lines`, each
+// with its entry time, baseline and size.
 const SHOTS = [
   { name: 'hurdles', start: 0, end: 5.2, text: ['هەر بەربەستێک،', 'دەرفەتێکی نوێیە'], accent: ['نوێیە'], textIn: 1.0, textOut: 4.75 },
   { name: 'ball', start: 4.8, end: 10.2, text: ['وەرزش،', 'زمانی هەموومانە'], accent: ['هەموومانە'], textIn: 5.6, textOut: 9.75 },
-  { name: 'podium', start: 9.8, end: 15.2, text: ['هەموو سەرکەوتنێک', 'بە خەونێک دەست پێدەکات'], accent: ['خەونێک'], textIn: 10.6, textOut: 14.7 },
+  {
+    name: 'podium', start: 9.8, end: 15.2, accent: ['خەونێکە', 'خەونەکانتان'], textIn: 10.45, textOut: 14.75,
+    // the second half arrives as the ball lands on the top step (12.5 s)
+    lines: [
+      { text: 'هەموو سەرکەوتنێک', at: 10.45, y: 1240, size: 88 },
+      { text: 'بەدیهێنانی خەونێکە', at: 10.59, y: 1352, size: 88 },
+      { text: 'و بۆردی وەرزشی هاوکار دەبێت', at: 12.45, y: 1488, size: 68, weight: 700 },
+      { text: 'لە بەدیهێنانی خەونەکانتان', at: 12.59, y: 1580, size: 68, weight: 700 },
+    ],
+  },
   { name: 'end', start: 15.6, end: 20 },
 ];
 const END_TEXT = { title: 'بۆردی وەرزشی', sub: 'یەکێتیی نیشتمانیی کوردستان', line: 'پێکەوە بەرەو لووتکە' };
@@ -450,7 +460,7 @@ function wordsLine(text, accent, x, y, size, weight, alpha = 1) {
   ctx.shadowColor = 'rgba(0, 20, 10, 0.55)';
   ctx.shadowBlur = 24;
   words.forEach((w, i) => {
-    ctx.fillStyle = accent.includes(w) ? ACCENT_CSS : '#ffffff';
+    ctx.fillStyle = accent.includes(w.replace(/[،,.!؟?]/g, '')) ? ACCENT_CSS : '#ffffff';
     ctx.fillText(w, xr, y);
     xr -= ws[i] + sp;
   });
@@ -458,19 +468,21 @@ function wordsLine(text, accent, x, y, size, weight, alpha = 1) {
 }
 
 // Each line rises out of a mask, like the reference reel.
+function shotLines(shot) {
+  return shot.lines || shot.text.map((text, i) => ({ text, at: shot.textIn + i * 0.14, y: 1470 + i * 118, size: 92 }));
+}
 function phrase(shot, t) {
-  if (!shot.text || t < shot.textIn || t > shot.textOut + 0.1) return;
-  const size = 92, lh = 118, y0 = 1470;
-  shot.text.forEach((line, i) => {
-    const u = ease.outQuint(prog(t, shot.textIn + i * 0.14, shot.textIn + 0.8 + i * 0.14));
+  if (!(shot.text || shot.lines) || t < shot.textIn || t > shot.textOut + 0.2) return;
+  shotLines(shot).forEach(({ text, at, y, size, weight = 800 }, i) => {
+    const u = ease.outQuint(prog(t, at, at + 0.8));
     const o = ease.in(prog(t, shot.textOut - 0.45 + i * 0.05, shot.textOut + i * 0.05));
-    const y = y0 + i * lh;
+    if (u <= 0 || o >= 1) return;
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, y - size * 1.25, W, size * 1.7);
     ctx.clip();
     ctx.translate(0, (1 - u) * size * 1.3 - o * size * 1.3);
-    wordsLine(line, shot.accent, W / 2, y, size, 800, 1);
+    wordsLine(text, shot.accent, W / 2, y, size, weight, 1);
     ctx.restore();
   });
 }
@@ -624,7 +636,7 @@ window.soundCues = () => ({
   orbDrop: +S3.drop.toFixed(3),
   cuts: [4.8, 9.8],
   wipe: WIPE,
-  phrases: SHOTS.filter(s => s.text).map(s => s.textIn),
+  phrases: SHOTS.filter(s => s.text || s.lines).map(s => s.textIn),
   logo: 16.1, outro: OUTRO,
 });
 
