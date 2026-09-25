@@ -372,7 +372,7 @@ var DEFAULT_REPO={owner:'Yadabdallall',repo:'puksportsboard',branch:'main'};
 var KDF_ITERATIONS=600000, MAX_PHOTO=1600, JPEG_QUALITY=0.82, AUTO_LOCK_MS=30*60*1000;
 /* sections: key, Kurdish name, small hint */
 var CATS=[
-  ['football','دووگۆڵی','Football'],['futsal','فوتسال','Futsal'],['volleyball','تۆپی باڵە','Volleyball'],
+  ['football','تۆپی پێ','Football'],['futsal','فوتسال','Futsal'],['volleyball','تۆپی باڵە','Volleyball'],
   ['basketball','تۆپی سەبەتە','Basketball'],['handball','تۆپی دەست','Handball'],['running','ڕاکردن','Running'],
   ['swimming','مەلەکردن','Swimming'],['tabletennis','تێنسی سەر مێز','Table tennis'],['tennis','تێنسی سەر زەوی','Tennis'],
   ['wrestling','زۆرانبازی','Wrestling'],['boxing','بۆکسێن','Boxing'],['mountain','شاخەوانی','Mountaineering'],
@@ -662,7 +662,7 @@ $('cancel-edit').addEventListener('click',function(){resetForm();$('status').tex
 $('story-form').addEventListener('submit',function(e){
   e.preventDefault();
   var ok=true,status=$('status'),btn=$('publish');
-  if(!selectedCat){$('err-cat').textContent='بەشی هەواڵەکە هەڵبژێرە (بۆ نموونە دووگۆڵی یان هەمەڕەنگ).';ok=false;}
+  if(!selectedCat){$('err-cat').textContent='بەشی هەواڵەکە هەڵبژێرە (بۆ نموونە تۆپی پێ یان هەمەڕەنگ).';ok=false;}
   if(!$('f-title_ku').value.trim()&&!$('f-title_ar').value.trim()&&!$('f-title_en').value.trim()){$('err-title').textContent='سەردێڕی هەواڵەکە بنووسە.';ok=false;}
   if(!ok){(document.querySelector('.err:not(:empty)')||status).scrollIntoView({block:'center',behavior:'smooth'});return;}
   var id=editingId||(($('f-date').value||today())+'-'+rid());

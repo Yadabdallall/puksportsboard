@@ -38,7 +38,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&display=swap">
 
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SportsOrganization","name":"بۆردی وەرزش — یەکێتیی نیشتمانیی کوردستان","alternateName":["PUK Sports Board","مجلس الرياضة — الاتحاد الوطني الكردستاني"],"logo":"assets/img/logo.png","foundingDate":"2020","areaServed":"Kurdistan Region","address":{"@type":"PostalAddress","addressLocality":"Sulaymaniyah","addressCountry":"IQ"}}
+{"@context":"https://schema.org","@type":"SportsOrganization","name":"بۆردی وەرزش — یەکێتیی نیشتمانیی کوردستان","alternateName":["PUK Sports Board","مجلس الرياضة — الاتحاد الوطني الكردستاني"],"logo":"assets/img/logo.png","foundingDate":"2020","telephone":"+964 771 236 4141","email":"puksportsbaord@gmail.com","areaServed":"Kurdistan Region","address":{"@type":"PostalAddress","addressLocality":"Sulaymaniyah","addressCountry":"IQ"}}
 </script>
 
 <style>
@@ -658,6 +658,10 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
 .foot-links a{color:rgba(226,255,238,.8);text-decoration:none;font-size:17.5px;transition:color .2s}
 .foot-links a:hover{color:var(--neon)}
 .foot-actions{display:flex;gap:10px;flex-wrap:wrap}
+.foot-contact{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 28px;margin-top:30px}
+.foot-contact a{display:inline-flex;align-items:center;gap:9px;color:#eafff2;text-decoration:none;font-size:19px;font-weight:700;transition:color .2s}
+.foot-contact a:hover{color:var(--neon)}
+.foot-contact svg{width:24px;height:24px;color:var(--neon);filter:drop-shadow(0 0 5px rgba(57,255,143,.7))}
 .credit-big{margin-top:46px;text-align:center;font-family:var(--font-display);font-weight:700;
   font-size:clamp(23px, 3.3vw, 34px);line-height:1.5;color:#effff5;
   text-shadow:0 0 5px rgba(255,255,255,.45), 0 0 14px rgba(57,255,143,.95), 0 0 36px rgba(57,255,143,.6), 0 0 70px rgba(57,255,143,.3);
@@ -808,7 +812,7 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
   <div class="ui">
     <div class="copy">
       <div class="col eyebrow"><span class="ent-mask"><span class="ent-line" data-i18n="eyebrow">وەرزش</span></span></div>
-      <h1 class="col title"><span class="ent-mask"><span class="ent-line">دووگۆڵی</span></span></h1>
+      <h1 class="col title"><span class="ent-mask"><span class="ent-line">تۆپی پێ</span></span></h1>
       <div class="col rule"><span></span></div>
       <p class="col lede"></p>
       <div class="col cta">
@@ -918,6 +922,7 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
           <button class="btn" type="button" id="install" hidden><svg class="i" viewBox="0 0 48 48" aria-hidden="true"><use href="#u-download"/></svg><span data-i18n="install">دابەزاندنی ئەپ</span></button>
         </div>
       </div>
+      <div class="foot-contact" id="foot-contact"></div>
       <p class="credit-big" data-i18n="credit">ئامادەکراوە لە لایەن ڕاگەیاندنی بۆردی وەرزش</p>
       <p class="credit-langs">
         <span lang="ckb" dir="rtl">ئامادەکراوە لە لایەن ڕاگەیاندنی بۆردی وەرزش</span>
@@ -1038,12 +1043,12 @@ var T={
 
 /* ─── Sports: key, [ku, ar, en] name, [ku, ar, en] lede ─── */
 var SPORTS=[
-  {k:'football', n:['دووگۆڵی','كرة القدم','FOOTBALL'], d:[
+  {k:'football', n:['تۆپی پێ','كرة القدم','FOOTBALL'], d:[
     'ئەو یارییەی هەموو یاریگاکانی کوردستان پڕ دەکاتەوە، لە گۆڕەپانەکانی سلێمانییەوە تا هەموو گەڕەکێک. دوایین هەواڵ، ئەنجام و وێنەی یارییەکان لێرە ببینە.',
     'اللعبة التي تملأ كل ملاعب كوردستان، من ملاعب السليمانية إلى كل الأحياء. تابع هنا آخر الأخبار والنتائج وصور المباريات.',
     'The game that fills every stadium in Kurdistan, from the pitches of Sulaymaniyah to every neighbourhood. Follow the latest news, results and match photos.']},
   {k:'futsal', n:['فوتسال','كرة الصالات','FUTSAL'], d:[
-    'خێرا و پڕ هەیەجان — دووگۆڵیی پێنج یاریزان لە هۆڵە داخراوەکانی کوردستان. پاڵەوانێتی، خشتەی یارییەکان و ساتە دیارەکان لە یەک شوێندا.',
+    'خێرا و پڕ هەیەجان — تۆپی پێی پێنج یاریزان لە هۆڵە داخراوەکانی کوردستان. پاڵەوانێتی، خشتەی یارییەکان و ساتە دیارەکان لە یەک شوێندا.',
     'سريعة ومثيرة بلا توقف — كرة القدم الخماسية في صالات كوردستان. البطولات والمباريات وأبرز اللقطات في مكان واحد.',
     'Fast, tight and relentless — five-a-side football on the indoor courts of Kurdistan. Tournaments, fixtures and highlights in one place.']},
   {k:'volleyball', n:['تۆپی باڵە','الكرة الطائرة','VOLLEYBALL'], d:[
@@ -1448,6 +1453,10 @@ function renderAbout(){
   if(site.phone)items.push('<a class="contact-item" href="tel:'+esc(String(site.phone).replace(/[^\d+]/g,''))+'">'+icon('u-phone')+'<div><small>'+esc(t('phone'))+'</small><span dir="ltr">'+esc(site.phone)+'</span></div></a>');
   if(site.email)items.push('<a class="contact-item" href="mailto:'+esc(site.email)+'">'+icon('u-mail')+'<div><small>'+esc(t('email'))+'</small><span dir="ltr">'+esc(site.email)+'</span></div></a>');
   $('contact-list').innerHTML=items.join('');
+  var tel=String(site.phone||'').replace(/[^\d+]/g,''), fc=[];
+  if(tel)fc.push('<a href="tel:'+esc(tel)+'" aria-label="'+esc(t('phone'))+'">'+icon('u-phone')+'<span dir="ltr">'+esc(site.phone)+'</span></a>');
+  if(site.email)fc.push('<a href="mailto:'+esc(site.email)+'" aria-label="'+esc(t('email'))+'">'+icon('u-mail')+'<span dir="ltr">'+esc(site.email)+'</span></a>');
+  $('foot-contact').innerHTML=fc.join('');$('foot-contact').hidden=!fc.length;
   var soc=['facebook','instagram','youtube','tiktok','telegram','x','whatsapp'].filter(function(k){return safeUrl(site[k]);});
   $('socials').innerHTML=soc.map(function(k){
     return '<a href="'+esc(safeUrl(site[k]))+'" target="_blank" rel="noopener" aria-label="'+k+'">'+icon('s-'+k)+'</a>';

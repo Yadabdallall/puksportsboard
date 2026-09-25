@@ -21,7 +21,7 @@ pill button ("هەواڵەکان ببینە" → the news). Flanking the pill, c
 sit two glowing neon ORBS (a ring with the sport's line icon in the visible half) with labels.
 
 Instead of 3 planets there are 14 sports popular in Kurdistan and Sulaymaniyah, in this order:
-football (دووگۆڵی), futsal (فوتسال), volleyball (تۆپی باڵە), basketball (تۆپی سەبەتە),
+football (تۆپی پێ), futsal (فوتسال), volleyball (تۆپی باڵە), basketball (تۆپی سەبەتە),
 handball (تۆپی دەست), running (ڕاکردن), swimming (مەلەکردن), table tennis (تێنسی سەر مێز),
 tennis (تێنسی سەر زەوی), wrestling (زۆرانبازی), boxing (بۆکسێن), mountaineering (شاخەوانی),
 cycling (پاسکیلسواری), taekwondo (تایکواندۆ). Each has a name and a 1–2 sentence intro in Kurdish,
