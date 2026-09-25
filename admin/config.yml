@@ -1,0 +1,138 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Content editor for the PUK Sports Board website (Sveltia CMS).
+#
+# Daily use:  open  https://<your-site>/admin/  →  "Sign In Using Access Token"
+#             →  paste a GitHub token that can read & write this repository.
+# Every "Save" commits to the repository; the website updates a minute later.
+# ─────────────────────────────────────────────────────────────────────────────
+backend:
+  name: github
+  repo: yadabdallall/puksportsboard   # change if the repository is renamed or moved
+  branch: main                       # the branch GitHub Pages publishes
+
+app_title: "بۆردی وەرزش — CMS"
+site_url: https://yadabdallall.github.io/puksportsboard/
+logo:
+  src: https://yadabdallall.github.io/puksportsboard/assets/img/logo-160.png
+
+# Photos go to uploads/news. Big phone photos are resized and converted to WebP on upload.
+media_folder: uploads/news
+public_folder: uploads/news
+media_libraries:
+  default:
+    config:
+      max_file_size: 25000000
+      slugify_filename: true
+      transformations:
+        raster_image:
+          format: webp
+          quality: 85
+          width: 2000
+          height: 2000
+
+collections:
+  # ═════════════════════════════ NEWS ═════════════════════════════
+  - name: news
+    label: "هەواڵەکان · News"
+    icon: newspaper
+    files:
+      - name: news
+        label: "هەواڵەکان · News"
+        file: data/news.json
+        fields:
+          - name: items
+            label: "هەواڵەکان · News"
+            label_singular: "هەواڵ · Story"
+            widget: list
+            add_to_top: true
+            collapsed: true
+            summary: "{{fields.date}} — {{fields.title_ku}}"
+            fields:
+              - { name: id, label: "ID", widget: uuid, hint: "خۆکارە — دەستکاری مەکە (automatic)" }
+              - { name: date, label: "بەروار · Date", widget: datetime, type: date, format: "YYYY-MM-DD", default: "{{now}}" }
+              - name: sport
+                label: "وەرزش · Sport"
+                widget: select
+                default: general
+                options:
+                  - { label: "گشتی · General", value: general }
+                  - { label: "تۆپی پێ · Football", value: football }
+                  - { label: "فوتسال · Futsal", value: futsal }
+                  - { label: "تۆپی باڵە · Volleyball", value: volleyball }
+                  - { label: "تۆپی سەبەتە · Basketball", value: basketball }
+                  - { label: "تۆپی دەست · Handball", value: handball }
+                  - { label: "ڕاکردن · Running", value: running }
+                  - { label: "مەلەکردن · Swimming", value: swimming }
+                  - { label: "تێنسی سەر مێز · Table tennis", value: tabletennis }
+                  - { label: "تێنسی سەر زەوی · Tennis", value: tennis }
+                  - { label: "زۆرانبازی · Wrestling", value: wrestling }
+                  - { label: "بۆکسێن · Boxing", value: boxing }
+                  - { label: "شاخەوانی · Mountaineering", value: mountain }
+                  - { label: "پاسکیلسواری · Cycling", value: cycling }
+                  - { label: "تایکواندۆ · Taekwondo", value: taekwondo }
+              - { name: featured, label: "لە سەرەوە بێت؟ · Pin to top", widget: boolean, default: false, required: false }
+              - { name: draft, label: "ڕەشنووس (بڵاونەکرێتەوە) · Draft (hidden)", widget: boolean, default: false, required: false }
+              - { name: image, label: "وێنەی سەرەکی · Main photo", widget: image, required: false }
+              - { name: gallery, label: "وێنەی زیاتر · More photos", widget: image, multiple: true, required: false }
+              - { name: title_ku, label: "سەردێڕ — کوردی", widget: string }
+              - { name: summary_ku, label: "پوختە — کوردی", widget: text, required: false, hint: "یەک دوو دێڕ بۆ کارتی هەواڵ" }
+              - { name: body_ku, label: "دەقی هەواڵ — کوردی", widget: text, required: false, hint: "بۆ پەرەگرافی نوێ دێڕێکی بەتاڵ دابنێ" }
+              - { name: title_ar, label: "العنوان — عربي", widget: string, required: false }
+              - { name: summary_ar, label: "الملخص — عربي", widget: text, required: false }
+              - { name: body_ar, label: "نص الخبر — عربي", widget: text, required: false }
+              - { name: title_en, label: "Title — English", widget: string, required: false }
+              - { name: summary_en, label: "Summary — English", widget: text, required: false }
+              - { name: body_en, label: "Story — English", widget: text, required: false }
+
+  # ═════════════════════════════ SITE SETTINGS ═════════════════════════════
+  - name: settings
+    label: "ڕێکخستنەکان · Settings"
+    icon: settings
+    files:
+      - name: site
+        label: "زانیاری ماڵپەڕ · Site info"
+        file: data/site.json
+        fields:
+          - { name: founded, label: "ساڵی دامەزراندن · Founded", widget: string }
+          - { name: about_ku, label: "دەربارە — کوردی", widget: text }
+          - { name: about_ar, label: "من نحن — عربي", widget: text, required: false }
+          - { name: about_en, label: "About — English", widget: text, required: false }
+          - { name: address_ku, label: "ناونیشان — کوردی", widget: string, required: false }
+          - { name: address_ar, label: "العنوان — عربي", widget: string, required: false }
+          - { name: address_en, label: "Address — English", widget: string, required: false }
+          - { name: phone, label: "تەلەفۆن · Phone", widget: string, required: false }
+          - { name: email, label: "ئیمەیڵ · Email", widget: string, required: false }
+          - { name: facebook, label: "Facebook", widget: string, required: false, hint: "https://facebook.com/..." }
+          - { name: instagram, label: "Instagram", widget: string, required: false }
+          - { name: youtube, label: "YouTube", widget: string, required: false }
+          - { name: tiktok, label: "TikTok", widget: string, required: false }
+          - { name: telegram, label: "Telegram", widget: string, required: false }
+          - { name: x, label: "X (Twitter)", widget: string, required: false }
+          - { name: whatsapp, label: "WhatsApp", widget: string, required: false, hint: "https://wa.me/964..." }
+          - name: hero_photos
+            label: "وێنەی پاشبنەمای وەرزشەکان · Hero background photos"
+            label_singular: "وێنە · Photo"
+            hint: "ئارەزوومەندانە — وێنەیەک بۆ پاشبنەمای هەر وەرزشێک لە بەشی سەرەوە (بە ڕەنگی سەوز پیشان دەدرێت)"
+            widget: list
+            required: false
+            summary: "{{fields.sport}}"
+            fields:
+              - name: sport
+                label: "وەرزش · Sport"
+                widget: select
+                options:
+                  - { label: "تۆپی پێ · Football", value: football }
+                  - { label: "فوتسال · Futsal", value: futsal }
+                  - { label: "تۆپی باڵە · Volleyball", value: volleyball }
+                  - { label: "تۆپی سەبەتە · Basketball", value: basketball }
+                  - { label: "تۆپی دەست · Handball", value: handball }
+                  - { label: "ڕاکردن · Running", value: running }
+                  - { label: "مەلەکردن · Swimming", value: swimming }
+                  - { label: "تێنسی سەر مێز · Table tennis", value: tabletennis }
+                  - { label: "تێنسی سەر زەوی · Tennis", value: tennis }
+                  - { label: "زۆرانبازی · Wrestling", value: wrestling }
+                  - { label: "بۆکسێن · Boxing", value: boxing }
+                  - { label: "شاخەوانی · Mountaineering", value: mountain }
+                  - { label: "پاسکیلسواری · Cycling", value: cycling }
+                  - { label: "تایکواندۆ · Taekwondo", value: taekwondo }
+              - { name: image, label: "وێنە · Photo", widget: image, media_folder: uploads/sports, public_folder: uploads/sports }
