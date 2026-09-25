@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Board Motion</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { width: 100vw; height: 56.25vw; max-height: 100vh; max-width: 177.78vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+/*
+ * بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان — motion ident.
+ *
+ * Everything is a pure function of time: renderFrame(t) draws the frame at
+ * t seconds, so render.mjs can step through it frame by frame. Opening this
+ * file in a browser plays it live.
+ */
+const W = 1920, H = 1080, DURATION = 14;
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+const TEXT_TITLE_1 = 'بۆردی وەرزشی';
+const TEXT_TITLE_2 = 'یەکێتیی نیشتمانیی کوردستان';
+const TEXT_TAGLINE = 'ئێمە بۆ خزمەت لێرەین';
+
+// ---- timeline (seconds) ----
+const T = {
+  runStart: 0.85, runEnd: 2.45,
+  contact: 2.9,
+  logoHit: 3.6,
+  title1: 4.55, title2: 4.9,
+  tagline: 5.9,
+  outro: 13.1,
+};
+
+const GROUND = 948;
+const BALL_R = 26;
+const BALL_X = 620;
+const LOGO = { x: 1330, y: 300, r: 178 };
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const rad = d => d * Math.PI / 180;
+const ease = {
+  inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  out: u => 1 - Math.pow(1 - u, 3),
+  outQuint: u => 1 - Math.pow(1 - u, 5),
+  in: u => u * u * u,
+  inQuad: u => u * u,
+  outBack: u => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  outElastic: u => u === 0 ? 0 : u === 1 ? 1 : Math.pow(2, -10 * u) * Math.sin((u * 10 - 0.75) * (2 * Math.PI) / 3) + 1,
+};
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let r = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r;
+    return ((r ^ r >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ---------------------------------------------------------------- assets
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+const fontFaces = [
+  ['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'],
+  ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf'],
+].map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.forEach(f => document.fonts.add(f));
+
+window.ready = Promise.all([
+  ...fontFaces.map(f => f.load()),
+  logoImg.decode(),
+]).then(() => { buildStatic(); return true; });
+
+// ---------------------------------------------------------------- static layers
+let hexLayer, vignetteLayer, beamSprite;
+function makeLayer() {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  return c;
+}
+function buildStatic() {
+  // honeycomb (football-panel) pattern
+  hexLayer = makeLayer();
+  const h = hexLayer.getContext('2d');
+  const s = 46, hw = Math.sqrt(3) * s;
+  h.strokeStyle = 'rgba(90, 220, 120, 1)';
+  h.lineWidth = 1.2;
+  for (let row = -1; row * s * 1.5 < H + s; row++) {
+    for (let col = -1; col * hw < W + hw; col++) {
+      const cx = col * hw + (row % 2 ? hw / 2 : 0), cy = row * s * 1.5;
+      h.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = rad(60 * k + 30);
+        const px = cx + s * 0.94 * Math.cos(a), py = cy + s * 0.94 * Math.sin(a);
+        k ? h.lineTo(px, py) : h.moveTo(px, py);
+      }
+      h.closePath();
+      h.stroke();
+    }
+  }
+  beamSprite = document.createElement('canvas');
+  beamSprite.width = 700; beamSprite.height = 1400;
+  const b = beamSprite.getContext('2d');
+  b.filter = 'blur(28px)';
+  const bg = b.createLinearGradient(0, 0, 0, 1350);
+  bg.addColorStop(0, 'rgba(170, 255, 190, 0.5)');
+  bg.addColorStop(0.5, 'rgba(120, 255, 160, 0.16)');
+  bg.addColorStop(1, 'rgba(120, 255, 160, 0)');
+  b.fillStyle = bg;
+  b.beginPath();
+  b.moveTo(335, 40); b.lineTo(365, 40); b.lineTo(620, 1360); b.lineTo(80, 1360);
+  b.closePath(); b.fill();
+  vignetteLayer = makeLayer();
+  const v = vignetteLayer.getContext('2d');
+  const g = v.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.05);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.85)');
+  v.fillStyle = g;
+  v.fillRect(0, 0, W, H);
+}
+
+// particles
+const dust = (() => {
+  const r = rng(7), a = [];
+  for (let i = 0; i < 140; i++) a.push({
+    x: r() * W, y: r() * H, s: 0.6 + r() * 2.4, v: 12 + r() * 40,
+    ph: r() * 6.28, tw: 0.5 + r() * 2, drift: (r() - .5) * 30,
+  });
+  return a;
+})();
+
+// light streaks: [start, duration, y at x=0, thickness, length, alpha]
+const streaks = [
+  [0.05, 0.9, 900, 3, 900, 0.9], [0.25, 0.8, 520, 2, 700, 0.7], [0.45, 1.0, 1150, 4, 1100, 0.8],
+  [2.85, 0.55, 1060, 3, 1200, 0.9], [2.95, 0.5, 820, 2, 900, 0.7], [3.05, 0.5, 1250, 2, 900, 0.6],
+  [4.45, 0.7, 980, 2, 900, 0.5], [5.8, 0.8, 1180, 3, 1000, 0.5],
+  [8.2, 1.1, 1000, 2, 1000, 0.45], [10.6, 1.1, 1200, 3, 1100, 0.45], [12.2, 1.0, 900, 2, 900, 0.4],
+];
+
+// burst sparks
+function makeBurst(seed, n, speedMin, speedMax) {
+  const r = rng(seed), a = [];
+  for (let i = 0; i < n; i++) {
+    const ang = r() * Math.PI * 2;
+    a.push({ ang, sp: lerp(speedMin, speedMax, r()), len: 10 + r() * 40, life: 0.5 + r() * 0.9, w: 1 + r() * 2.5, white: r() < 0.35 });
+  }
+  return a;
+}
+const kickSparks = makeBurst(11, 26, 250, 900);
+const logoSparks = makeBurst(23, 90, 300, 1500);
+
+// ---------------------------------------------------------------- player rig
+// Backlit footballer, side view, facing +x: dark silhouette, green kit and a
+// neon rim. Leg angles are absolute (0 = straight down, + = forward), foot
+// angles are absolute too (90 = flat, pointing forward); arm angles are
+// relative to the torso.
+const L = {
+  torso: 172, neck: 18, headR: 31,
+  upperArm: 102, foreArm: 96,
+  thigh: 152, shin: 146, foot: 52,
+};
+const POSE_KEYS = ['x', 'lift', 'gn', 'torso', 'head', 'nThigh', 'nKnee', 'nFoot', 'fThigh', 'fKnee', 'fFoot', 'nShoulder', 'nElbow', 'fShoulder', 'fElbow'];
+
+const dirDown = deg => { const a = rad(deg); return [Math.sin(a), Math.cos(a)]; };
+const add = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k];
+
+function solve(p) {
+  const legs = {};
+  for (const side of ['n', 'f']) {
+    const th = p[side + 'Thigh'], sh = th - p[side + 'Knee'];
+    const hip = [side === 'n' ? 5 : -5, 0];
+    const knee = add(hip, dirDown(th), L.thigh);
+    const ankle = add(knee, dirDown(sh), L.shin);
+    const fd = dirDown(p[side + 'Foot']);
+    legs[side] = { hip, knee, ankle, heel: add(ankle, fd, -14), toe: add(ankle, fd, L.foot) };
+  }
+  const ta = rad(p.torso);
+  const up = [Math.sin(ta), -Math.cos(ta)], fwd = [Math.cos(ta), Math.sin(ta)];
+  const neck = add([0, 0], up, L.torso);
+  const shoulder = add(add([0, 0], up, L.torso - 26), fwd, -3);
+  const ha = rad(p.torso + p.head);
+  const headC = add(neck, [Math.sin(ha), -Math.cos(ha)], L.neck + L.headR * 0.75);
+  const arms = {};
+  for (const side of ['n', 'f']) {
+    const ua = p[side + 'Shoulder'] + p.torso, fa = ua + p[side + 'Elbow'];
+    const sh = add(shoulder, fwd, side === 'n' ? 3 : -3);
+    const elbow = add(sh, dirDown(ua), L.upperArm);
+    arms[side] = { sh, elbow, hand: add(elbow, dirDown(fa), L.foreArm) };
+  }
+  // stand on the planted foot (and on the near foot as far as `gn` says)
+  const low = s => Math.max(legs[s].ankle[1], legs[s].heel[1], legs[s].toe[1]) + 9;
+  const lf = low('f'), ln = low('n');
+  const oy = GROUND - (lf + (p.gn ?? 1) * Math.max(0, ln - lf)) - (p.lift || 0);
+  const o = [p.x, oy];
+  const tr = q => [q[0] + o[0], q[1] + o[1]];
+  const map = obj => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, tr(v)]));
+  return {
+    pelvis: o, neck: tr(neck), headC: tr(headC),
+    legs: { n: map(legs.n), f: map(legs.f) }, arms: { n: map(arms.n), f: map(arms.f) },
+  };
+}
+
+function runPose(t) {
+  const ph = (t - T.runEnd) * 2 * Math.PI * 1.55 + 4.4;
+  const leg = q => {
+    const th = 10 + 30 * Math.sin(q);
+    const kn = 16 + 84 * Math.pow(Math.max(0, Math.cos(q + 0.55)), 1.3);
+    return { th, kn, ft: th - kn + 90 - 32 * Math.max(0, -Math.sin(q)) };
+  };
+  const n = leg(ph), f = leg(ph + Math.PI);
+  const u = prog(t, T.runStart, T.runEnd);
+  return {
+    x: lerp(-360, contactX() - 115, u), gn: 1,
+    lift: 7 * Math.max(0, Math.sin(2 * ph - 0.6)),
+    torso: 15 + 2 * Math.cos(2 * ph), head: -10,
+    nThigh: n.th, nKnee: n.kn, nFoot: n.ft,
+    fThigh: f.th, fKnee: f.kn, fFoot: f.ft,
+    nShoulder: -46 * Math.sin(ph) + 6, nElbow: 92 + 14 * Math.sin(ph),
+    fShoulder: 46 * Math.sin(ph) + 6, fElbow: 92 - 14 * Math.sin(ph),
+  };
+}
+
+const KEYS = {
+  windup: { lift: 0, gn: 0, torso: 8, head: 16, nThigh: -38, nKnee: 108, nFoot: -100, fThigh: 20, fKnee: 30, fFoot: 90, nShoulder: -48, nElbow: 40, fShoulder: 72, fElbow: 26 },
+  contact: { lift: 0, gn: 0, torso: -4, head: 18, nThigh: 40, nKnee: 62, nFoot: 45, fThigh: 15, fKnee: 35, fFoot: 90, nShoulder: -58, nElbow: 30, fShoulder: 70, fElbow: 20 },
+  follow: { lift: 6, gn: 0, torso: -18, head: 2, nThigh: 86, nKnee: 8, nFoot: 112, fThigh: -8, fKnee: 14, fFoot: 62, nShoulder: -62, nElbow: 26, fShoulder: 62, fElbow: 22 },
+  land: { lift: 0, gn: 1, torso: 4, head: -4, nThigh: 12, nKnee: 18, nFoot: 90, fThigh: -12, fKnee: 14, fFoot: 90, nShoulder: 12, nElbow: 26, fShoulder: -10, fElbow: 26 },
+  point: { lift: 0, gn: 1, torso: -3, head: -18, nThigh: 11, nKnee: 6, nFoot: 90, fThigh: -12, fKnee: 9, fFoot: 90, nShoulder: 128, nElbow: 6, fShoulder: -16, fElbow: 40 },
+};
+
+let _cx = null;
+function contactX() {
+  // put the kicking instep on the back of the ball
+  if (_cx === null) {
+    const s = solve({ ...KEYS.contact, x: 0 });
+    const n = s.legs.n;
+    _cx = BALL_X - BALL_R * 0.95 - (n.ankle[0] + n.toe[0]) / 2;
+  }
+  return _cx;
+}
+
+let keyframes = null;
+function buildKeyframes() {
+  const cx = contactX();
+  keyframes = [
+    { t: T.runEnd, pose: runPose(T.runEnd), e: 'inOut' },
+    { t: T.contact - 0.2, pose: { ...KEYS.windup, x: cx - 60 }, e: 'inQuad' },
+    { t: T.contact, pose: { ...KEYS.contact, x: cx }, e: 'out' },
+    { t: T.contact + 0.24, pose: { ...KEYS.follow, x: cx + 30 }, e: 'inOut' },
+    { t: T.contact + 0.62, pose: { ...KEYS.land, x: cx + 50 }, e: 'inOut' },
+    { t: T.contact + 1.25, pose: { ...KEYS.point, x: cx + 58 }, e: 'inOut' },
+  ];
+}
+
+function playerPose(t) {
+  if (!keyframes) buildKeyframes();
+  if (t <= T.runEnd) return runPose(t);
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    const a = keyframes[i], b = keyframes[i + 1];
+    if (t <= b.t) {
+      const u = ease[a.e](prog(t, a.t, b.t));
+      const out = {};
+      for (const k of POSE_KEYS) out[k] = lerp(a.pose[k] ?? 0, b.pose[k] ?? 0, u);
+      return out;
+    }
+  }
+  // idle: breathing and a little sway
+  const last = keyframes[keyframes.length - 1];
+  const u = t - last.t, br = Math.sin(u * 2.2);
+  const p = last.pose;
+  return { ...p, torso: p.torso + br * 1.2, nShoulder: p.nShoulder + Math.sin(u * 1.7) * 2.5, fShoulder: p.fShoulder + br * 2, head: p.head + Math.sin(u * 1.3) * 1.5 };
+}
+
+// Body-part outlines: half-widths at fractions along the bone, on the front
+// (+normal) and back side.
+const PROF = {
+  torso: { f: [[0, 13], [0.12, 29], [0.32, 36], [0.58, 31], [0.82, 28], [1, 29]], b: [[0, 12], [0.12, 26], [0.32, 30], [0.6, 24], [0.85, 29], [1, 30]] },
+  neck: { f: [[0, 10], [1, 10]], b: [[0, 10], [1, 10]] },
+  thigh: { f: [[0, 26], [0.4, 26], [0.8, 19], [1, 15]], b: [[0, 27], [0.3, 26], [0.8, 17], [1, 14]] },
+  shin: { f: [[0, 14], [0.3, 13], [0.85, 8.5], [1, 9]], b: [[0, 14], [0.28, 21], [0.6, 14], [0.9, 8.5], [1, 9]] },
+  upper: { f: [[0, 13], [0.5, 12], [1, 9.5]], b: [[0, 13], [0.45, 13.5], [1, 9.5]] },
+  fore: { f: [[0, 9.5], [0.3, 10.5], [0.85, 7.5], [1, 9]], b: [[0, 9.5], [0.3, 11], [0.85, 7.5], [1, 9]] },
+  boot: { f: [[0, 12], [0.35, 12], [0.75, 8.5], [1, 6]], b: [[0, 8.5], [0.5, 8.5], [1, 6]] },
+};
+const pint = (pts, s) => {
+  for (let i = 1; i < pts.length; i++) if (s <= pts[i][0]) return lerp(pts[i - 1][1], pts[i][1], (s - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]));
+  return pts[pts.length - 1][1];
+};
+function smoothTo(c, P) {
+  for (let i = 1; i < P.length - 1; i++) c.quadraticCurveTo(P[i][0], P[i][1], (P[i][0] + P[i + 1][0]) / 2, (P[i][1] + P[i + 1][1]) / 2);
+  c.lineTo(P[P.length - 1][0], P[P.length - 1][1]);
+}
+function partPath(c, { a, b, prof, grow = 0, s0 = 0, s1 = 1 }) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1e-6;
+  const ux = dx / len, uy = dy / len, fx = uy, fy = -ux;
+  const F = [], B = [], N = 10;
+  for (let i = 0; i <= N; i++) {
+    const s = s0 + (s1 - s0) * i / N;
+    const fw = pint(prof.f, s) + grow, bw = pint(prof.b, s) + grow;
+    const px = a[0] + dx * s, py = a[1] + dy * s;
+    F.push([px + fx * fw, py + fy * fw]);
+    B.push([px - fx * bw, py - fy * bw]);
+  }
+  const ang = Math.atan2(uy, ux);
+  const cap = (p, q, a0) => {
+    const r = Math.hypot(p[0] - q[0], p[1] - q[1]) / 2;
+    c.arc((p[0] + q[0]) / 2, (p[1] + q[1]) / 2, r, a0, a0 + Math.PI, false);
+  };
+  // round joints at the bone ends, straight hems where a kit piece stops
+  c.moveTo(F[0][0], F[0][1]);
+  smoothTo(c, F);
+  if (s1 === 1) cap(F[N], B[N], ang - Math.PI / 2); else c.lineTo(B[N][0], B[N][1]);
+  smoothTo(c, B.slice().reverse());
+  if (s0 === 0) cap(B[0], F[0], ang + Math.PI / 2);
+  c.closePath();
+}
+
+const KIT = {
+  near: { skin: '#0c2a17', jersey: ['#39d467', '#138a35'], shorts: '#e9f4ec', sock: '#1fa347', boot: '#050c07', rim: '#74ff9c' },
+  far: { skin: '#071b0e', jersey: ['#1f8f42', '#0b5a22'], shorts: '#9fb5a6', sock: '#12702f', boot: '#030805', rim: '#2fa656' },
+};
+
+function bodyLayers(sk) {
+  const leg = (s, k) => {
+    const g = sk.legs[s];
+    const hip = [sk.pelvis[0] + (s === 'n' ? 5 : -5), sk.pelvis[1]];
+    return [
+      { a: hip, b: g.knee, prof: PROF.thigh, fill: k.skin },
+      { a: g.knee, b: g.ankle, prof: PROF.shin, fill: k.skin },
+      { a: g.knee, b: g.ankle, prof: PROF.shin, fill: k.sock, grow: 1.2, s0: 0.24 },
+      { a: hip, b: g.knee, prof: PROF.thigh, fill: k.shorts, grow: 4, s1: 0.44 },
+      { a: g.heel, b: g.toe, prof: PROF.boot, fill: k.boot },
+    ];
+  };
+  const arm = (s, k) => {
+    const g = sk.arms[s];
+    return [
+      { a: g.sh, b: g.elbow, prof: PROF.upper, fill: k.skin },
+      { a: g.elbow, b: g.hand, prof: PROF.fore, fill: k.skin },
+      { a: g.sh, b: g.elbow, prof: PROF.upper, fill: 'jersey', grow: 4, s1: 0.52 },
+    ];
+  };
+  const tDir = [sk.pelvis[0] - sk.neck[0], sk.pelvis[1] - sk.neck[1]];
+  const tLen = Math.hypot(...tDir);
+  const pelvisLow = add(sk.pelvis, tDir, 14 / tLen);
+  const n = KIT.near, f = KIT.far;
+  return [
+    { k: f, parts: arm('f', f) },
+    { k: f, parts: leg('f', f) },
+    {
+      k: n, parts: [
+        { a: sk.headC, b: sk.neck, prof: PROF.neck, fill: n.skin },
+        { a: sk.neck, b: pelvisLow, prof: PROF.torso, fill: n.shorts, grow: 3, s0: 0.78 },
+        { a: sk.neck, b: pelvisLow, prof: PROF.torso, fill: 'jersey', s1: 0.84 },
+      ], head: true,
+    },
+    { k: n, parts: leg('n', n) },
+    { k: n, parts: arm('n', n) },
+  ];
+}
+
+function drawPlayer(t, opts = {}) {
+  const sk = solve(playerPose(t));
+  const layers = bodyLayers(sk);
+  const top = sk.headC[1] - L.headR, bottom = GROUND;
+  ctx.save();
+  ctx.globalAlpha = opts.alpha ?? 1;
+  ctx.lineJoin = 'round';
+  for (const layer of layers) {
+    const k = layer.k;
+    const all = new Path2D();
+    for (const p of layer.parts) partPath(all, p);
+    if (layer.head) all.arc(sk.headC[0], sk.headC[1], L.headR, 0, Math.PI * 2);
+    if (opts.ghost) {
+      ctx.fillStyle = opts.ghost;
+      ctx.fill(all, 'nonzero');
+      continue;
+    }
+    // neon rim = stroke of the union, then fills on top
+    ctx.save();
+    ctx.strokeStyle = k.rim;
+    ctx.lineWidth = 6;
+    ctx.shadowColor = k === KIT.near ? 'rgba(70, 255, 120, 0.85)' : 'rgba(70, 255, 120, 0.35)';
+    ctx.shadowBlur = k === KIT.near ? 26 : 12;
+    ctx.stroke(all);
+    ctx.restore();
+    for (const p of layer.parts) {
+      const path = new Path2D();
+      partPath(path, p);
+      if (p.fill === 'jersey') {
+        const g = ctx.createLinearGradient(0, top, 0, top + 330);
+        g.addColorStop(0, k.jersey[0]);
+        g.addColorStop(1, k.jersey[1]);
+        ctx.fillStyle = g;
+      } else {
+        ctx.fillStyle = p.fill;
+      }
+      ctx.fill(path);
+    }
+    if (layer.head) {
+      ctx.beginPath();
+      ctx.arc(sk.headC[0], sk.headC[1], L.headR, 0, Math.PI * 2);
+      ctx.fillStyle = k.skin;
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+  return sk;
+}
+
+function playerX(t) { return solve(playerPose(t)).pelvis[0]; }
+
+// ---------------------------------------------------------------- ball
+function drawBall(x, y, r, rot, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.shadowColor = 'rgba(120, 255, 150, 0.8)';
+  ctx.shadowBlur = r * 0.9;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  const g = ctx.createRadialGradient(-r * 0.35, -r * 0.4, r * 0.1, 0, 0, r);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.7, '#e3efe6');
+  g.addColorStop(1, '#8fa596');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.clip();
+  ctx.rotate(rot);
+  ctx.fillStyle = '#0b1f12';
+  const pent = (cx, cy, s, a0) => {
+    ctx.beginPath();
+    for (let k = 0; k < 5; k++) {
+      const a = a0 + k * Math.PI * 2 / 5;
+      k ? ctx.lineTo(cx + Math.cos(a) * s, cy + Math.sin(a) * s) : ctx.moveTo(cx + Math.cos(a) * s, cy + Math.sin(a) * s);
+    }
+    ctx.closePath(); ctx.fill();
+  };
+  pent(0, 0, r * 0.36, -Math.PI / 2);
+  ctx.strokeStyle = '#0b1f12';
+  ctx.lineWidth = Math.max(1, r * 0.06);
+  for (let k = 0; k < 5; k++) {
+    const a = -Math.PI / 2 + k * Math.PI * 2 / 5;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * r * 0.36, Math.sin(a) * r * 0.36);
+    ctx.lineTo(Math.cos(a) * r * 0.78, Math.sin(a) * r * 0.78);
+    ctx.stroke();
+    pent(Math.cos(a + Math.PI / 5) * r * 1.02, Math.sin(a + Math.PI / 5) * r * 1.02, r * 0.3, a + Math.PI / 5 + Math.PI / 5);
+  }
+  ctx.rotate(-rot);
+  const hl = ctx.createRadialGradient(-r * 0.4, -r * 0.45, 0, -r * 0.4, -r * 0.45, r * 0.9);
+  hl.addColorStop(0, 'rgba(255,255,255,0.55)');
+  hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.fillRect(-r, -r, r * 2, r * 2);
+  const sh = ctx.createRadialGradient(r * 0.3, r * 0.35, r * 0.2, 0, 0, r * 1.05);
+  sh.addColorStop(0, 'rgba(0,30,10,0)');
+  sh.addColorStop(1, 'rgba(0,30,10,0.45)');
+  ctx.fillStyle = sh;
+  ctx.fillRect(-r, -r, r * 2, r * 2);
+  ctx.restore();
+}
+
+const FLIGHT = {
+  p0: [BALL_X, GROUND - BALL_R], p1: [930, 170], p2: [LOGO.x, LOGO.y],
+};
+function flightPoint(u) {
+  const { p0, p1, p2 } = FLIGHT;
+  const a = (1 - u) * (1 - u), b = 2 * u * (1 - u), c = u * u;
+  return [a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]];
+}
+const flightU = t => ease.out(prog(t, T.contact, T.logoHit)) * 0.6 + prog(t, T.contact, T.logoHit) * 0.4;
+const flightR = u => lerp(BALL_R, 64, u * u);
+
+// ---------------------------------------------------------------- scene layers
+function drawBackground(t) {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  // deep green atmosphere
+  const g1 = ctx.createRadialGradient(1250, 380, 40, 1150, 480, 1250);
+  g1.addColorStop(0, 'rgba(20, 110, 48, 0.9)');
+  g1.addColorStop(0.35, 'rgba(8, 62, 26, 0.85)');
+  g1.addColorStop(0.75, 'rgba(2, 20, 8, 0.9)');
+  g1.addColorStop(1, 'rgba(0, 0, 0, 1)');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, 0, W, H);
+  // breathing glow behind the logo
+  const pulse = 0.5 + 0.5 * Math.sin(t * 1.6);
+  const lg = ctx.createRadialGradient(LOGO.x, LOGO.y, 0, LOGO.x, LOGO.y, 620);
+  lg.addColorStop(0, `rgba(60, 200, 90, ${0.18 + 0.08 * pulse * prog(t, T.logoHit, T.logoHit + 1)})`);
+  lg.addColorStop(1, 'rgba(60, 200, 90, 0)');
+  ctx.fillStyle = lg;
+  ctx.fillRect(0, 0, W, H);
+  // stadium light beams
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [ox, base] of [[240, -24], [1700, 26]]) {
+    const a = rad(base + Math.sin(t * 0.45 + ox) * 6);
+    ctx.save();
+    ctx.translate(ox, -80);
+    ctx.rotate(a);
+    ctx.globalAlpha = 0.55 * prog(t, 0.1, 1.2);
+    ctx.drawImage(beamSprite, -350, -40);
+    ctx.restore();
+  }
+  ctx.restore();
+  // hex pattern with a travelling scan band
+  ctx.save();
+  const scan = ((t * 380) % 3400) - 700;
+  const hg = ctx.createLinearGradient(scan - 500, 0, scan + 500, H * 0.6);
+  hg.addColorStop(0, 'rgba(0,0,0,0)');
+  hg.addColorStop(0.5, 'rgba(0,0,0,1)');
+  hg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.globalAlpha = 0.05 * prog(t, 0.2, 1.4);
+  ctx.drawImage(hexLayer, 0, 0);
+  const tmp = scratch();
+  const tc = tmp.getContext('2d');
+  tc.clearRect(0, 0, W, H);
+  tc.drawImage(hexLayer, 0, 0);
+  tc.globalCompositeOperation = 'destination-in';
+  tc.fillStyle = hg;
+  tc.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.22 * prog(t, 0.2, 1.4);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(tmp, 0, 0);
+  ctx.restore();
+}
+
+let _scratch;
+function scratch() { return _scratch || (_scratch = makeLayer()); }
+
+function drawPitch(t) {
+  // perspective pitch lines drawing in from the centre
+  const reveal = ease.outQuint(prog(t, 0.15, 1.6));
+  const vpX = 960, vpY = 520, top = 770;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, top, W, H - top);
+  ctx.clip();
+  const fade = ctx.createLinearGradient(0, top, 0, H);
+  fade.addColorStop(0, 'rgba(80, 220, 110, 0)');
+  fade.addColorStop(0.5, 'rgba(80, 220, 110, 0.20)');
+  fade.addColorStop(1, 'rgba(80, 220, 110, 0.32)');
+  // mowing stripes
+  for (let k = -9; k <= 9; k++) {
+    if (k % 2) continue;
+    const x0 = vpX + k * 230, x1 = vpX + (k + 1) * 230;
+    ctx.beginPath();
+    ctx.moveTo(vpX + (x0 - vpX) * (top - vpY) / (H - vpY), top);
+    ctx.lineTo(vpX + (x1 - vpX) * (top - vpY) / (H - vpY), top);
+    ctx.lineTo(x1, H); ctx.lineTo(x0, H);
+    ctx.closePath();
+    const sg = ctx.createLinearGradient(0, top, 0, H);
+    sg.addColorStop(0, 'rgba(30, 120, 50, 0)');
+    sg.addColorStop(1, `rgba(30, 120, 50, ${0.16 * reveal})`);
+    ctx.fillStyle = sg;
+    ctx.fill();
+  }
+  ctx.strokeStyle = fade;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = reveal;
+  for (let k = -9; k <= 10; k++) {
+    const xb = vpX + (k - 0.5) * 230;
+    const ext = Math.abs(k - 0.5) / 9.5;
+    if (ext > reveal * 1.05) continue;
+    ctx.beginPath();
+    ctx.moveTo(vpX + (xb - vpX) * (top - vpY) / (H - vpY), top);
+    ctx.lineTo(xb, H);
+    ctx.stroke();
+  }
+  const drift = (t * 0.25) % 1;
+  for (let k = 0; k < 14; k++) {
+    const z = k + 1 - drift;
+    const y = vpY + (H - vpY) * 1.2 / (z * 0.55 + 0.35);
+    if (y < top || y > H + 5) continue;
+    const half = W * reveal;
+    ctx.beginPath();
+    ctx.moveTo(vpX - half, y); ctx.lineTo(vpX + half, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // horizon glow
+  const hz = ctx.createLinearGradient(0, top - 60, 0, top + 80);
+  hz.addColorStop(0, 'rgba(80, 230, 120, 0)');
+  hz.addColorStop(0.5, `rgba(80, 230, 120, ${0.10 * reveal})`);
+  hz.addColorStop(1, 'rgba(80, 230, 120, 0)');
+  ctx.fillStyle = hz;
+  ctx.fillRect(0, top - 60, W, 140);
+}
+
+function drawDust(t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const a = prog(t, 0, 1.2);
+  for (const p of dust) {
+    const y = ((p.y - t * p.v) % H + H) % H;
+    const x = p.x + Math.sin(t * 0.6 + p.ph) * p.drift;
+    const tw = 0.35 + 0.65 * Math.abs(Math.sin(t * p.tw + p.ph));
+    ctx.fillStyle = `rgba(140, 255, 170, ${0.55 * tw * a})`;
+    ctx.beginPath();
+    ctx.arc(x, y, p.s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawStreaks(t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const ang = rad(-24);
+  for (const [s, d, y0, th, len, al] of streaks) {
+    const u = prog(t, s, s + d);
+    if (u <= 0 || u >= 1) continue;
+    const e = ease.inOut(u);
+    const head = lerp(-len, W + len * 1.4, e);
+    ctx.save();
+    ctx.translate(0, y0);
+    ctx.rotate(ang);
+    const g = ctx.createLinearGradient(head - len, 0, head, 0);
+    g.addColorStop(0, 'rgba(120, 255, 150, 0)');
+    g.addColorStop(0.85, `rgba(160, 255, 180, ${al})`);
+    g.addColorStop(1, `rgba(255, 255, 255, ${al})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(head - len, -th / 2, len, th);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawSparks(list, x, y, t0, t, scale = 1) {
+  const u = t - t0;
+  if (u < 0 || u > 1.6) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  for (const s of list) {
+    if (u > s.life) continue;
+    const k = u / s.life;
+    const dist = s.sp * scale * (1 - Math.pow(1 - Math.min(1, u / 0.9), 3)) * 0.55;
+    const cx = x + Math.cos(s.ang) * dist, cy = y + Math.sin(s.ang) * dist + 60 * u * u;
+    const l = s.len * scale * (1 - k);
+    ctx.strokeStyle = s.white ? `rgba(255,255,255,${1 - k})` : `rgba(110, 255, 150, ${1 - k})`;
+    ctx.lineWidth = s.w;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - Math.cos(s.ang) * l, cy - Math.sin(s.ang) * l);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawRingWave(x, y, t0, t, maxR, width, color, dur = 0.9) {
+  const u = prog(t, t0, t0 + dur);
+  if (u <= 0 || u >= 1) return;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = color.replace('A', String(1 - u));
+  ctx.lineWidth = width * (1 - u) + 1;
+  ctx.beginPath();
+  ctx.arc(x, y, maxR * ease.out(u), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayerLayer(t) {
+  if (t < T.runStart) return;
+  const x = playerX(t);
+  // ground shadow / glow
+  const sg = ctx.createRadialGradient(x + 20, GROUND + 4, 0, x + 20, GROUND + 4, 230);
+  sg.addColorStop(0, 'rgba(70, 230, 110, 0.35)');
+  sg.addColorStop(1, 'rgba(70, 230, 110, 0)');
+  ctx.save();
+  ctx.translate(0, GROUND + 4);
+  ctx.scale(1, 0.16);
+  ctx.translate(0, -(GROUND + 4));
+  ctx.fillStyle = sg;
+  ctx.fillRect(x - 260, GROUND - 240, 560, 490);
+  ctx.restore();
+  // motion trails while running / kicking
+  const trailAmt = t < T.contact + 0.35 ? 1 : 1 - prog(t, T.contact + 0.35, T.contact + 0.8);
+  if (trailAmt > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 4; i >= 1; i--) {
+      const tt = t - i * 0.035;
+      if (tt < T.runStart) continue;
+      drawPlayer(tt, { ghost: `rgba(60, 230, 110, 1)`, alpha: 0.10 * (5 - i) / 4 * trailAmt });
+    }
+    ctx.restore();
+  }
+  drawPlayer(t);
+}
+
+function drawBallLayer(t) {
+  if (t < T.contact) {
+    const a = prog(t, 0.6, 1.2);
+    // resting ball on the pitch
+    const sh = ctx.createRadialGradient(BALL_X, GROUND + 2, 0, BALL_X, GROUND + 2, 40);
+    sh.addColorStop(0, `rgba(0,0,0,${0.6 * a})`);
+    sh.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = sh;
+    ctx.fillRect(BALL_X - 50, GROUND - 10, 100, 24);
+    const bob = t < 1.2 ? (1 - ease.outElastic(prog(t, 0.6, 1.5))) * -60 : 0;
+    drawBall(BALL_X, GROUND - BALL_R + Math.min(0, bob), BALL_R, 0.2, a);
+    return;
+  }
+  if (t >= T.logoHit) return;
+  const u = flightU(t);
+  // glowing trail
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.lineCap = 'round';
+  const N = 26;
+  for (let i = 0; i < N; i++) {
+    const a = Math.max(0, u - (i + 1) * 0.012), b = Math.max(0, u - i * 0.012);
+    if (b <= 0) break;
+    const pa = flightPoint(a), pb = flightPoint(b);
+    const k = 1 - i / N;
+    ctx.strokeStyle = `rgba(110, 255, 150, ${0.55 * k})`;
+    ctx.lineWidth = flightR(b) * 1.5 * k;
+    ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 * k})`;
+    ctx.lineWidth = flightR(b) * 0.35 * k;
+    ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+  }
+  ctx.restore();
+  const p = flightPoint(u);
+  drawBall(p[0], p[1], flightR(u), (t - T.contact) * 24);
+}
+
+function drawLogoLayer(t) {
+  if (t < T.logoHit - 0.02) return;
+  const u = prog(t, T.logoHit, T.logoHit + 1.1);
+  const s = lerp(0.3, 1, ease.outElastic(u));
+  const rot = lerp(-200, 0, ease.outQuint(prog(t, T.logoHit, T.logoHit + 0.9)));
+  const float = Math.sin((t - T.logoHit) * 1.3) * 5 * prog(t, T.logoHit + 1, T.logoHit + 2);
+  const x = LOGO.x, y = LOGO.y + float;
+  // orbit rings
+  const ringU = ease.inOut(prog(t, T.logoHit + 0.35, T.logoHit + 1.5));
+  if (ringU > 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.rotate(t * 0.35);
+    ctx.strokeStyle = 'rgba(110, 240, 140, 0.8)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([2, 12]);
+    ctx.beginPath();
+    ctx.arc(0, 0, LOGO.r + 26, 0, Math.PI * 2 * ringU);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.rotate(-t * 0.8);
+    ctx.strokeStyle = 'rgba(160, 255, 180, 0.75)';
+    ctx.lineWidth = 2.5;
+    for (let k = 0; k < 3; k++) {
+      const a0 = k * Math.PI * 2 / 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, LOGO.r + 48, a0, a0 + rad(75) * ringU);
+      ctx.stroke();
+    }
+    ctx.rotate(t * 0.6);
+    ctx.strokeStyle = 'rgba(80, 200, 110, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, LOGO.r + 64, rad(200), rad(200) + Math.PI * 1.3 * ringU);
+    ctx.stroke();
+    for (let k = 0; k < 4; k++) {
+      const a = rad(200) + Math.PI * 1.3 * ringU * k / 3;
+      ctx.fillStyle = 'rgba(180, 255, 200, 0.9)';
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * (LOGO.r + 64), Math.sin(a) * (LOGO.r + 64), 3.5 * ringU, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rad(rot));
+  ctx.scale(s, s);
+  ctx.shadowColor = 'rgba(70, 255, 120, 0.65)';
+  ctx.shadowBlur = 60;
+  const d = LOGO.r * 2 * (logoImg.width / (logoImg.width - 8));
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(logoImg, -d / 2, -d / 2, d, d);
+  ctx.shadowBlur = 0;
+  // shine sweeps
+  for (const st of [T.logoHit + 1.05, 9.6]) {
+    const su = prog(t, st, st + 0.85);
+    if (su <= 0 || su >= 1) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(0, 0, LOGO.r, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.rotate(rad(25));
+    const px = lerp(-LOGO.r * 1.8, LOGO.r * 1.8, ease.inOut(su));
+    const g = ctx.createLinearGradient(px - 70, 0, px + 70, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    ctx.fillRect(-LOGO.r * 2, -LOGO.r * 2, LOGO.r * 4, LOGO.r * 4);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- typography
+function barWipeText(t, t0, text, font, x, y, fill, barColor, dur = 0.95) {
+  const u = prog(t, t0, t0 + dur);
+  if (u <= 0) return;
+  ctx.save();
+  ctx.font = font;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  const m = ctx.measureText(text);
+  const w = m.width, asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent;
+  const right = x + w / 2 + 24, left = x - w / 2 - 24;
+  const top = y - asc - 14, bot = y + desc + 12;
+  // bar grows right→left, then retracts right→left revealing the text
+  const grow = ease.inOut(clamp(u / 0.45));
+  const shrink = ease.inOut(clamp((u - 0.4) / 0.6));
+  const barL = lerp(right, left, grow);
+  const barR = lerp(right, left, shrink);
+  if (shrink > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(barR, top - 20, right - barR + 40, bot - top + 40);
+    ctx.clip();
+    const slide = (1 - ease.outQuint(shrink)) * -40;
+    ctx.fillStyle = fill;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 4;
+    ctx.fillText(text, x + slide, y);
+    ctx.restore();
+  }
+  if (barR - barL > 0.5) {
+    ctx.fillStyle = barColor;
+    ctx.shadowColor = 'rgba(70, 255, 120, 0.6)';
+    ctx.shadowBlur = 24;
+    ctx.fillRect(barL, top, barR - barL, bot - top);
+  }
+  ctx.restore();
+  return { left, right, top, bot };
+}
+
+function roundRect(c, x, y, w, h, r) {
+  r = Math.min(r, h / 2, w / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function drawTagline(t) {
+  const t0 = T.tagline;
+  if (t < t0) return;
+  const cx = LOGO.x, cy = 862;
+  ctx.save();
+  ctx.font = '800 64px Zain';
+  ctx.direction = 'rtl';
+  const words = TEXT_TAGLINE.split(' ');
+  const ws = words.map(w => ctx.measureText(w).width);
+  const space = ctx.measureText(' ').width * 1.1;
+  const total = ws.reduce((a, b) => a + b, 0) + space * (words.length - 1);
+  const pw = total + 110, ph = 100;
+  // pill
+  const pu = ease.outQuint(prog(t, t0, t0 + 0.7));
+  const cw = pw * pu;
+  ctx.save();
+  roundRect(ctx, cx - cw / 2, cy - ph / 2, cw, ph, ph / 2);
+  const g = ctx.createLinearGradient(cx - pw / 2, 0, cx + pw / 2, 0);
+  g.addColorStop(0, '#0f7a2a');
+  g.addColorStop(0.5, '#1fae45');
+  g.addColorStop(1, '#0f7a2a');
+  ctx.fillStyle = g;
+  ctx.shadowColor = 'rgba(70, 255, 120, 0.55)';
+  ctx.shadowBlur = 40;
+  ctx.globalAlpha = clamp(pu * 3);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(190, 255, 205, 0.7)';
+  ctx.stroke();
+  // moving sheen across the pill
+  ctx.clip();
+  const sp = ((t - t0 - 0.6) % 4) / 1.2;
+  if (sp > 0 && sp < 1) {
+    const sx = lerp(cx + pw / 2 + 80, cx - pw / 2 - 80, ease.inOut(sp));
+    const sg = ctx.createLinearGradient(sx - 60, 0, sx + 60, 0);
+    sg.addColorStop(0, 'rgba(255,255,255,0)');
+    sg.addColorStop(0.5, 'rgba(255,255,255,0.28)');
+    sg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sg;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillRect(cx - pw / 2, cy - ph / 2, pw, ph);
+  }
+  ctx.restore();
+  // words pop in from right to left (reading order)
+  let xr = cx + total / 2;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  words.forEach((w, i) => {
+    const wu = prog(t, t0 + 0.35 + i * 0.16, t0 + 0.85 + i * 0.16);
+    if (wu > 0) {
+      const sc = lerp(0.4, 1, ease.outBack(wu));
+      const wx = xr - ws[i] / 2;
+      ctx.save();
+      ctx.globalAlpha = clamp(wu * 2.5);
+      ctx.translate(wx, cy + 6 + (1 - ease.out(wu)) * 30);
+      ctx.scale(sc, sc);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(0, 40, 10, 0.5)';
+      ctx.shadowBlur = 10;
+      ctx.fillText(w, ws[i] / 2, 0);
+      ctx.restore();
+    }
+    xr -= ws[i] + space;
+  });
+  ctx.restore();
+}
+
+function drawTitles(t) {
+  barWipeText(t, T.title1, TEXT_TITLE_1, '900 138px Zain', LOGO.x, 640, '#ffffff', '#22b14c');
+  const r2 = barWipeText(t, T.title2, TEXT_TITLE_2, '700 72px Zain', LOGO.x, 748, '#bff5cb', '#6fe38a');
+  // accent dividers either side of the second line
+  const du = ease.inOut(prog(t, T.title2 + 0.6, T.title2 + 1.3));
+  if (du > 0 && r2) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(110, 240, 140, 0.9)';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    const mid = (r2.top + r2.bot) / 2 + 4, len = 70 * du;
+    ctx.beginPath();
+    ctx.moveTo(r2.right + 6, mid); ctx.lineTo(r2.right + 6 + len, mid);
+    ctx.moveTo(r2.left - 6, mid); ctx.lineTo(r2.left - 6 - len, mid);
+    ctx.stroke();
+    ctx.fillStyle = '#b6ffc6';
+    for (const px of [r2.right + 6 + len + 10, r2.left - 6 - len - 10]) {
+      ctx.beginPath(); ctx.arc(px, mid, 4 * du, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ---------------------------------------------------------------- frame
+function shake(t) {
+  let a = 0;
+  const hit = (t0, amp, dur) => {
+    const u = prog(t, t0, t0 + dur);
+    if (u > 0 && u < 1) a += amp * (1 - u) * (1 - u);
+  };
+  hit(T.contact, 7, 0.3);
+  hit(T.logoHit, 16, 0.6);
+  return [Math.sin(t * 91) * a, Math.cos(t * 77) * a];
+}
+
+function flash(t, t0, peak, dur, x, y, radius) {
+  const u = prog(t, t0 - 0.03, t0 + dur);
+  if (u <= 0 || u >= 1) return;
+  const k = u < 0.08 ? u / 0.08 : Math.pow(1 - (u - 0.08) / 0.92, 2);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  g.addColorStop(0, `rgba(255, 255, 255, ${peak * k})`);
+  g.addColorStop(0.3, `rgba(170, 255, 190, ${peak * 0.6 * k})`);
+  g.addColorStop(1, 'rgba(60, 255, 110, 0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  const [sx, sy] = shake(t);
+  const zoom = 1.035 - 0.035 * ease.out(prog(t, 0, DURATION));
+  ctx.translate(W / 2 + sx, H / 2 + sy);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-W / 2, -H / 2);
+
+  drawBackground(t);
+  drawPitch(t);
+  drawDust(t);
+  drawStreaks(t);
+
+  drawPlayerLayer(t);
+  drawBallLayer(t);
+  drawSparks(kickSparks, BALL_X - 10, GROUND - BALL_R, T.contact, t, 0.6);
+  drawRingWave(BALL_X, GROUND - BALL_R, T.contact, t, 140, 8, 'rgba(160,255,180,A)', 0.5);
+
+  drawRingWave(LOGO.x, LOGO.y, T.logoHit, t, 520, 16, 'rgba(160,255,180,A)', 0.9);
+  drawRingWave(LOGO.x, LOGO.y, T.logoHit + 0.12, t, 720, 6, 'rgba(90,230,120,A)', 1.2);
+  drawSparks(logoSparks, LOGO.x, LOGO.y, T.logoHit, t, 1);
+  drawLogoLayer(t);
+  drawTitles(t);
+  drawTagline(t);
+
+  flash(t, T.contact, 0.55, 0.35, BALL_X, GROUND - BALL_R, 260);
+  flash(t, T.logoHit, 0.7, 0.7, LOGO.x, LOGO.y, 620);
+  ctx.restore();
+
+  ctx.drawImage(vignetteLayer, 0, 0);
+  // fade in / out
+  const fin = 1 - ease.out(prog(t, 0, 0.6));
+  const fout = ease.inOut(prog(t, T.outro, DURATION));
+  const k = Math.max(fin, fout);
+  if (k > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${k})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+
+// Sound cue times derived from the same timeline (used by audio.py).
+window.soundCues = () => {
+  const steps = [];
+  const clear = (sk, s) => GROUND - 9 - Math.max(sk.legs[s].ankle[1], sk.legs[s].heel[1], sk.legs[s].toe[1]);
+  const airborne = { n: true, f: true };
+  for (let t = T.runStart + 0.12; t < T.contact + 1.3; t += 1 / 240) {
+    const sk = solve(playerPose(t));
+    for (const s of ['n', 'f']) {
+      const c = clear(sk, s);
+      if (c > 4) airborne[s] = true;
+      else if (airborne[s] && c <= 0.5) {
+        airborne[s] = false;
+        if (Math.abs(t - T.contact) > 0.08) steps.push(+t.toFixed(3));
+      }
+    }
+  }
+  const words = TEXT_TAGLINE.split(' ').map((_, i) => +(T.tagline + 0.45 + i * 0.16).toFixed(3));
+  return {
+    duration: DURATION, steps, ballDrop: 0.69, kick: T.contact, logoHit: T.logoHit,
+    swishes: [T.title1, T.title2, T.tagline], pops: words,
+    sparkles: [T.logoHit + 1.05, 9.6], streaks: streaks.map(s => s[0]).filter(s => s > 4),
+    outro: T.outro,
+  };
+};
+
+// Live preview when opened directly (render.mjs sets ?capture).
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => {
+      renderFrame(((now - start) / 1000) % (DURATION + 0.8));
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>
