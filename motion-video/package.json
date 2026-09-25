@@ -7,6 +7,14 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
-    "playwright": "1.56.1"
+    "@audio-samples/piano-mp3-velocity12": "^1.0.5",
+    "@audio-samples/piano-mp3-velocity5": "^1.0.5",
+    "@audio-samples/piano-mp3-velocity9": "^1.0.5",
+    "playwright": "1.56.1",
+    "tonejs-instrument-cello-mp3": "^1.1.1",
+    "tonejs-instrument-contrabass-mp3": "^1.1.2",
+    "tonejs-instrument-french-horn-mp3": "^1.1.2",
+    "tonejs-instrument-harp-mp3": "^1.1.1",
+    "tonejs-instrument-violin-mp3": "^1.1.1"
   }
 }

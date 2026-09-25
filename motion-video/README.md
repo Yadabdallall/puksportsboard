@@ -21,9 +21,17 @@ people in it. Each shot is two bars of the music (96 bpm):
 | 10 – 15 s | Podium blocks 1-2-3 rise, and the green ball drops onto the top step | هەموو سەرکەوتنێک بە خەونێک دەست پێدەکات |
 | 15 – 20 s | A cream circle wipe, then the logo inside gently turning rings | بۆردی وەرزشی · یەکێتیی نیشتمانیی کوردستان · پێکەوە بەرەو لووتکە |
 
-The music is a warm eight-bar piece in C major with pad, bass, keys, a bell melody
-and soft drums. Each ball bounce plays a rising marimba note, and the logo lands
-on a chime.
+The music is a cinematic score made from **real instrument recordings**: a Salamander
+grand piano, violins, cello, contrabass and French horns. It is in D minor and resolves
+to F major when the logo appears:
+
+- **Hurdles:** a soft piano ostinato over a low contrabass.
+- **Football:** the strings enter.
+- **Podium:** horns and cello, with a heartbeat pulse building up.
+- **Wipe:** a deep cinematic hit with a reversed piano swell.
+- **Logo:** a harp glissando into the final chord.
+
+Every bar was checked to land on its intended chord.
 
 ## Minimal video (20 s)
 
@@ -103,6 +111,8 @@ cd motion-video
 node render.mjs --page sport3d.html --cues audio/sport3d-cues.json
 python3 audio/sport3d.py audio/sport3d-cues.json output/sport3d-sfx.wav
 node render.mjs --page sport3d.html --fps 30 --audio output/sport3d-sfx.wav --out output/puk-sports-board-3d.mp4
+# changed only the music? swap the audio track without re-rendering the picture:
+#   ffmpeg -i output/puk-sports-board-3d.mp4 -i output/sport3d-sfx.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest new.mp4
 
 # footballer video
 node render.mjs --cues audio/cues.json            # 1. export sound cue times
@@ -125,4 +135,6 @@ Other options:
 ## Credits
 
 - Font: [Zain](https://fonts.google.com/specimen/Zain), SIL Open Font License 1.1 (`assets/fonts/OFL.txt`)
-- The player, ball, effects and all sounds are drawn or generated in code for this project.
+- Piano (3D video): Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0, via the `@audio-samples/piano-mp3-*` npm packages
+- Strings, horn and harp (3D video): [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky, CC-BY 3.0, via the `tonejs-instrument-*-mp3` npm packages
+- Everything else (the player, ball, 3D objects, effects and the other videos' sounds) is drawn or generated in code for this project.
