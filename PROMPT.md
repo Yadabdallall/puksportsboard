@@ -38,7 +38,7 @@ a vignette. Optional per-sport photo (from data/site.json) is shown under the li
 filter. Featured field cross-fades (.35s); the others are visibility:hidden so they skip paint.
 
 At the bottom of the hero, glowing: "ئامادەکراوە لە لایەن ڕاگەیاندنی بۆردی وەرزش"
-(ar: "إعداد: إعلام هيئة الرياضة" — Arabic name of the board: "هيئة الرياضة للاتحاد الوطني الكوردستاني", en: "Prepared by the Sports Board Media"). The same credit closes the
+(ar: "تم التطوير بواسطة إعلام هيئة الرياضة" — Arabic name of the board: "هيئة الرياضة للاتحاد الوطني الكوردستاني", en: "Developed by the Sports Board Media"). The same credit closes the
 page footer, large and neon, once, in the current language only.
 
 Below the hero the page scrolls: News → Sports → Photos → About + Contact → Footer. The nav is fixed
