@@ -23,11 +23,26 @@
 
 ---
 
-## ١. بڵاوکردنەوە · Publish (GitHub Pages — بەخۆڕایی)
+## ١. بڵاوکردنەوە · Publish (بەخۆڕایی)
 
-1. ئەم لقە (branch) تێکەڵی `main` بکە.
-2. لە GitHub: **Settings → Pages → Deploy from a branch → `main` / `(root)` → Save**.
-3. دوای یەک دوو خولەک ماڵپەڕەکە لێرە دەبێت: `https://yadabdallall.github.io/puksportsboard/`
+پانێڵی بەڕێوەبردن هەواڵەکان لە لقی `main`ـی GitHub پاشەکەوت دەکات. بۆیە ماڵپەڕەکە دەبێت **ڕاستەوخۆ بە GitHubـەوە ببەسترێتەوە** تا هەواڵە نوێکان خۆکار دەربکەون. بارکردنی زیپ تەنها وێنەیەکی جێگیری ماڵپەڕەکەیە و هەواڵە نوێکانی تێدا دەرناکەون.
+
+### Cloudflare Pages (پێشنیارکراو)
+1. Pull Requestـەکە تێکەڵی `main` بکە (**Merge pull request**).
+2. لە [dash.cloudflare.com](https://dash.cloudflare.com): **Workers & Pages → Create → Pages → Import an existing Git repository** (یان **Connect to Git**).
+3. هەژماری GitHub ببەستەوە و `puksportsboard` هەڵبژێرە.
+4. ڕێکخستنەکان:
+   - **Production branch**: `main`
+   - **Framework preset**: `None`
+   - **Build command**: بەتاڵ بێت (ئەگەر داوای کرد، بنووسە `exit 0`)
+   - **Build output directory**: `/`
+5. **Save and Deploy** — ماڵپەڕەکە لەسەر `https://<ناوی-پرۆژە>.pages.dev` دەبێت. لە **Custom domains** دۆمەینی خۆت زیاد بکە.
+
+هەر هەواڵێک لە 🔒 بەڕێوەبردنەوە بڵاو بکەیتەوە، Cloudflare لە ماوەی نزیکەی یەک خولەکدا خۆکار نوێی دەکاتەوە.
+
+### GitHub Pages (جێگرەوە)
+1. `main` → **Settings → Pages → Deploy from a branch → `main` / `(root)` → Save**
+2. ماڵپەڕەکە: `https://yadabdallall.github.io/puksportsboard/`
 
 ---
 
