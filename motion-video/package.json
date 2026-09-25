@@ -1,0 +1,12 @@
+{
+  "name": "puk-sports-board-motion",
+  "private": true,
+  "description": "Motion videos for the PUK Sports Board",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

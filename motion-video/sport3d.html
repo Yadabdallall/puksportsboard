@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; display: block; }
+  #gl { position: absolute; left: -99999px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script type="module">
+/*
+ * Vertical (9:16) 3D ident for the PUK Sports Board: soft clay-like sports
+ * objects on deep green, one bright green accent, Kurdish phrases in Zain.
+ * three.js renders each 3D shot; the text and the logo are drawn on top in
+ * 2D. renderFrame(t) is a pure function of time (see render.mjs --page).
+ */
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, DURATION = 20;
+const BEAT = 60 / 96; // the music runs at 96 bpm: 2.5 s per bar
+
+// Each shot: [start, end]. Phrases are [line 1, line 2]; the words listed in
+// `accent` are set in green.
+const SHOTS = [
+  { name: 'hurdles', start: 0, end: 5.2, text: ['هەر بەربەستێک،', 'دەرفەتێکی نوێیە'], accent: ['نوێیە'], textIn: 1.0, textOut: 4.75 },
+  { name: 'ball', start: 4.8, end: 10.2, text: ['وەرزش،', 'زمانی هەموومانە'], accent: ['هەموومانە'], textIn: 5.6, textOut: 9.75 },
+  { name: 'podium', start: 9.8, end: 15.2, text: ['هەموو سەرکەوتنێک', 'بە خەونێک دەست پێدەکات'], accent: ['خەونێک'], textIn: 10.6, textOut: 14.7 },
+  { name: 'end', start: 15.6, end: 20 },
+];
+const END_TEXT = { title: 'بۆردی وەرزشی', sub: 'یەکێتیی نیشتمانیی کوردستان', line: 'پێکەوە بەرەو لووتکە' };
+const WIPE = 15.0;     // cream circle wipe into the end card
+const OUTRO = 19.35;
+
+const COL = {
+  bg: new THREE.Color('#0d271b'),
+  floor: '#12301f',
+  cream: '#ebe5d6',
+  accent: '#34d872',
+};
+const ACCENT_CSS = '#3ee27f';
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  out: u => 1 - Math.pow(1 - u, 3),
+  outQuint: u => 1 - Math.pow(1 - u, 5),
+  in: u => u * u * u,
+  outBack: u => { const c1 = 1.6, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  sine: u => 0.5 - 0.5 * Math.cos(Math.PI * u),
+};
+
+// ---------------------------------------------------------------- renderer
+const glCanvas = document.createElement('canvas');
+glCanvas.id = 'gl';
+document.body.appendChild(glCanvas);
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const stage = document.getElementById('stage');
+const ctx = stage.getContext('2d');
+
+function makeScene(fogNear, fogFar) {
+  const s = new THREE.Scene();
+  s.background = COL.bg.clone();
+  s.fog = new THREE.Fog(COL.bg, fogNear, fogFar);
+  s.environment = envMap;
+  s.environmentIntensity = 0.3;
+  const hemi = new THREE.HemisphereLight('#dff7e6', '#0a2016', 0.35);
+  s.add(hemi);
+  const key = new THREE.DirectionalLight('#fff6e6', 1.5);
+  key.position.set(-4, 7, 5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.radius = 5;
+  key.shadow.bias = -0.0004;
+  const sc = key.shadow.camera;
+  sc.left = -6; sc.right = 6; sc.top = 6; sc.bottom = -6; sc.near = 0.5; sc.far = 30;
+  s.add(key);
+  const rim = new THREE.DirectionalLight('#7dffb0', 0.8);
+  rim.position.set(5, 3, -6);
+  s.add(rim);
+  return s;
+}
+
+const cream = new THREE.MeshStandardMaterial({ color: COL.cream, roughness: 0.62, metalness: 0 });
+const accentMat = () => new THREE.MeshStandardMaterial({ color: COL.accent, emissive: '#1fcf5c', emissiveIntensity: 2.2, roughness: 0.35 });
+function floor(scene, y = 0) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: COL.floor, roughness: 0.95 }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = y;
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+const shadowy = o => { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
+
+// ---------------------------------------------------------------- football geometry
+// Truncated icosahedron with softly puffed panels: dark-green pentagons,
+// cream hexagons and thin recessed seams.
+function footballGeometry(R = 1) {
+  const p = (1 + Math.sqrt(5)) / 2;
+  const ico = [[-1, p, 0], [1, p, 0], [-1, -p, 0], [1, -p, 0], [0, -1, p], [0, 1, p], [0, -1, -p], [0, 1, -p], [p, 0, -1], [p, 0, 1], [-p, 0, -1], [-p, 0, 1]].map(v => new THREE.Vector3(...v));
+  const faces = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+  const third = (a, b) => ico[a].clone().lerp(ico[b], 1 / 3);
+  const panels = [];
+  // hexagons: one per icosahedron face
+  for (const [a, b, c] of faces) panels.push({ pts: [third(a, b), third(b, a), third(b, c), third(c, b), third(c, a), third(a, c)], dark: false });
+  // pentagons: one per icosahedron vertex, ordered around it
+  for (let v = 0; v < 12; v++) {
+    const nbrs = [];
+    for (let u = 0; u < 12; u++) if (u !== v && ico[u].distanceTo(ico[v]) < 2.1) nbrs.push(third(v, u));
+    const n = ico[v].clone().normalize();
+    const cen = nbrs.reduce((s, q) => s.add(q), new THREE.Vector3()).divideScalar(5);
+    const ref = nbrs[0].clone().sub(cen).normalize();
+    const ref2 = new THREE.Vector3().crossVectors(n, ref);
+    nbrs.sort((q1, q2) => {
+      const a1 = Math.atan2(q1.clone().sub(cen).dot(ref2), q1.clone().sub(cen).dot(ref));
+      const a2 = Math.atan2(q2.clone().sub(cen).dot(ref2), q2.clone().sub(cen).dot(ref));
+      return a1 - a2;
+    });
+    panels.push({ pts: nbrs, dark: true });
+  }
+  const pos = [], col = [];
+  const cDark = new THREE.Color('#15452b'), cLight = new THREE.Color(COL.cream);
+  const M = 7, Lr = 6;
+  const inset = 0.955;
+  for (const pn of panels) {
+    const cen = pn.pts.reduce((s, q) => s.add(q.clone()), new THREE.Vector3()).divideScalar(pn.pts.length);
+    const c = pn.dark ? cDark : cLight;
+    const k = pn.pts.length;
+    const at = (i, l, s) => {
+      const e = pn.pts[i % k].clone().lerp(pn.pts[(i + 1) % k], l / Lr);
+      const q = cen.clone().lerp(e, s * inset).normalize();
+      return q.multiplyScalar(R * (1 - 0.022 * Math.pow(s, 5)));
+    };
+    for (let i = 0; i < k; i++) {
+      for (let j = 0; j < M; j++) {
+        const s0 = j / M, s1 = (j + 1) / M;
+        for (let l = 0; l < Lr; l++) {
+          const a = at(i, l, s0), b = at(i, l + 1, s0), cc = at(i, l + 1, s1), d = at(i, l, s1);
+          for (const v of [a, d, cc, a, cc, b]) { pos.push(v.x, v.y, v.z); col.push(c.r, c.g, c.b); }
+        }
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  // smooth normals: on a sphere the normal is the direction from the centre
+  const P = g.attributes.position, N = g.attributes.normal, v = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) {
+    v.fromBufferAttribute(P, i).normalize();
+    N.setXYZ(i, v.x, v.y, v.z);
+  }
+  return g;
+}
+function makeFootball(R) {
+  const grp = new THREE.Group();
+  const panels = new THREE.Mesh(footballGeometry(R), new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.4 }));
+  const core = new THREE.Mesh(new THREE.SphereGeometry(R * 0.975, 64, 48), new THREE.MeshStandardMaterial({ color: '#0b1f15', roughness: 0.9 }));
+  grp.add(core, panels);
+  return shadowy(grp);
+}
+
+// ---------------------------------------------------------------- shot 1: hurdles
+const S1 = (() => {
+  const scene = makeScene(9, 24);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(38, W / H, 0.1, 100);
+  const hurdles = [];
+  const Z = [1.2, -0.6, -2.4, -4.2];
+  for (const z of Z) {
+    const g = new THREE.Group();
+    const bar = new THREE.Mesh(new RoundedBoxGeometry(1.5, 0.16, 0.07, 4, 0.03), cream);
+    bar.position.y = 0.86;
+    const postGeo = new RoundedBoxGeometry(0.07, 0.86, 0.07, 3, 0.03);
+    const footGeo = new RoundedBoxGeometry(0.08, 0.05, 0.55, 3, 0.02);
+    for (const x of [-0.68, 0.68]) {
+      const post = new THREE.Mesh(postGeo, cream); post.position.set(x, 0.43, 0);
+      const foot = new THREE.Mesh(footGeo, cream); foot.position.set(x, 0.025, 0.12);
+      g.add(post, foot);
+    }
+    g.add(bar);
+    g.position.z = z;
+    scene.add(shadowy(g));
+    hurdles.push(g);
+  }
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.19, 48, 32), accentMat());
+  ball.castShadow = true;
+  scene.add(ball);
+  const glow = new THREE.PointLight('#39e27d', 2.2, 3.2, 2);
+  scene.add(glow);
+  // landing spots between the hurdles, one hop per beat
+  const lands = [-6.0, -5.1, -3.3, -1.5, 0.3, 2.1, 3.9];
+  const hop0 = 2 * BEAT; // bounces land on the beat
+  const hops = lands.slice(1).map((z, i) => ({ t0: hop0 + i * BEAT, t1: hop0 + (i + 1) * BEAT, z0: lands[i], z1: z }));
+  return {
+    scene, cam, focus: 7.2, aperture: 0.0016,
+    hops,
+    update(t) {
+      hurdles.forEach((h, i) => {
+        const u = ease.outBack(prog(t, 0.05 + i * 0.12, 0.75 + i * 0.12));
+        h.scale.set(1, Math.max(0.001, u), 1);
+      });
+      let x = 0, y = 0.19, z = lands[0], sq = 1;
+      const hop = hops.find(h => t < h.t1) || null;
+      if (t < hop0) {
+        const u = ease.in(prog(t, 0.45, hop0));
+        z = lands[0]; y = 0.19 + (1 - u) * 2.2;
+      } else if (hop) {
+        const u = prog(t, hop.t0, hop.t1);
+        z = lerp(hop.z0, hop.z1, u);
+        y = 0.19 + 4 * 1.05 * u * (1 - u) + (hop.z1 - hop.z0 < 1 ? -0.55 * 4 * u * (1 - u) : 0);
+        const d = Math.min(u, 1 - u);
+        sq = 1 - 0.28 * Math.exp(-d * 40);
+      } else {
+        z = lands[lands.length - 1] + (t - hops[hops.length - 1].t1) * 2.9;
+        y = 0.19 + 0.9 * Math.abs(Math.sin((t - hops[hops.length - 1].t1) * 5));
+      }
+      ball.position.set(x, y, z);
+      ball.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+      glow.position.set(x, y + 0.05, z);
+      const u = ease.sine(prog(t, 0, 5.2));
+      cam.position.set(lerp(4.2, 3.1, u), lerp(1.5, 1.8, u), lerp(5.6, 6.4, u));
+      cam.lookAt(0, 0.05, lerp(-1.4, -0.9, u));
+      this.focus = cam.position.distanceTo(new THREE.Vector3(0, 0.6, -0.8));
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot 2: the ball
+const S2 = (() => {
+  const scene = makeScene(8, 20);
+  const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
+  const ball = makeFootball(1.05);
+  ball.position.set(0, 0.55, 0);
+  scene.add(ball);
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(0.1, 32, 24), accentMat());
+  scene.add(orb);
+  const orbLight = new THREE.PointLight('#39e27d', 2.0, 2.4, 2);
+  scene.add(orbLight);
+  // soft shadow-catching disc far below keeps the space readable
+  const plate = new THREE.Mesh(new THREE.CircleGeometry(3.2, 64), new THREE.MeshStandardMaterial({ color: COL.floor, roughness: 1 }));
+  plate.rotation.x = -Math.PI / 2;
+  plate.position.y = -1.1;
+  plate.receiveShadow = true;
+  scene.add(plate);
+  return {
+    scene, cam, focus: 8, aperture: 0.004,
+    update(t) {
+      const u = ease.inOut(prog(t, 4.8, 10.2));
+      cam.position.set(lerp(0.5, -0.4, u), lerp(1.0, 0.75, u), lerp(4.1, 7.6, u));
+      cam.lookAt(0, lerp(0.2, 0.1, u), 0);
+      ball.rotation.set(0.35, (t - 4.8) * 0.55, -0.2 + (t - 4.8) * 0.04);
+      ball.position.y = 0.55 + Math.sin((t - 4.8) * 1.4) * 0.05;
+      const a = (t - 4.8) * 1.25;
+      orb.position.set(Math.cos(a) * 1.55, 0.55 + Math.sin(a * 0.9) * 0.55, Math.sin(a) * 1.55);
+      orbLight.position.copy(orb.position);
+      this.focus = cam.position.distanceTo(ball.position) - 0.6;
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot 3: podium
+function numberPlate(txt) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(40, 70, 50, 0.55)';
+  g.font = '800 170px Zain';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(txt, 128, 140);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.42), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.8 }));
+}
+const S3 = (() => {
+  const scene = makeScene(9, 22);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(34, W / H, 0.1, 100);
+  const blocks = [];
+  const spec = [[0, 1.05, '١', 0.3], [-0.98, 0.72, '٢', 0.0], [0.98, 0.5, '٣', 0.15]];
+  for (const [x, h, n, delay] of spec) {
+    const g = new THREE.Group();
+    const b = new THREE.Mesh(new RoundedBoxGeometry(0.94, h, 0.94, 5, 0.07), cream);
+    b.position.y = h / 2;
+    const plate = numberPlate(n);
+    plate.position.set(0, h * 0.55, 0.471);
+    g.add(shadowy(b), plate);
+    g.position.x = x;
+    g.userData = { h, delay };
+    scene.add(g);
+    blocks.push(g);
+  }
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 48, 32), accentMat());
+  orb.castShadow = true;
+  scene.add(orb);
+  const orbLight = new THREE.PointLight('#39e27d', 2.4, 3, 2);
+  scene.add(orbLight);
+  const drop = 20 * BEAT; // lands on the downbeat of bar 6
+  return {
+    scene, cam, focus: 6, aperture: 0.0022, drop,
+    update(t) {
+      for (const g of blocks) {
+        const u = ease.outBack(prog(t, 10.0 + g.userData.delay, 10.75 + g.userData.delay));
+        g.position.y = lerp(-g.userData.h - 0.05, 0, u);
+      }
+      // the orb falls onto the top step and bounces to rest
+      const top = 1.05 + 0.2;
+      let y;
+      if (t < drop) y = top + 3.2 * (1 - ease.in(prog(t, drop - 0.7, drop)));
+      else {
+        const k = t - drop;
+        y = top + Math.abs(Math.sin(k * 7.2)) * 0.55 * Math.exp(-k * 3.4);
+      }
+      const d = Math.abs(y - top);
+      const sq = t > drop - 0.05 ? 1 - 0.22 * Math.exp(-d * 30) * Math.exp(-(t - drop) * 2) : 1;
+      orb.position.set(0, y, 0);
+      orb.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+      orbLight.position.set(0, y + 0.1, 0.1);
+      const u = ease.sine(prog(t, 9.8, 15.2));
+      const a = lerp(-0.42, 0.3, u);
+      const r = lerp(9.6, 8.8, u);
+      cam.position.set(Math.sin(a) * r, lerp(3.0, 2.4, u), Math.cos(a) * r);
+      cam.lookAt(0, lerp(-0.05, -0.1, u), 0);
+      this.focus = cam.position.distanceTo(new THREE.Vector3(0, 1, 0.4));
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot 4: end card backdrop
+const S4 = (() => {
+  const scene = makeScene(6, 18);
+  const cam = new THREE.PerspectiveCamera(35, W / H, 0.1, 100);
+  cam.position.set(0, 0, 8);
+  const ringMat = new THREE.MeshStandardMaterial({ color: COL.cream, roughness: 0.4, emissive: '#1a3a28', emissiveIntensity: 0.3 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.012, 16, 200), ringMat);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.006, 12, 200), new THREE.MeshStandardMaterial({ color: COL.accent, emissive: '#1fcf5c', emissiveIntensity: 1 }));
+  ring.position.y = ring2.position.y = 0.47;
+  scene.add(ring, ring2);
+  const spheres = [];
+  const pos = [[-1.25, 2.4, -2, 0.13], [1.3, -2.75, -1, 0.08], [1.1, 2.9, -4, 0.22], [-1.2, -2.3, -3, 0.18]];
+  for (const [x, y, z, r] of pos) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 24), cream);
+    m.position.set(x, y, z);
+    m.userData.base = [x, y, z];
+    scene.add(m);
+    spheres.push(m);
+  }
+  return {
+    scene, cam, focus: 8, aperture: 0.006,
+    update(t) {
+      const u = ease.outQuint(prog(t, 15.4, 17.2));
+      ring.scale.setScalar(lerp(0.6, 1, u));
+      ring2.scale.setScalar(lerp(0.4, 1, ease.outQuint(prog(t, 15.6, 17.6))));
+      ring.rotation.set(0.35 * Math.sin(t * 0.6), 0.45 * Math.sin(t * 0.45), 0);
+      ring2.rotation.set(-0.3 * Math.sin(t * 0.5 + 1), -0.4 * Math.sin(t * 0.4 + 2), 0);
+      spheres.forEach((m, i) => {
+        const [x, y, z] = m.userData.base;
+        m.position.set(x + Math.sin(t * 0.4 + i) * 0.15, y + Math.sin(t * 0.55 + i * 2) * 0.12, z);
+      });
+      cam.position.z = lerp(8.6, 8, ease.out(prog(t, 15.4, 20)));
+      this.focus = 8;
+    },
+  };
+})();
+
+const SCENES = { hurdles: S1, ball: S2, podium: S3, end: S4 };
+
+// ---------------------------------------------------------------- post-processing
+const composer = new EffectComposer(renderer);
+composer.setPixelRatio(1);
+composer.setSize(W, H);
+const renderPass = new RenderPass(S1.scene, S1.cam);
+const bokeh = new BokehPass(S1.scene, S1.cam, { focus: 7, aperture: 0.002, maxblur: 0.009 });
+const bloom = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.45, 0.6, 1.05);
+composer.addPass(renderPass);
+composer.addPass(bokeh);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+function render3D(shot, t) {
+  const s = SCENES[shot.name];
+  s.update(t);
+  renderPass.scene = bokeh.scene = s.scene;
+  renderPass.camera = bokeh.camera = s.cam;
+  bokeh.uniforms.focus.value = s.focus;
+  bokeh.uniforms.aperture.value = s.aperture;
+  bokeh.uniforms.nearClip.value = s.cam.near;
+  bokeh.uniforms.farClip.value = s.cam.far;
+  bokeh.uniforms.aspect.value = W / H;
+  composer.render();
+  return glCanvas;
+}
+
+// ---------------------------------------------------------------- 2D overlay
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.forEach(f => document.fonts.add(f));
+
+// A line of words, right to left; accent words in green.
+function wordsLine(text, accent, x, y, size, weight, alpha = 1) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px Zain`;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'right';
+  const words = text.split(' ');
+  const ws = words.map(w => ctx.measureText(w).width);
+  const sp = ctx.measureText(' ').width;
+  const total = ws.reduce((a, b) => a + b, 0) + sp * (words.length - 1);
+  const fit = Math.min(1, 940 / total);
+  ctx.translate(x, y);
+  ctx.scale(fit, fit);
+  ctx.translate(-x, -y);
+  let xr = x + total / 2;
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = 'rgba(0, 20, 10, 0.55)';
+  ctx.shadowBlur = 24;
+  words.forEach((w, i) => {
+    ctx.fillStyle = accent.includes(w) ? ACCENT_CSS : '#ffffff';
+    ctx.fillText(w, xr, y);
+    xr -= ws[i] + sp;
+  });
+  ctx.restore();
+}
+
+// Each line rises out of a mask, like the reference reel.
+function phrase(shot, t) {
+  if (!shot.text || t < shot.textIn || t > shot.textOut + 0.1) return;
+  const size = 92, lh = 118, y0 = 1470;
+  shot.text.forEach((line, i) => {
+    const u = ease.outQuint(prog(t, shot.textIn + i * 0.14, shot.textIn + 0.8 + i * 0.14));
+    const o = ease.in(prog(t, shot.textOut - 0.45 + i * 0.05, shot.textOut + i * 0.05));
+    const y = y0 + i * lh;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.25, W, size * 1.7);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.3 - o * size * 1.3);
+    wordsLine(line, shot.accent, W / 2, y, size, 800, 1);
+    ctx.restore();
+  });
+}
+
+function chrome(t, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // small logo and name at the bottom, as a signature
+  const s = 92;
+  ctx.drawImage(logoImg, W / 2 - s / 2, 1700, s, s);
+  ctx.font = '700 30px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('بۆردی وەرزشی', W / 2, 1838);
+  // tiny top label
+  ctx.font = '400 26px Zain';
+  ctx.direction = 'ltr';
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.letterSpacing = '8px';
+  ctx.fillText('PUK SPORTS BOARD', W / 2, 96);
+  ctx.restore();
+}
+
+function endCard(t) {
+  if (t < 15.4) return;
+  // warm glow rising from the bottom
+  const gu = ease.out(prog(t, 15.6, 17.5));
+  const g = ctx.createRadialGradient(W / 2, H + 60, 0, W / 2, H + 60, 1150);
+  g.addColorStop(0, `rgba(236, 229, 214, ${0.8 * gu})`);
+  g.addColorStop(0.3, `rgba(80, 210, 130, ${0.28 * gu})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // logo
+  const lu = prog(t, 15.95, 16.8);
+  if (lu > 0) {
+    const s = 470 * lerp(0.7, 1, ease.outBack(lu));
+    ctx.save();
+    ctx.globalAlpha = clamp(lu * 2);
+    ctx.filter = lu < 0.5 ? `blur(${((0.5 - lu) * 30).toFixed(1)}px)` : 'none';
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 50;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoImg, W / 2 - s / 2, 780 - s / 2, s, s);
+    ctx.restore();
+  }
+  const lines = [
+    [END_TEXT.title, 1235, 104, 900, '#ffffff', 16.55],
+    [END_TEXT.sub, 1340, 66, 700, 'rgba(255,255,255,0.88)', 16.75],
+    [END_TEXT.line, 1470, 56, 800, ACCENT_CSS, 17.2],
+  ];
+  for (const [txt, y, size, weight, color, t0] of lines) {
+    const u = ease.outQuint(prog(t, t0, t0 + 0.9));
+    if (u <= 0) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.25, W, size * 1.7);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.3);
+    ctx.font = `${weight} ${size}px Zain`;
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    ctx.shadowColor = 'rgba(0, 20, 10, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.fillText(txt, W / 2, y);
+    ctx.restore();
+  }
+  // thin divider between name and line
+  const du = ease.inOut(prog(t, 17.0, 17.7));
+  if (du > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 90 * du, 1398); ctx.lineTo(W / 2 + 90 * du, 1398);
+    ctx.stroke();
+  }
+}
+
+// cream circle wipe from the podium into the end card
+function wipe(t) {
+  const u1 = ease.inOut(prog(t, WIPE, WIPE + 0.55));
+  const u2 = ease.inOut(prog(t, WIPE + 0.45, WIPE + 1.05));
+  if (u1 <= 0 || u2 >= 1) return;
+  const R = Math.hypot(W, H) / 2 + 20;
+  ctx.save();
+  ctx.fillStyle = '#ece6d7';
+  ctx.beginPath();
+  ctx.arc(W / 2, 1000, R * u1, 0, Math.PI * 2);
+  if (u2 > 0) ctx.arc(W / 2, 1000, R * u2, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+  // a small dark sphere drops through the cream, echoing the ball
+  const du = prog(t, WIPE + 0.1, WIPE + 0.9);
+  if (du > 0 && du < 1) {
+    ctx.fillStyle = '#0d271b';
+    ctx.beginPath();
+    ctx.arc(W / 2, lerp(300, 1500, ease.inOut(du)), 26, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- frame
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.filter = 'none';
+  ctx.fillStyle = '#0d271b';
+  ctx.fillRect(0, 0, W, H);
+  // 3D shots, cross-fading where they overlap
+  const live = SHOTS.filter(s => t >= s.start && t < s.end);
+  live.forEach((s, i) => {
+    const a = i === 0 ? 1 : ease.inOut(prog(t, s.start, s.start + 0.4));
+    ctx.globalAlpha = a;
+    ctx.drawImage(render3D(s, t), 0, 0);
+  });
+  ctx.globalAlpha = 1;
+  // soft vignette
+  const v = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.25, W / 2, H * 0.5, H * 0.75);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,8,4,0.55)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+  SHOTS.forEach(s => phrase(s, t));
+  chrome(t, Math.min(prog(t, 0.4, 1.2), 1 - prog(t, WIPE - 0.2, WIPE + 0.2)));
+  endCard(t);
+  wipe(t);
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.5)), ease.inOut(prog(t, OUTRO, DURATION)));
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => {
+  // warm up shaders for every shot so frame times stay even
+  for (const s of SHOTS) render3D(s, s.start + 0.5);
+  return true;
+});
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION, bpm: 96,
+  bounces: [S1.hops[0].t0, ...S1.hops.map(h => h.t1)].map(x => +x.toFixed(3)).filter(x => x < 4.7),
+  hurdlesUp: [0.35, 0.47, 0.59, 0.71],
+  podiumUp: [10.35, 10.5, 10.65].map(x => +x.toFixed(3)),
+  orbDrop: +S3.drop.toFixed(3),
+  cuts: [4.8, 9.8],
+  wipe: WIPE,
+  phrases: SHOTS.filter(s => s.text).map(s => s.textIn),
+  logo: 16.1, outro: OUTRO,
+});
+
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>

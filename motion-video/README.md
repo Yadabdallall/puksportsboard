@@ -1,12 +1,29 @@
 # بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان — Motion Videos
 
-Two motion-graphics clips for the PUK Sports Board. Both are 1920×1080, 60 fps,
-MP4/H.264 with AAC audio.
+Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
-| Video | Length | Source |
+| Video | Format | Length | Source |
+| --- | --- | --- | --- |
+| [`output/puk-sports-board-3d.mp4`](output/puk-sports-board-3d.mp4): soft 3D sports objects, vertical for Reels and Stories | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d.py` |
+| [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
+| [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
+
+## 3D vertical video (20 s)
+
+Soft, clay-like 3D objects in cream on deep green, rendered with three.js. It has
+depth of field, soft shadows and a single glowing green accent. There are no
+people in it. Each shot is two bars of the music (96 bpm):
+
+| Time | Shot | Phrase |
 | --- | --- | --- |
-| [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 14 s | `index.html`, `audio/audio.py` |
-| [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 20 s | `minimal.html`, `audio/minimal.py` |
+| 0 – 5 s | A row of hurdles rises from the floor, and a green ball bounces over them on the beat | هەر بەربەستێک، دەرفەتێکی نوێیە |
+| 5 – 10 s | A football turns slowly while a small green light orbits it | وەرزش، زمانی هەموومانە |
+| 10 – 15 s | Podium blocks 1-2-3 rise, and the green ball drops onto the top step | هەموو سەرکەوتنێک بە خەونێک دەست پێدەکات |
+| 15 – 20 s | A cream circle wipe, then the logo inside gently turning rings | بۆردی وەرزشی · یەکێتیی نیشتمانیی کوردستان · پێکەوە بەرەو لووتکە |
+
+The music is a warm eight-bar piece in C major with pad, bass, keys, a bell melody
+and soft drums. Each ball bounce plays a rising marimba note, and the logo lands
+on a chime.
 
 ## Minimal video (20 s)
 
@@ -44,22 +61,26 @@ All text uses the **Zain** font. It covers every Kurdish (Sorani) letter used he
 motion-video/
 ├── index.html          # footballer video: canvas, drawn as a pure function of time
 ├── minimal.html        # minimal line-art video
+├── sport3d.html        # 3D vertical video (three.js)
+├── package.json        # three.js + Playwright (npm install)
 ├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
 ├── audio/
 │   ├── audio.py        # sound for the footballer video (every sound generated, no samples)
 │   ├── minimal.py      # sound for the minimal video
+│   ├── sport3d.py      # music for the 3D video
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   └── fonts/          # Zain (SIL Open Font License, see OFL.txt)
 └── output/
+    ├── puk-sports-board-3d.mp4
     ├── puk-sports-board-motion.mp4
     └── puk-sports-board-minimal.mp4  # the .wav tracks are also written here but not committed
 ```
 
 ## Preview and editing
 
-Serve the folder and open `index.html` to watch the animation live in a browser
+Serve the folder and open `index.html`, `minimal.html` or `sport3d.html` to watch an animation live in a browser
 (`npx serve motion-video`, or `python3 -m http.server` inside the folder).
 
 The same live preview works for `minimal.html`. There you edit the phrases in
@@ -73,10 +94,17 @@ In `index.html`:
 
 ## Rendering again
 
-Requirements: Node 18+ with Playwright (`npm i playwright`), ffmpeg, and Python 3 with numpy and scipy.
+Requirements: Node 18+, ffmpeg, and Python 3 with numpy and scipy. Run `npm install`
+in `motion-video/` to get three.js and Playwright.
 
 ```bash
 cd motion-video
+# 3D vertical video
+node render.mjs --page sport3d.html --cues audio/sport3d-cues.json
+python3 audio/sport3d.py audio/sport3d-cues.json output/sport3d-sfx.wav
+node render.mjs --page sport3d.html --fps 30 --audio output/sport3d-sfx.wav --out output/puk-sports-board-3d.mp4
+
+# footballer video
 node render.mjs --cues audio/cues.json            # 1. export sound cue times
 python3 audio/audio.py audio/cues.json output/sfx.wav   # 2. build the audio
 node render.mjs --audio output/sfx.wav            # 3. render the video with sound
