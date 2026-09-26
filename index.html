@@ -908,6 +908,57 @@ p.lede{color:#1b4a30;text-shadow:0 0 calc(10 * var(--u)) rgba(255,255,255,.95)}
   .card,.sport-tile,.card-media > img,.shot img{transition:none}
   .card:hover,.sport-tile:hover{transform:none}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   REAL PHOTOS / VIDEOS behind the hero — they replace the drawn field.
+   Switching slides the new photo in from the tapped side and zooms it
+   down; then it keeps a slow "Ken Burns" drift.
+   ════════════════════════════════════════════════════════════════════ */
+.court.has-photo .floor{display:none}
+.court .photo{will-change:auto}
+.court .photo::after{background:linear-gradient(180deg, rgba(0,14,7,.5) 0%, rgba(0,14,7,.18) 34%, rgba(0,14,7,.3) 62%, rgba(0,14,7,.72) 100%)}
+.court.has-photo.is-active{animation:court-in .6s linear backwards}
+.court.has-photo.is-leaving{animation:court-out .75s ease forwards}
+.court.has-photo.is-active .photo{animation:photo-in 1.1s cubic-bezier(.16,1,.3,1) backwards, kenburns 18s ease-in-out 1.1s infinite alternate}
+.stage[data-dir="left"] .court.has-photo.is-active .photo{--from-x:-7%}
+.stage[data-dir="right"] .court.has-photo.is-active .photo{--from-x:7%}
+.court.has-photo.is-leaving .photo{animation:photo-out .75s ease forwards}
+@keyframes photo-in{from{transform:translateX(var(--from-x,0)) scale(1.18)}to{transform:scale(1.04)}}
+@keyframes photo-out{from{transform:scale(1.04)}to{transform:translateX(calc(var(--from-x,0%) * -.6)) scale(1.1)}}
+@keyframes kenburns{from{transform:scale(1.04)}to{transform:scale(1.13) translate(-1.5%, -1%)}}
+.stage.has-media .courts::after,.stage.has-media .horizon{display:none}
+.stage.has-media .vignette{background:
+  radial-gradient(70% 46% at 50% 38%, rgba(0,12,6,.46) 0%, rgba(0,12,6,.2) 55%, transparent 80%),
+  linear-gradient(180deg, rgba(0,12,6,.45) 0%, rgba(0,12,6,0) 20%, rgba(0,12,6,0) 82%, rgba(0,12,6,.25) 93%, var(--black) 100%)}
+.stage.has-media .eyebrow{color:var(--neon);text-shadow:0 0 calc(8 * var(--u)) rgba(57,255,143,.9), 0 calc(1 * var(--u)) calc(8 * var(--u)) rgba(0,0,0,.6)}
+.stage.has-media h1.title .ent-line{background:linear-gradient(180deg,#ffffff 0%,#effff5 36%,#a6ffcc 68%,#34f889 100%);
+  -webkit-background-clip:text;background-clip:text}
+.stage.has-media p.lede{color:rgba(242,255,247,.96);text-shadow:0 calc(1 * var(--u)) calc(10 * var(--u)) rgba(0,0,0,.8)}
+.stage.has-media .label{color:#fff;text-shadow:0 0 calc(8 * var(--u)) rgba(57,255,143,.85), 0 calc(1 * var(--u)) calc(6 * var(--u)) rgba(0,0,0,.75)}
+.stage.has-media .credit{color:#dcffea;text-shadow:0 0 calc(6 * var(--u)) rgba(57,255,143,.9), 0 calc(1 * var(--u)) calc(6 * var(--u)) rgba(0,0,0,.7)}
+/* the transparent top bar sits on the photo: light text until the page scrolls */
+body.hero-media .navbar:not(.is-solid) .logo,body.hero-media .navbar:not(.is-solid) .wm small{color:#fff}
+body.hero-media .navbar:not(.is-solid) .wm small{color:rgba(255,255,255,.8)}
+body.hero-media .navbar:not(.is-solid) .burger span{background:#fff}
+body.hero-media .navbar:not(.is-solid)::after{background:linear-gradient(90deg, transparent, rgba(255,255,255,.35) 12%, rgba(255,255,255,.35) 88%, transparent)}
+@media (min-width:1031px) and (min-height:621px){
+  body.hero-media .navbar:not(.is-solid) .links a:not(.enroll){color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.55)}
+  body.hero-media .navbar:not(.is-solid) .lang{background:rgba(0,12,6,.35);border-color:rgba(255,255,255,.35)}
+  body.hero-media .navbar:not(.is-solid) .lang button:not([aria-pressed="true"]){color:#fff}
+}
+/* the new name and text slide in with the photo */
+.copy.swap .eyebrow .ent-line,.copy.swap h1.title .ent-line{animation:swap-in .75s cubic-bezier(.16,1,.3,1) both}
+.copy.swap p.lede{animation:swap-in .75s cubic-bezier(.16,1,.3,1) .08s both}
+.copy.swap .label{animation:swap-fade .6s ease .12s both}
+@keyframes swap-in{from{opacity:0;transform:translateY(calc(26 * var(--u)))}to{opacity:1;transform:none}}
+@keyframes swap-fade{from{opacity:0}to{opacity:1}}
+/* phones & tablets: keep the switch motion, skip the endless drift (it pins a full-screen layer) */
+@media (hover:none), (max-width:1030px){
+  .court.has-photo.is-active .photo{animation:photo-in 1.1s cubic-bezier(.16,1,.3,1) backwards;transform:scale(1.04)}
+}
+@media (prefers-reduced-motion:reduce){
+  .court.has-photo.is-active,.court.has-photo.is-leaving,.court.has-photo .photo,.copy.swap *{animation:none !important}
+}
 [hidden]{display:none !important}
 </style>
 </head>
@@ -1434,7 +1485,12 @@ function show(i,force){
   var s=SPORTS[i];
   var prev=courtsEl.querySelector('.court.is-active');
   for(var c=0;c<courts.length;c++){courts[c].classList.toggle('is-active',c===i);if(c===i)courts[c].classList.remove('is-leaving');}
-  if(prev&&prev!==courts[i]){prev.classList.add('is-leaving');clearTimeout(prev._t);prev._t=setTimeout(function(){prev.classList.remove('is-leaving');},400);}
+  if(prev&&prev!==courts[i]){prev.classList.add('is-leaving');clearTimeout(prev._t);prev._t=setTimeout(function(){prev.classList.remove('is-leaving');},800);}
+  loadBg(i);loadBg(i-1);loadBg(i+1);
+  var media=courts[i].classList.contains('has-photo');
+  stage.classList.toggle('has-media',media);document.body.classList.toggle('hero-media',media);
+  /* motion: the new name and text slide in */
+  if(prev&&prev!==courts[i]&&!reduced){var cp=stage.querySelector('.copy');cp.classList.remove('swap');void cp.offsetWidth;cp.classList.add('swap');}
   titleLine.textContent=nm(s);
   ledeEl.textContent=s.d[LI[lang]];
   fitTitle();
@@ -1446,7 +1502,10 @@ function show(i,force){
   if(typeof syncVideos==='function'&&courts.length)syncVideos();
 }
 function showKey(k){var i=KEYS.indexOf(k);if(i>=0)show(i);}
-[orbL,orbR].forEach(function(b){b.addEventListener('click',function(){showKey(this.getAttribute('data-sport'));});});
+[orbL,orbR].forEach(function(b){b.addEventListener('click',function(){
+  stage.setAttribute('data-dir',this===orbL?'left':'right');   /* the new photo slides in from the side that was tapped */
+  showKey(this.getAttribute('data-sport'));
+});});
 document.addEventListener('keydown',function(e){
   if(e.defaultPrevented||e.altKey||e.ctrlKey||e.metaKey)return;
   if($('reader').open)return;
@@ -1658,22 +1717,32 @@ function renderAbout(){
   }).join('');
   $('socials').hidden=!soc.length;
 }
-/* real photo or video behind each sport (uploaded from the admin panel) */
+/* real photo or video behind each sport: built-in photos, overridable from the admin panel */
 var VIDEO_RE=/\.(mp4|m4v|mov|webm)(\?|#|$)/i;
+var DEFAULT_MEDIA={football:'assets/sports/football.jpg',futsal:'assets/sports/futsal.jpg',volleyball:'assets/sports/volleyball.jpg',
+  basketball:'assets/sports/basketball.jpg',handball:'assets/sports/handball.jpg'};
+function setMedia(i,u){
+  var holder=courts[i].querySelector('.photo');
+  holder.innerHTML='';holder.style.backgroundImage='';holder.removeAttribute('data-bg');
+  courts[i].classList.add('has-photo');
+  if(VIDEO_RE.test(u)){
+    var v=document.createElement('video');
+    v.className='media';v.muted=true;v.loop=true;v.playsInline=true;v.preload='none';
+    v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('aria-hidden','true');
+    v.setAttribute('data-src',u);holder.appendChild(v);
+  }else holder.setAttribute('data-bg',u);   /* fetched when the sport (or a neighbour) is shown */
+}
+function loadBg(i){
+  var h=courts[(i+N)%N].querySelector('.photo'),u=h.getAttribute('data-bg');
+  if(u&&!h.style.backgroundImage)h.style.backgroundImage='url("'+u+'")';
+}
+function applyDefaultMedia(){KEYS.forEach(function(k,i){if(DEFAULT_MEDIA[k])setMedia(i,DEFAULT_MEDIA[k]);});}
 function applyHeroPhotos(){
   (Array.isArray(site.hero_photos)?site.hero_photos:[]).forEach(function(p){
     var i=KEYS.indexOf(p&&p.sport),u=safeUrl(p&&(p.video||p.image));if(i<0||!u)return;
-    var holder=courts[i].querySelector('.photo');
-    courts[i].classList.add('has-photo');
-    if(VIDEO_RE.test(u)){
-      /* only the featured sport's clip is fetched and played — one decoder at a time keeps iPhones happy */
-      var v=document.createElement('video');
-      v.className='media';v.muted=true;v.loop=true;v.playsInline=true;v.preload='none';
-      v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('aria-hidden','true');
-      v.setAttribute('data-src',u);
-      holder.appendChild(v);
-    }else holder.style.backgroundImage='url("'+u+'")';
+    setMedia(i,u);
   });
+  if(current>=0){loadBg(current);loadBg(current-1);loadBg(current+1);}
   syncVideos();
 }
 function syncVideos(){
@@ -1766,6 +1835,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
 /* ════════ BOOT ════════ */
 $('year').textContent=new Date().getFullYear();
 applyStatic();
+applyDefaultMedia();
 show(0);
 renderSports();renderAbout();
 var fitQueued=false;
