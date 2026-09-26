@@ -13,13 +13,15 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 ## Sports of Kurdistan (30 s)
 
 This film uses the same 3D style as the video below, sharp with a softer glow. Each sport
-gets two bars of a 96 bpm cinematic score made from the same instrument recordings
-(A minor, resolving to C major on the logo). Every ball lands on the beat.
+gets two bars of a 96 bpm score made from the same instrument recordings
+(A minor, resolving to C major on the logo). The score is restrained: a lyrical piano melody
+over broken chords, long strings, and horns only at the end. Every scene change and text
+reveal has a soft whoosh, and every ball lands on the beat.
 
 | Time | Shot | Label and phrase |
 | --- | --- | --- |
 | 0 – 5 s | A football, a volleyball and a basketball drop onto the floor, one per beat | وەرزش لە کوردستان · چیرۆکی هێز و یەکڕیزی |
-| 5 – 10 s | A football is kicked into the goal and the net gives | دووگۆڵی · خەونێک کە لە هەموو کۆڵانێکدا دەژی |
+| 5 – 10 s | A football is kicked into the goal; the net stops it and it drops to rest | تۆپی پێ · خەونێک کە لە هەموو کۆڵانێکدا دەژی |
 | 10 – 15 s | A volleyball rallies over the net | بالە · پێکەوە، بەرزتر دەفڕین |
 | 15 – 20 s | A basketball swishes through the hoop | باسکە · هەر هەوڵێک، خاڵێکی نوێیە |
 | 20 – 25 s | Football, volleyball, basketball and tennis balls rise on pedestals | هەموو وەرزشێک، یەک ڕۆح |

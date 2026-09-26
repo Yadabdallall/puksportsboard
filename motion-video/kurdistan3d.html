@@ -47,7 +47,7 @@ const BAR = 4 * BEAT;
 // in `accent` are set in green.
 const SHOTS = [
   { name: 'intro', start: 0, end: 5.2, text: ['وەرزش لە کوردستان', 'چیرۆکی هێز و یەکڕیزی'], accent: ['کوردستان'], textIn: 2.9, textOut: 4.75 },
-  { name: 'football', start: 4.8, end: 10.2, label: 'دووگۆڵی', text: ['خەونێک کە لە هەموو', 'کۆڵانێکدا دەژی'], accent: ['دەژی'], textIn: 5.5, textOut: 9.75 },
+  { name: 'football', start: 4.8, end: 10.2, label: 'تۆپی پێ', text: ['خەونێک کە لە هەموو', 'کۆڵانێکدا دەژی'], accent: ['دەژی'], textIn: 5.5, textOut: 9.75 },
   { name: 'volleyball', start: 9.8, end: 15.2, label: 'بالە', text: ['پێکەوە،', 'بەرزتر دەفڕین'], accent: ['بەرزتر'], textIn: 10.5, textOut: 14.75 },
   { name: 'basketball', start: 14.8, end: 20.2, label: 'باسکە', text: ['هەر هەوڵێک،', 'خاڵێکی نوێیە'], accent: ['خاڵێکی'], textIn: 15.5, textOut: 19.75 },
   { name: 'lineup', start: 19.8, end: 25.2, text: ['هەموو وەرزشێک،', 'یەک ڕۆح'], accent: ['ڕۆح'], textIn: 20.6, textOut: 24.7 },
@@ -375,13 +375,16 @@ const SF = (() => {
         pos = P0.clone().lerp(P1, u);
         pos.y += Math.sin(u * Math.PI) * 0.55;
       } else {
+        // the net stops it dead; it drops straight down and stays there
         const k = t - hit;
         pos = P1.clone();
         pos.z -= 0.12 * (1 - Math.exp(-k * 6));
-        pos.y = Math.max(0.2, P1.y - 3 * k * k) + Math.abs(Math.sin(k * 8)) * 0.15 * Math.exp(-k * 3) * (k > 0.3 ? 1 : 0);
+        pos.y = Math.max(0.2, P1.y - 3 * k * k);
       }
       ball.position.copy(pos);
-      ball.rotation.set(t < kick ? 0.2 : (t - kick) * -14, 0.4, 0);
+      // a gentle spin in flight that stops when the ball meets the net
+      const spin = t < kick ? 0 : (Math.min(t, hit) - kick) * -5 - (t > hit ? 0.6 * (1 - Math.exp(-(t - hit) * 5)) : 0);
+      ball.rotation.set(0.2 + spin, 0.4, 0);
       // net bulge around the impact point
       const arr = net.geometry.attributes.position.array;
       const k = t - hit;
@@ -833,7 +836,7 @@ window.DURATION = DURATION;
 window.soundCues = () => ({
   duration: DURATION, bpm: 96,
   drops: SI.lands.map(x => +x.toFixed(3)),
-  kick: SF.kick, netHit: SF.hit,
+  kick: SF.kick, netHit: SF.hit, ballRest: +(SF.hit + Math.sqrt(0.42 / 3)).toFixed(3),
   volleys: SV.hits,
   swish: +SB.swish.toFixed(3),
   pedestals: [0, 1, 2, 3].map(i => +(20.0 + i * BEAT / 2 + 0.35).toFixed(3)),
