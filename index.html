@@ -109,24 +109,33 @@ svg.i,.ico,.sport-ico{fill:none;stroke:currentColor;stroke-width:2.4;stroke-line
   animation:drift-b 30s ease-in-out infinite alternate}
 @keyframes drift-a{to{transform:translate(calc(260 * var(--u)), calc(140 * var(--u))) scale(1.12)}}
 @keyframes drift-b{to{transform:translate(calc(-300 * var(--u)), calc(200 * var(--u))) scale(.9)}}
-.beams{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+.beams{position:absolute;inset:0;pointer-events:none;
   background:
     conic-gradient(from 132deg at 6% -6%, transparent 0deg, rgba(170,255,210,.085) 9deg, transparent 19deg, transparent 360deg),
     conic-gradient(from 209deg at 94% -6%, transparent 0deg, rgba(170,255,210,.085) 10deg, transparent 19deg, transparent 360deg)}
 
-/* one neon "field" per sport — the featured one is visible, the rest skip paint */
+/* one neon "field" per sport. Only the featured one (plus the one fading out) is rendered at all:
+   iOS Safari kills the page if many large 3D layers stay alive, so no filters or masks on them either. */
 .courts{position:absolute;inset:0}
-.court{position:absolute;inset:0;opacity:0;visibility:hidden;perspective:calc(980 * var(--u));perspective-origin:50% 8%;
-  transition:opacity .35s linear, visibility 0s linear .35s}
-.court.is-active{opacity:1;visibility:visible;transition:opacity .35s linear, visibility 0s}
+.courts::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg, #010604 0%, rgba(1,6,4,.9) 28%, rgba(1,6,4,.35) 46%, rgba(1,6,4,0) 60%)}
+.court{position:absolute;inset:0;display:none;perspective:calc(980 * var(--u));perspective-origin:50% 8%}
+.court.is-active{display:block;animation:court-in .35s linear both}
+.court.is-leaving{display:block;animation:court-out .35s linear both}
+@keyframes court-in{from{opacity:0}to{opacity:1}}
+@keyframes court-out{from{opacity:1}to{opacity:0}}
 .court .photo{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;
   filter:grayscale(1) sepia(.85) hue-rotate(78deg) saturate(2.4) brightness(.46) contrast(1.12)}
 .court .floor{position:absolute;left:50%;bottom:calc(-150 * var(--u));width:calc(2050 * var(--u));height:auto;
   overflow:visible;color:var(--neon);transform:translateX(-50%) rotateX(63deg);transform-origin:50% 100%;
-  fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;
-  -webkit-mask-image:linear-gradient(to top, #000 45%, rgba(0,0,0,.25) 82%, transparent 100%);
-          mask-image:linear-gradient(to top, #000 45%, rgba(0,0,0,.25) 82%, transparent 100%);
-  filter:drop-shadow(0 0 calc(5 * var(--u)) rgba(57,255,143,.95)) drop-shadow(0 0 calc(22 * var(--u)) rgba(57,255,143,.5))}
+  fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+/* neon glow = the same lines drawn wide and faint underneath (cheap, no filter) */
+.court .floor .glow{opacity:.14}
+.court .floor .glow *{stroke-width:22px;fill:none}
+.court .floor .glow2{opacity:.22}
+.court .floor .glow2 *{stroke-width:11px;fill:none}
+.court .photo{display:none}
+.court.has-photo .photo{display:block}
 .court.has-photo .floor{opacity:.55}
 .horizon{position:absolute;left:0;right:0;top:calc(430 * var(--u));height:calc(420 * var(--u));pointer-events:none;
   background:radial-gradient(55% 34% at 50% 50%, rgba(57,255,143,.16), transparent 70%)}
@@ -144,9 +153,14 @@ svg.i,.ico,.sport-ico{fill:none;stroke:currentColor;stroke-width:2.4;stroke-line
   background:
     radial-gradient(70% 46% at 50% 36%, rgba(1,5,3,.62) 0%, rgba(1,5,3,.3) 50%, transparent 78%),
     linear-gradient(180deg, rgba(1,4,3,.9) 0%, rgba(1,4,3,0) 17%, rgba(1,4,3,0) 74%, var(--black) 100%)}
+/* phones & tablets: keep GPU memory low (iOS Safari reloads pages that use too much) */
+@media (max-width:1030px){
+  .aurora::before,.aurora::after,.sparks::before{animation:none}
+  .court .floor{width:calc(1400 * var(--u))}
+}
 @media (prefers-reduced-motion:reduce){
   .aurora::before,.aurora::after,.sparks::before{animation:none}
-  .court,.court.is-active{transition:none}
+  .court.is-active,.court.is-leaving{animation:none}
 }
 
 .ui{position:absolute;inset:0;z-index:3}
@@ -288,8 +302,7 @@ p.lede{top:calc(442 * var(--u));margin:0 auto;max-width:calc(780 * var(--u));
 .scroll{position:absolute;z-index:4;left:50%;
   margin-left:calc((-48 - (var(--gutter) / 2)) * var(--u));bottom:calc(68 * var(--u) + var(--safe-b));
   width:calc(96 * var(--u));height:calc(96 * var(--u));border-radius:50%;
-  background:rgba(4,26,14,.66);-webkit-backdrop-filter:blur(calc(6 * var(--u)));
-  backdrop-filter:blur(calc(6 * var(--u)));border:calc(1.5 * var(--u)) solid rgba(57,255,143,.45);
+  background:rgba(4,26,14,.82);border:calc(1.5 * var(--u)) solid rgba(57,255,143,.45);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   box-shadow:0 0 calc(22 * var(--u)) rgba(57,255,143,.25), inset 0 0 calc(18 * var(--u)) rgba(57,255,143,.15)}
 .scroll svg{width:calc(20 * var(--u));height:calc(25 * var(--u));display:block;
@@ -398,7 +411,7 @@ p.lede{top:calc(442 * var(--u));margin:0 auto;max-width:calc(780 * var(--u));
     margin-left:calc(-35 * var(--u));bottom:calc(58 * var(--u) + var(--safe-b))}
   .scroll svg{width:calc(15.5 * var(--u));height:calc(19.5 * var(--u))}
   .credit{font-size:calc(15 * var(--u));bottom:calc(16 * var(--u) + var(--safe-b));padding:0 calc(16 * var(--u))}
-  .court .floor{width:calc(1700 * var(--u));bottom:calc(-120 * var(--u))}
+  .court .floor{width:calc(1050 * var(--u));bottom:calc(-60 * var(--u))}
 }
 
 /* D) no room for the scroll control */
@@ -1217,7 +1230,8 @@ var courts=[], current=-1;
   var h='';
   SPORTS.forEach(function(s){
     h+='<div class="court" data-sport="'+s.k+'"><div class="photo"></div>'
-      +'<svg class="floor" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+COURTS[s.k]()+'</svg></div>';
+      +'<svg class="floor" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
+      +'<g class="glow">'+COURTS[s.k]()+'</g><g class="glow2">'+COURTS[s.k]()+'</g><g>'+COURTS[s.k]()+'</g></svg></div>';
   });
   courtsEl.innerHTML=h;
   courts=[].slice.call(courtsEl.children);
@@ -1245,7 +1259,9 @@ function show(i,force){
   if(i===current&&!force)return;
   current=i;
   var s=SPORTS[i];
-  for(var c=0;c<courts.length;c++)courts[c].classList.toggle('is-active',c===i);
+  var prev=courtsEl.querySelector('.court.is-active');
+  for(var c=0;c<courts.length;c++){courts[c].classList.toggle('is-active',c===i);if(c===i)courts[c].classList.remove('is-leaving');}
+  if(prev&&prev!==courts[i]){prev.classList.add('is-leaving');clearTimeout(prev._t);prev._t=setTimeout(function(){prev.classList.remove('is-leaving');},400);}
   titleLine.textContent=nm(s);
   ledeEl.textContent=s.d[LI[lang]];
   fitTitle();
