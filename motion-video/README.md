@@ -4,10 +4,29 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
+| [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
 | [`output/puk-sports-board-3d-cinematic.mp4`](output/puk-sports-board-3d-cinematic.mp4): soft 3D sports objects, vertical for Reels and Stories, with the cinematic score | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d.py` |
 | [`output/puk-sports-board-3d-warm.mp4`](output/puk-sports-board-3d-warm.mp4): the same picture with the warm, lighter music | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d_warm.py` |
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
+
+## Sports of Kurdistan (30 s)
+
+This film uses the same 3D style as the video below, sharp with a softer glow. Each sport
+gets two bars of a 96 bpm cinematic score made from the same instrument recordings
+(A minor, resolving to C major on the logo). Every ball lands on the beat.
+
+| Time | Shot | Label and phrase |
+| --- | --- | --- |
+| 0 – 5 s | A football, a volleyball and a basketball drop onto the floor, one per beat | وەرزش لە کوردستان · چیرۆکی هێز و یەکڕیزی |
+| 5 – 10 s | A football is kicked into the goal and the net gives | دووگۆڵی · خەونێک کە لە هەموو کۆڵانێکدا دەژی |
+| 10 – 15 s | A volleyball rallies over the net | بالە · پێکەوە، بەرزتر دەفڕین |
+| 15 – 20 s | A basketball swishes through the hoop | باسکە · هەر هەوڵێک، خاڵێکی نوێیە |
+| 20 – 25 s | Football, volleyball, basketball and tennis balls rise on pedestals | هەموو وەرزشێک، یەک ڕۆح |
+| 25 – 30 s | A cream circle wipe, then the logo with the four balls drifting around it | بۆردی وەرزشی · یەکێتیی نیشتمانیی کوردستان · لە پاڵ هەموو وەرزشوانێکین |
+
+It is rendered the same way as the 3D video below (`--page kurdistan3d.html --dof 0`,
+four parts of 225 frames), with `audio/kurdistan.py` for the music.
 
 ## 3D vertical video (20 s)
 
@@ -79,6 +98,7 @@ motion-video/
 ├── index.html          # footballer video: canvas, drawn as a pure function of time
 ├── minimal.html        # minimal line-art video
 ├── sport3d.html        # 3D vertical video (three.js)
+├── kurdistan3d.html    # 30 s sports-of-Kurdistan film (same 3D engine)
 ├── package.json        # three.js + Playwright (npm install)
 ├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
 ├── patch_video.py      # splices a re-rendered keyframe interval into a finished video
@@ -87,11 +107,13 @@ motion-video/
 │   ├── minimal.py      # sound for the minimal video
 │   ├── sport3d.py      # cinematic score for the 3D video
 │   ├── sport3d_warm.py # warm alternative music for the 3D video
+│   ├── kurdistan.py    # score for the sports-of-Kurdistan film
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits
 └── output/
+    ├── puk-sports-board-kurdistan.mp4
     ├── puk-sports-board-3d-cinematic.mp4
     ├── puk-sports-board-3d-warm.mp4
     ├── puk-sports-board-motion.mp4

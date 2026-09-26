@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Kurdistan</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; display: block; }
+  #gl { position: absolute; left: -99999px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script type="module">
+/*
+ * Vertical (9:16) 30 s film for the PUK Sports Board about the sports played
+ * across Kurdistan: football, volleyball, basketball and more, as soft
+ * clay-like 3D objects on deep green, with Kurdish phrases in Zain.
+ * three.js renders each 3D shot; the text and the logo are drawn on top in
+ * 2D. renderFrame(t) is a pure function of time (see render.mjs --page).
+ */
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, DURATION = 30;
+// Layout is in 1080x1920 units; ?scale=2 renders every pixel at 2x (2160x3840, 4K).
+const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
+// ?dof=0 turns the depth-of-field blur off: crisper objects and ~40% faster renders.
+const DOF = new URLSearchParams(location.search).get('dof') !== '0';
+const BEAT = 60 / 96; // the music runs at 96 bpm: 2.5 s per bar, 12 bars
+const BAR = 4 * BEAT;
+
+// Each shot is two bars. `label` names the sport above the phrase; the words
+// in `accent` are set in green.
+const SHOTS = [
+  { name: 'intro', start: 0, end: 5.2, text: ['وەرزش لە کوردستان', 'چیرۆکی هێز و یەکڕیزی'], accent: ['کوردستان'], textIn: 2.9, textOut: 4.75 },
+  { name: 'football', start: 4.8, end: 10.2, label: 'دووگۆڵی', text: ['خەونێک کە لە هەموو', 'کۆڵانێکدا دەژی'], accent: ['دەژی'], textIn: 5.5, textOut: 9.75 },
+  { name: 'volleyball', start: 9.8, end: 15.2, label: 'بالە', text: ['پێکەوە،', 'بەرزتر دەفڕین'], accent: ['بەرزتر'], textIn: 10.5, textOut: 14.75 },
+  { name: 'basketball', start: 14.8, end: 20.2, label: 'باسکە', text: ['هەر هەوڵێک،', 'خاڵێکی نوێیە'], accent: ['خاڵێکی'], textIn: 15.5, textOut: 19.75 },
+  { name: 'lineup', start: 19.8, end: 25.2, text: ['هەموو وەرزشێک،', 'یەک ڕۆح'], accent: ['ڕۆح'], textIn: 20.6, textOut: 24.7 },
+  { name: 'end', start: 25.6, end: 30 },
+];
+const END_TEXT = { title: 'بۆردی وەرزشی', sub: 'یەکێتیی نیشتمانیی کوردستان', line: 'لە پاڵ هەموو وەرزشوانێکین' };
+const WIPE = 25.0;     // cream circle wipe into the end card (bar 11)
+const OUTRO = 29.35;
+
+const COL = {
+  bg: new THREE.Color('#0d271b'),
+  floor: '#12301f',
+  cream: '#ebe5d6',
+  accent: '#34d872',
+};
+const ACCENT_CSS = '#3ee27f';
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  out: u => 1 - Math.pow(1 - u, 3),
+  outQuint: u => 1 - Math.pow(1 - u, 5),
+  in: u => u * u * u,
+  outBack: u => { const c1 = 1.6, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  sine: u => 0.5 - 0.5 * Math.cos(Math.PI * u),
+};
+
+// ---------------------------------------------------------------- renderer
+const glCanvas = document.createElement('canvas');
+glCanvas.id = 'gl';
+document.body.appendChild(glCanvas);
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W * SCALE, H * SCALE, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const stage = document.getElementById('stage');
+stage.width = W * SCALE;
+stage.height = H * SCALE;
+const ctx = stage.getContext('2d');
+
+function makeScene(fogNear, fogFar) {
+  const s = new THREE.Scene();
+  s.background = COL.bg.clone();
+  s.fog = new THREE.Fog(COL.bg, fogNear, fogFar);
+  s.environment = envMap;
+  s.environmentIntensity = 0.3;
+  const hemi = new THREE.HemisphereLight('#dff7e6', '#0a2016', 0.35);
+  s.add(hemi);
+  const key = new THREE.DirectionalLight('#fff6e6', 1.5);
+  key.position.set(-4, 7, 5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048); // fixed, so the shadow softness is the same at any scale
+  key.shadow.radius = 5;
+  key.shadow.bias = -0.0004;
+  const sc = key.shadow.camera;
+  sc.left = -6; sc.right = 6; sc.top = 6; sc.bottom = -6; sc.near = 0.5; sc.far = 30;
+  s.add(key);
+  const rim = new THREE.DirectionalLight('#7dffb0', 0.8);
+  rim.position.set(5, 3, -6);
+  s.add(rim);
+  return s;
+}
+
+const cream = new THREE.MeshStandardMaterial({ color: COL.cream, roughness: 0.62, metalness: 0 });
+const accentMat = () => new THREE.MeshStandardMaterial({ color: COL.accent, emissive: '#1fcf5c', emissiveIntensity: 2.2, roughness: 0.35 });
+function floor(scene, y = 0) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: COL.floor, roughness: 0.95 }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = y;
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+const shadowy = o => { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
+
+// ---------------------------------------------------------------- football geometry
+// Truncated icosahedron with softly puffed panels: dark-green pentagons,
+// cream hexagons and thin recessed seams.
+function footballGeometry(R = 1) {
+  const p = (1 + Math.sqrt(5)) / 2;
+  const ico = [[-1, p, 0], [1, p, 0], [-1, -p, 0], [1, -p, 0], [0, -1, p], [0, 1, p], [0, -1, -p], [0, 1, -p], [p, 0, -1], [p, 0, 1], [-p, 0, -1], [-p, 0, 1]].map(v => new THREE.Vector3(...v));
+  const faces = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+  const third = (a, b) => ico[a].clone().lerp(ico[b], 1 / 3);
+  const panels = [];
+  // hexagons: one per icosahedron face
+  for (const [a, b, c] of faces) panels.push({ pts: [third(a, b), third(b, a), third(b, c), third(c, b), third(c, a), third(a, c)], dark: false });
+  // pentagons: one per icosahedron vertex, ordered around it
+  for (let v = 0; v < 12; v++) {
+    const nbrs = [];
+    for (let u = 0; u < 12; u++) if (u !== v && ico[u].distanceTo(ico[v]) < 2.1) nbrs.push(third(v, u));
+    const n = ico[v].clone().normalize();
+    const cen = nbrs.reduce((s, q) => s.add(q), new THREE.Vector3()).divideScalar(5);
+    const ref = nbrs[0].clone().sub(cen).normalize();
+    const ref2 = new THREE.Vector3().crossVectors(n, ref);
+    nbrs.sort((q1, q2) => {
+      const a1 = Math.atan2(q1.clone().sub(cen).dot(ref2), q1.clone().sub(cen).dot(ref));
+      const a2 = Math.atan2(q2.clone().sub(cen).dot(ref2), q2.clone().sub(cen).dot(ref));
+      return a1 - a2;
+    });
+    panels.push({ pts: nbrs, dark: true });
+  }
+  const pos = [], col = [];
+  const cDark = new THREE.Color('#15452b'), cLight = new THREE.Color(COL.cream);
+  const M = 7, Lr = 6;
+  const inset = 0.955;
+  for (const pn of panels) {
+    const cen = pn.pts.reduce((s, q) => s.add(q.clone()), new THREE.Vector3()).divideScalar(pn.pts.length);
+    const c = pn.dark ? cDark : cLight;
+    const k = pn.pts.length;
+    const at = (i, l, s) => {
+      const e = pn.pts[i % k].clone().lerp(pn.pts[(i + 1) % k], l / Lr);
+      const q = cen.clone().lerp(e, s * inset).normalize();
+      return q.multiplyScalar(R * (1 - 0.022 * Math.pow(s, 5)));
+    };
+    for (let i = 0; i < k; i++) {
+      for (let j = 0; j < M; j++) {
+        const s0 = j / M, s1 = (j + 1) / M;
+        for (let l = 0; l < Lr; l++) {
+          const a = at(i, l, s0), b = at(i, l + 1, s0), cc = at(i, l + 1, s1), d = at(i, l, s1);
+          for (const v of [a, d, cc, a, cc, b]) { pos.push(v.x, v.y, v.z); col.push(c.r, c.g, c.b); }
+        }
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  // smooth normals: on a sphere the normal is the direction from the centre
+  const P = g.attributes.position, N = g.attributes.normal, v = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) {
+    v.fromBufferAttribute(P, i).normalize();
+    N.setXYZ(i, v.x, v.y, v.z);
+  }
+  return g;
+}
+function makeFootball(R) {
+  const grp = new THREE.Group();
+  const panels = new THREE.Mesh(footballGeometry(R), new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.4 }));
+  const core = new THREE.Mesh(new THREE.SphereGeometry(R * 0.975, 64, 48), new THREE.MeshStandardMaterial({ color: '#0b1f15', roughness: 0.9 }));
+  grp.add(core, panels);
+  return shadowy(grp);
+}
+
+// ---------------------------------------------------------------- ball textures
+// Equirectangular canvas textures for the balls that aren't built from panels.
+function ballTexture(draw) {
+  const c = document.createElement('canvas');
+  c.width = 2048; c.height = 1024;
+  const g = c.getContext('2d');
+  draw(g, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+function seamPath(g, W2, H2, f) {
+  g.beginPath();
+  for (let i = 0; i <= 400; i++) {
+    const v = i / 400, u = f(v);
+    i ? g.lineTo(u * W2, v * H2) : g.moveTo(u * W2, v * H2);
+  }
+}
+const volleyTex = ballTexture((g, w, h) => {
+  // three swirling bands of three strips each, in cream, green and white
+  g.fillStyle = '#efe9da';
+  g.fillRect(0, 0, w, h);
+  const cols = ['#1f7a45', '#f6f2e6', '#e3dccb'];
+  for (let band = 0; band < 3; band++) {
+    for (let s = 0; s < 3; s++) {
+      g.fillStyle = cols[(band + s) % 3];
+      g.beginPath();
+      const off = band / 3, y0 = 0.18 + s * 0.215, y1 = y0 + 0.215;
+      for (let i = 0; i <= 200; i++) {
+        const u = i / 200;
+        g.lineTo((off + u / 3) * w, (y0 + 0.08 * Math.sin(u * Math.PI * 2 + band)) * h);
+      }
+      for (let i = 200; i >= 0; i--) {
+        const u = i / 200;
+        g.lineTo((off + u / 3) * w, (y1 + 0.08 * Math.sin(u * Math.PI * 2 + band)) * h);
+      }
+      g.closePath();
+      g.fill();
+    }
+  }
+  g.strokeStyle = 'rgba(20, 40, 28, 0.55)';
+  g.lineWidth = 6;
+  for (let k = 0; k <= 3; k++) { g.beginPath(); g.moveTo(k / 3 * w, 0); g.lineTo(k / 3 * w, h); g.stroke(); }
+});
+const basketTex = ballTexture((g, w, h) => {
+  g.fillStyle = '#c4622d';
+  g.fillRect(0, 0, w, h);
+  // pebbled leather
+  const r = (() => { let s = 7; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+  for (let i = 0; i < 60000; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(90, 35, 10, 0.18)' : 'rgba(255, 190, 140, 0.10)';
+    g.fillRect(r() * w, r() * h, 3, 3);
+  }
+  g.strokeStyle = '#231710';
+  g.lineWidth = 14;
+  g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
+  for (const u of [0.25, 0.75]) { g.beginPath(); g.moveTo(u * w, 0); g.lineTo(u * w, h); g.stroke(); }
+  for (const c of [0, 0.5, 1]) {
+    for (const sgn of [-1, 1]) {
+      seamPath(g, w, h, v => c + sgn * 0.17 * Math.cos((v - 0.5) * Math.PI));
+      g.stroke();
+    }
+  }
+});
+const tennisTex = ballTexture((g, w, h) => {
+  g.fillStyle = '#c9d93a';
+  g.fillRect(0, 0, w, h);
+  const r = (() => { let s = 3; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+  for (let i = 0; i < 50000; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(120, 140, 20, 0.2)' : 'rgba(250, 255, 190, 0.2)';
+    g.fillRect(r() * w, r() * h, 2, 2);
+  }
+  g.strokeStyle = '#f4f1e4';
+  g.lineWidth = 26;
+  seamPath(g, w, h, v => v);
+  g.beginPath();
+  for (let i = 0; i <= 400; i++) {
+    const u = i / 400, v = 0.5 + 0.28 * Math.sin(u * Math.PI * 4);
+    i ? g.lineTo(u * w, v * h) : g.moveTo(u * w, v * h);
+  }
+  g.stroke();
+});
+function texturedBall(R, tex, roughness = 0.55) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 64), new THREE.MeshStandardMaterial({ map: tex, roughness }));
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+const makeVolleyball = R => texturedBall(R, volleyTex, 0.5);
+const makeBasketball = R => texturedBall(R, basketTex, 0.75);
+const makeTennisBall = R => texturedBall(R, tennisTex, 0.95);
+
+// A ball that falls to `y` and settles, landing first at t0.
+function dropY(t, t0, rest, h = 2.6) {
+  if (t < t0) return rest + h * (1 - ease.in(prog(t, t0 - 0.62, t0)));
+  const k = t - t0;
+  return rest + Math.abs(Math.sin(k * 7.5)) * 0.42 * Math.exp(-k * 3.2);
+}
+
+function lines(points, color = COL.cream, opacity = 0.8) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+}
+
+// ---------------------------------------------------------------- shot: intro
+const SI = (() => {
+  const scene = makeScene(9, 24);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(34, W / H, 0.1, 100);
+  const balls = [
+    { m: makeFootball(0.36), x: -0.85, land: 2 * BEAT },
+    { m: makeVolleyball(0.34), x: 0.0, land: 3 * BEAT },
+    { m: makeBasketball(0.38), x: 0.85, land: 4 * BEAT },
+  ];
+  balls.forEach(b => scene.add(b.m));
+  return {
+    scene, cam, focus: 7, aperture: 0.002, lands: balls.map(b => b.land),
+    update(t) {
+      balls.forEach((b, i) => {
+        const R = b.m.geometry ? b.m.geometry.parameters.radius : 0.36;
+        b.m.position.set(b.x, dropY(t, b.land, R, 3.2), 0);
+        b.m.rotation.set(0.3 + i, t * 0.4 + i, 0.2);
+      });
+      const u = ease.sine(prog(t, 0, 5.2));
+      cam.position.set(lerp(-0.6, 0.5, u), lerp(1.9, 1.6, u), lerp(9.0, 8.2, u));
+      cam.lookAt(0, -0.45, 0);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: football
+const SF = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(36, W / H, 0.1, 100);
+  // goal: posts, crossbar and a net that bulges when the ball arrives
+  const GW = 3.0, GH = 1.2, GD = 1.0, GZ = -4.2;
+  const post = new THREE.CylinderGeometry(0.045, 0.045, GH, 20);
+  const bar = new THREE.CylinderGeometry(0.045, 0.045, GW + 0.09, 20);
+  const goal = new THREE.Group();
+  for (const x of [-GW / 2, GW / 2]) {
+    const p = new THREE.Mesh(post, cream); p.position.set(x, GH / 2, 0); goal.add(p);
+  }
+  const cb = new THREE.Mesh(bar, cream); cb.rotation.z = Math.PI / 2; cb.position.y = GH; goal.add(cb);
+  goal.position.z = GZ;
+  scene.add(shadowy(goal));
+  const NX = 30, NY = 12;
+  const netPts = () => {
+    const p = [];
+    const pt = (i, j) => [-GW / 2 + GW * i / NX, GH * j / NY, GZ - GD * (0.35 + 0.65 * (1 - j / NY))];
+    for (let i = 0; i <= NX; i++) for (let j = 0; j < NY; j++) p.push(...pt(i, j), ...pt(i, j + 1));
+    for (let j = 0; j <= NY; j++) for (let i = 0; i < NX; i++) p.push(...pt(i, j), ...pt(i + 1, j));
+    return p;
+  };
+  const base = netPts();
+  const net = lines(base, COL.cream, 0.55);
+  scene.add(net);
+  const ball = makeFootball(0.2);
+  scene.add(ball);
+  const kick = 6.25, hit = 6.875; // on the beat
+  const P0 = new THREE.Vector3(0.45, 0.2, -0.3), P1 = new THREE.Vector3(-0.55, 0.62, GZ - GD * 0.62);
+  return {
+    scene, cam, focus: 6, aperture: 0.002, kick, hit,
+    update(t) {
+      let pos;
+      if (t < kick) pos = P0.clone();
+      else if (t < hit) {
+        const u = prog(t, kick, hit);
+        pos = P0.clone().lerp(P1, u);
+        pos.y += Math.sin(u * Math.PI) * 0.55;
+      } else {
+        const k = t - hit;
+        pos = P1.clone();
+        pos.z -= 0.12 * (1 - Math.exp(-k * 6));
+        pos.y = Math.max(0.2, P1.y - 3 * k * k) + Math.abs(Math.sin(k * 8)) * 0.15 * Math.exp(-k * 3) * (k > 0.3 ? 1 : 0);
+      }
+      ball.position.copy(pos);
+      ball.rotation.set(t < kick ? 0.2 : (t - kick) * -14, 0.4, 0);
+      // net bulge around the impact point
+      const arr = net.geometry.attributes.position.array;
+      const k = t - hit;
+      const amp = k > 0 ? 0.32 * Math.exp(-k * 3.5) * Math.cos(k * 9) : 0;
+      for (let i = 0; i < arr.length; i += 3) {
+        const d2 = (base[i] - P1.x) ** 2 + (base[i + 1] - P1.y) ** 2;
+        arr[i + 2] = base[i + 2] - amp * Math.exp(-d2 / 0.35);
+      }
+      net.geometry.attributes.position.needsUpdate = true;
+      const u = ease.sine(prog(t, 4.8, 10.2));
+      cam.position.set(lerp(1.3, 0.7, u), lerp(1.5, 1.7, u), lerp(5.2, 4.6, u));
+      cam.lookAt(0.2, -0.3, -2.6);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: volleyball
+const SV = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(36, W / H, 0.1, 100);
+  const NW = 3.4, NT = 1.55, NB = 0.95; // net width, top and bottom height
+  const g = new THREE.Group();
+  const postG = new THREE.CylinderGeometry(0.04, 0.04, 1.75, 20);
+  for (const x of [-NW / 2 - 0.05, NW / 2 + 0.05]) {
+    const p = new THREE.Mesh(postG, cream); p.position.set(x, 0.875, 0); g.add(p);
+  }
+  const band = new THREE.Mesh(new RoundedBoxGeometry(NW, 0.06, 0.02, 2, 0.01), cream);
+  band.position.y = NT;
+  g.add(band);
+  const pts = [];
+  for (let x = -NW / 2; x <= NW / 2 + 1e-6; x += 0.1) pts.push(x, NB, 0, x, NT, 0);
+  for (let y = NB; y <= NT + 1e-6; y += 0.1) pts.push(-NW / 2, y, 0, NW / 2, y, 0);
+  g.add(lines(pts, COL.cream, 0.5));
+  scene.add(shadowy(g));
+  const ball = makeVolleyball(0.18);
+  scene.add(ball);
+  // two rallies over the net, each hit on a beat
+  const hits = [10.625, 11.875, 13.125, 14.375];
+  const X = [-1.15, 1.15];
+  return {
+    scene, cam, focus: 6, aperture: 0.002, hits,
+    update(t) {
+      let i = hits.findIndex((h, k) => t < (hits[k + 1] ?? 99));
+      i = Math.max(0, i);
+      const t0 = hits[i], t1 = hits[i] + (hits[1] - hits[0]);
+      const u = prog(t, t0, t1);
+      const from = X[i % 2], to = X[(i + 1) % 2];
+      const x = t < hits[0] ? from : lerp(from, to, u);
+      const y = t < hits[0] ? 0.9 + 1.0 * (1 - ease.out(prog(t, 9.9, hits[0]))) : 1.0 + Math.sin(u * Math.PI) * 0.85;
+      ball.position.set(x, y, 0.35 * Math.sin(u * Math.PI));
+      ball.rotation.set(t * 3, t * 2, 0);
+      const s = ease.sine(prog(t, 9.8, 15.2));
+      cam.position.set(lerp(0.9, -0.7, s), lerp(1.5, 1.7, s), lerp(7.6, 7.1, s));
+      cam.lookAt(0, 0.2, 0);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: basketball
+const SB = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(34, W / H, 0.1, 100);
+  const hoop = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.9, 24), cream);
+  pole.position.set(0, 1.45, -0.75);
+  const arm = new THREE.Mesh(new RoundedBoxGeometry(0.1, 0.1, 0.55, 2, 0.03), cream);
+  arm.position.set(0, 2.55, -0.48);
+  const board = new THREE.Mesh(new RoundedBoxGeometry(1.5, 0.95, 0.05, 3, 0.02), cream);
+  board.position.set(0, 2.6, -0.2);
+  const squareMat = new THREE.MeshStandardMaterial({ color: '#1d5a36', roughness: 0.6 });
+  const sq = new THREE.Group();
+  for (const [w, h, x, y] of [[0.5, 0.03, 0, 2.29], [0.5, 0.03, 0, 2.62], [0.03, 0.36, -0.235, 2.455], [0.03, 0.36, 0.235, 2.455]]) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.01), squareMat); m.position.set(x, y, -0.172); sq.add(m);
+  }
+  const RIM = new THREE.Vector3(0, 2.2, 0.08);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.014, 12, 48), new THREE.MeshStandardMaterial({ color: '#c8602b', roughness: 0.4, metalness: 0.3 }));
+  rim.rotation.x = Math.PI / 2;
+  rim.position.copy(RIM);
+  hoop.add(pole, arm, board, sq, rim);
+  scene.add(shadowy(hoop));
+  // net: strands from the rim to a narrower ring below, swaying after the swish
+  const strands = 16;
+  const netBase = [];
+  for (let i = 0; i < strands; i++) {
+    const a = i / strands * Math.PI * 2, b = (i + 0.5) / strands * Math.PI * 2;
+    netBase.push([Math.cos(a) * 0.23, 0, Math.sin(a) * 0.23], [Math.cos(b) * 0.15, -0.42, Math.sin(b) * 0.15]);
+    netBase.push([Math.cos(b) * 0.15, -0.42, Math.sin(b) * 0.15], [Math.cos(a + Math.PI * 2 / strands) * 0.23, 0, Math.sin(a + Math.PI * 2 / strands) * 0.23]);
+  }
+  const net = lines(netBase.flat().map((v, i) => v + [RIM.x, RIM.y, RIM.z][i % 3]), '#f4efe2', 0.85);
+  scene.add(net);
+  const ball = makeBasketball(0.13);
+  scene.add(ball);
+  const swish = 7 * BAR; // 17.5 s, bar 8 downbeat
+  const P0 = new THREE.Vector3(-1.6, 1.0, 1.4);
+  return {
+    scene, cam, focus: 6, aperture: 0.002, swish,
+    update(t) {
+      const tIn = swish - 1.25;
+      let p;
+      if (t < tIn) p = P0.clone().setY(1.0 + 0.1 * Math.sin(t * 6));
+      else if (t < swish) {
+        const u = prog(t, tIn, swish);
+        p = P0.clone().lerp(RIM.clone().setY(RIM.y + 0.12), u);
+        p.y += Math.sin(u * Math.PI) * 1.2;
+      } else {
+        const k = t - swish;
+        const fallT = Math.sqrt(2 * (RIM.y + 0.12 - 0.13) / 9.8);
+        if (k < fallT) p = new THREE.Vector3(RIM.x, RIM.y + 0.12 - 4.9 * k * k, RIM.z);
+        else {
+          const k2 = k - fallT;
+          p = new THREE.Vector3(RIM.x + k2 * 0.35, 0.13 + Math.abs(Math.sin(k2 * 5.5)) * 0.9 * Math.exp(-k2 * 1.6), RIM.z + k2 * 0.5);
+        }
+      }
+      ball.position.copy(p);
+      ball.rotation.set(-t * 6, 0.3, 0);
+      const k = t - swish;
+      const sway = k > 0 ? Math.exp(-k * 2.5) * Math.sin(k * 11) * 0.06 : 0;
+      const arr = net.geometry.attributes.position.array;
+      const flat = netBase.flat();
+      for (let i = 0; i < arr.length; i += 3) {
+        const low = flat[i + 1] < -0.1 ? 1 : 0;
+        arr[i] = flat[i] + RIM.x + sway * low;
+        arr[i + 1] = flat[i + 1] + RIM.y - (k > 0 && k < 0.4 ? 0.06 * Math.sin(k / 0.4 * Math.PI) * low : 0);
+        arr[i + 2] = flat[i + 2] + RIM.z + sway * 0.6 * low;
+      }
+      net.geometry.attributes.position.needsUpdate = true;
+      const s = ease.sine(prog(t, 14.8, 20.2));
+      cam.position.set(lerp(-2.4, -1.7, s), lerp(2.2, 2.4, s), lerp(7.9, 7.4, s));
+      cam.lookAt(0.1, 1.25, 0);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: line-up
+const SL = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(32, W / H, 0.1, 100);
+  const items = [
+    { ball: makeFootball(0.22), h: 0.55, r: 0.22 },
+    { ball: makeVolleyball(0.21), h: 0.8, r: 0.21 },
+    { ball: makeBasketball(0.24), h: 0.65, r: 0.24 },
+    { ball: makeTennisBall(0.09), h: 0.45, r: 0.09 },
+  ];
+  items.forEach((it, i) => {
+    const ped = new THREE.Mesh(new RoundedBoxGeometry(0.62, it.h, 0.62, 4, 0.05), cream);
+    ped.position.set((i - 1.5) * 0.72, it.h / 2, (i - 1.5) * 0.95);
+    it.x = ped.position.x; it.z = ped.position.z;
+    it.ped = ped;
+    scene.add(shadowy(ped), it.ball);
+  });
+  return {
+    scene, cam, focus: 6, aperture: 0.002,
+    update(t) {
+      items.forEach((it, i) => {
+        const u = ease.outBack(prog(t, 20.0 + i * BEAT / 2, 20.7 + i * BEAT / 2));
+        it.ped.position.y = lerp(-it.h / 2 - 0.05, it.h / 2, u);
+        it.ball.position.set(it.x, it.ped.position.y + it.h / 2 + it.r, it.z);
+        it.ball.rotation.set(0.2, t * 0.5 + i, 0);
+      });
+      const s = ease.sine(prog(t, 19.8, 25.2));
+      cam.position.set(lerp(3.4, 2.4, s), lerp(2.4, 2.1, s), lerp(6.6, 7.1, s));
+      cam.lookAt(0.1, -0.15, 0);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: end card backdrop
+const SE = (() => {
+  const scene = makeScene(6, 18);
+  const cam = new THREE.PerspectiveCamera(35, W / H, 0.1, 100);
+  cam.position.set(0, 0, 8);
+  const ringMat = new THREE.MeshStandardMaterial({ color: COL.cream, roughness: 0.4, emissive: '#1a3a28', emissiveIntensity: 0.25 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.012, 16, 200), ringMat);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.006, 12, 200), new THREE.MeshStandardMaterial({ color: COL.accent, emissive: '#1fcf5c', emissiveIntensity: 0.6 }));
+  ring.position.y = ring2.position.y = 0.47;
+  scene.add(ring, ring2);
+  // the four balls drift around the logo
+  const drift = [
+    [makeFootball(0.2), -1.2, 2.5, -2], [makeVolleyball(0.18), 1.25, 2.9, -3],
+    [makeBasketball(0.22), 1.3, -2.7, -2], [makeTennisBall(0.1), -1.25, -2.3, -1],
+  ];
+  drift.forEach(([m, x, y, z]) => { m.userData.base = [x, y, z]; scene.add(m); });
+  return {
+    scene, cam, focus: 8, aperture: 0.006,
+    update(t) {
+      const u = ease.outQuint(prog(t, WIPE + 0.4, WIPE + 2.2));
+      ring.scale.setScalar(lerp(0.6, 1, u));
+      ring2.scale.setScalar(lerp(0.4, 1, ease.outQuint(prog(t, WIPE + 0.6, WIPE + 2.6))));
+      ring.rotation.set(0.35 * Math.sin(t * 0.6), 0.45 * Math.sin(t * 0.45), 0);
+      ring2.rotation.set(-0.3 * Math.sin(t * 0.5 + 1), -0.4 * Math.sin(t * 0.4 + 2), 0);
+      drift.forEach(([m], i) => {
+        const [x, y, z] = m.userData.base;
+        m.position.set(x + Math.sin(t * 0.4 + i) * 0.12, y + Math.sin(t * 0.55 + i * 2) * 0.1, z);
+        m.rotation.set(t * 0.3, t * 0.4 + i, 0);
+      });
+      cam.position.z = lerp(8.6, 8, ease.out(prog(t, WIPE + 0.4, DURATION)));
+    },
+  };
+})();
+
+const SCENES = { intro: SI, football: SF, volleyball: SV, basketball: SB, lineup: SL, end: SE };
+
+// ---------------------------------------------------------------- post-processing
+// a multisampled target, so the 3D edges are antialiased through the post-processing
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * SCALE, H * SCALE, { type: THREE.HalfFloatType, samples: 4 }));
+composer.setPixelRatio(1);
+composer.setSize(W * SCALE, H * SCALE);
+const renderPass = new RenderPass(SI.scene, SI.cam);
+const bokeh = new BokehPass(SI.scene, SI.cam, { focus: 7, aperture: 0.002, maxblur: 0.009 });
+const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE / 2, H * SCALE / 2), 0.2, 0.5, 1.2);
+composer.addPass(renderPass);
+if (DOF) composer.addPass(bokeh);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+function render3D(shot, t) {
+  const s = SCENES[shot.name];
+  s.update(t);
+  renderPass.scene = bokeh.scene = s.scene;
+  renderPass.camera = bokeh.camera = s.cam;
+  bokeh.uniforms.focus.value = s.focus;
+  bokeh.uniforms.aperture.value = s.aperture;
+  bokeh.uniforms.nearClip.value = s.cam.near;
+  bokeh.uniforms.farClip.value = s.cam.far;
+  bokeh.uniforms.aspect.value = W / H;
+  composer.render();
+  return glCanvas;
+}
+
+// ---------------------------------------------------------------- 2D overlay
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.forEach(f => document.fonts.add(f));
+
+// A line of words, right to left; accent words in green.
+function wordsLine(text, accent, x, y, size, weight, alpha = 1) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px Zain`;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'right';
+  const words = text.split(' ');
+  const ws = words.map(w => ctx.measureText(w).width);
+  const sp = ctx.measureText(' ').width;
+  const total = ws.reduce((a, b) => a + b, 0) + sp * (words.length - 1);
+  const fit = Math.min(1, 940 / total);
+  ctx.translate(x, y);
+  ctx.scale(fit, fit);
+  ctx.translate(-x, -y);
+  let xr = x + total / 2;
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = 'rgba(0, 20, 10, 0.55)';
+  ctx.shadowBlur = 24 * SCALE;
+  words.forEach((w, i) => {
+    ctx.fillStyle = accent.includes(w.replace(/[،,.!؟?]/g, '')) ? ACCENT_CSS : '#ffffff';
+    ctx.fillText(w, xr, y);
+    xr -= ws[i] + sp;
+  });
+  ctx.restore();
+}
+
+// Each line rises out of a mask, like the reference reel.
+function shotLines(shot) {
+  return shot.lines || shot.text.map((text, i) => ({ text, at: shot.textIn + i * 0.14, y: 1470 + i * 118, size: 92 }));
+}
+function sportLabel(shot, t) {
+  if (!shot.label || t < shot.textIn - 0.3 || t > shot.textOut + 0.2) return;
+  const u = ease.outQuint(prog(t, shot.textIn - 0.3, shot.textIn + 0.5));
+  const o = ease.in(prog(t, shot.textOut - 0.5, shot.textOut));
+  ctx.save();
+  ctx.globalAlpha = u * (1 - o);
+  ctx.font = '800 46px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ACCENT_CSS;
+  const y = 1345 - (1 - u) * 20;
+  ctx.fillText(shot.label, W / 2, y);
+  const w = ctx.measureText(shot.label).width / 2 + 22;
+  ctx.strokeStyle = 'rgba(62, 226, 127, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 + w, y - 15); ctx.lineTo(W / 2 + w + 60 * u, y - 15);
+  ctx.moveTo(W / 2 - w, y - 15); ctx.lineTo(W / 2 - w - 60 * u, y - 15);
+  ctx.stroke();
+  ctx.restore();
+}
+function phrase(shot, t) {
+  sportLabel(shot, t);
+  if (!(shot.text || shot.lines) || t < shot.textIn || t > shot.textOut + 0.2) return;
+  shotLines(shot).forEach(({ text, at, y, size, weight = 800 }, i) => {
+    const u = ease.outQuint(prog(t, at, at + 0.8));
+    const o = ease.in(prog(t, shot.textOut - 0.45 + i * 0.05, shot.textOut + i * 0.05));
+    if (u <= 0 || o >= 1) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.25, W, size * 1.7);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.3 - o * size * 1.3);
+    wordsLine(text, shot.accent, W / 2, y, size, weight, 1);
+    ctx.restore();
+  });
+}
+
+function chrome(t, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // small logo and name at the bottom, as a signature
+  const s = 92;
+  ctx.drawImage(logoImg, W / 2 - s / 2, 1700, s, s);
+  ctx.font = '700 30px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('بۆردی وەرزشی', W / 2, 1838);
+  // tiny top label
+  ctx.font = '400 26px Zain';
+  ctx.direction = 'ltr';
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.letterSpacing = '8px';
+  ctx.fillText('PUK SPORTS BOARD', W / 2, 96);
+  ctx.restore();
+}
+
+function endCard(t) {
+  if (t < WIPE + 0.4) return;
+  // warm glow rising from the bottom
+  const gu = ease.out(prog(t, WIPE + 0.6, WIPE + 2.5));
+  const g = ctx.createRadialGradient(W / 2, H + 60, 0, W / 2, H + 60, 1150);
+  g.addColorStop(0, `rgba(236, 229, 214, ${0.55 * gu})`);
+  g.addColorStop(0.3, `rgba(80, 210, 130, ${0.28 * gu})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // logo
+  const lu = prog(t, WIPE + 0.95, WIPE + 1.8);
+  if (lu > 0) {
+    const s = 470 * lerp(0.7, 1, ease.outBack(lu));
+    ctx.save();
+    ctx.globalAlpha = clamp(lu * 2);
+    ctx.filter = lu < 0.5 ? `blur(${((0.5 - lu) * 30 * SCALE).toFixed(1)}px)` : 'none';
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 50 * SCALE;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoImg, W / 2 - s / 2, 780 - s / 2, s, s);
+    ctx.restore();
+  }
+  const lines = [
+    [END_TEXT.title, 1235, 104, 900, '#ffffff', WIPE + 1.55],
+    [END_TEXT.sub, 1340, 66, 700, 'rgba(255,255,255,0.88)', WIPE + 1.75],
+    [END_TEXT.line, 1470, 56, 800, ACCENT_CSS, WIPE + 2.2],
+  ];
+  for (const [txt, y, size, weight, color, t0] of lines) {
+    const u = ease.outQuint(prog(t, t0, t0 + 0.9));
+    if (u <= 0) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.25, W, size * 1.7);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.3);
+    ctx.font = `${weight} ${size}px Zain`;
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    ctx.shadowColor = 'rgba(0, 20, 10, 0.5)';
+    ctx.shadowBlur = 20 * SCALE;
+    ctx.fillText(txt, W / 2, y);
+    ctx.restore();
+  }
+  // thin divider between name and line
+  const du = ease.inOut(prog(t, WIPE + 2.0, WIPE + 2.7));
+  if (du > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 90 * du, 1398); ctx.lineTo(W / 2 + 90 * du, 1398);
+    ctx.stroke();
+  }
+}
+
+// cream circle wipe from the podium into the end card
+function wipe(t) {
+  const u1 = ease.inOut(prog(t, WIPE, WIPE + 0.55));
+  const u2 = ease.inOut(prog(t, WIPE + 0.45, WIPE + 1.05));
+  if (u1 <= 0 || u2 >= 1) return;
+  const R = Math.hypot(W, H) / 2 + 20;
+  ctx.save();
+  ctx.fillStyle = '#ece6d7';
+  ctx.beginPath();
+  ctx.arc(W / 2, 1000, R * u1, 0, Math.PI * 2);
+  if (u2 > 0) ctx.arc(W / 2, 1000, R * u2, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+  // a small dark sphere drops through the cream, echoing the ball
+  const du = prog(t, WIPE + 0.1, WIPE + 0.9);
+  if (du > 0 && du < 1) {
+    ctx.fillStyle = '#0d271b';
+    ctx.beginPath();
+    ctx.arc(W / 2, lerp(300, 1500, ease.inOut(du)), 26, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- frame
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.filter = 'none';
+  ctx.fillStyle = '#0d271b';
+  ctx.fillRect(0, 0, W, H);
+  // 3D shots, cross-fading where they overlap
+  const live = SHOTS.filter(s => t >= s.start && t < s.end);
+  live.forEach((s, i) => {
+    const a = i === 0 ? 1 : ease.inOut(prog(t, s.start, s.start + 0.4));
+    ctx.globalAlpha = a;
+    ctx.drawImage(render3D(s, t), 0, 0, W, H);
+  });
+  ctx.globalAlpha = 1;
+  // soft vignette
+  const v = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.25, W / 2, H * 0.5, H * 0.75);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,8,4,0.55)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+  SHOTS.forEach(s => phrase(s, t));
+  chrome(t, Math.min(prog(t, 0.4, 1.2), 1 - prog(t, WIPE - 0.2, WIPE + 0.2)));
+  endCard(t);
+  wipe(t);
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.5)), ease.inOut(prog(t, OUTRO, DURATION)));
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => {
+  // warm up shaders for every shot so frame times stay even
+  for (const s of SHOTS) render3D(s, s.start + 0.5);
+  return true;
+});
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION, bpm: 96,
+  drops: SI.lands.map(x => +x.toFixed(3)),
+  kick: SF.kick, netHit: SF.hit,
+  volleys: SV.hits,
+  swish: +SB.swish.toFixed(3),
+  pedestals: [0, 1, 2, 3].map(i => +(20.0 + i * BEAT / 2 + 0.35).toFixed(3)),
+  cuts: [4.8, 9.8, 14.8, 19.8],
+  wipe: WIPE,
+  phrases: SHOTS.filter(s => s.text).map(s => s.textIn),
+  logo: WIPE + 1.1, outro: OUTRO,
+});
+
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>
