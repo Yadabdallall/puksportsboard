@@ -1720,7 +1720,9 @@ function renderAbout(){
 /* real photo or video behind each sport: built-in photos, overridable from the admin panel */
 var VIDEO_RE=/\.(mp4|m4v|mov|webm)(\?|#|$)/i;
 var DEFAULT_MEDIA={football:'assets/sports/football.jpg',futsal:'assets/sports/futsal.jpg',volleyball:'assets/sports/volleyball.jpg',
-  basketball:'assets/sports/basketball.jpg',handball:'assets/sports/handball.jpg'};
+  basketball:'assets/sports/basketball.jpg',handball:'assets/sports/handball.jpg',running:'assets/sports/running.jpg',
+  swimming:'assets/sports/swimming.jpg',tabletennis:'assets/sports/tabletennis.jpg',tennis:'assets/sports/tennis.jpg',
+  wrestling:'assets/sports/wrestling.jpg'};
 function setMedia(i,u){
   var holder=courts[i].querySelector('.photo');
   holder.innerHTML='';holder.style.backgroundImage='';holder.removeAttribute('data-bg');
