@@ -13,53 +13,53 @@
 |---|---|
 | `index.html` | هەموو ماڵپەڕەکە: بەشی سەرەوەی وەرزشەکان، دوگمەی **جۆرەکانی وەرزش** لە سەرەوە، هەواڵ، وێنەکان، دەربارە، پەیوەندی |
 | `admin/` | **پانێڵی بەڕێوەبردن بە قفڵ** — زیادکردن / دەستکاری / سڕینەوەی هەواڵ و وێنە |
-| `data/news.json` | هەواڵەکان |
-| `data/site.json` | دەربارە، ناونیشان، تەلەفۆن، ئیمەیڵ، سۆشیاڵ میدیا، وێنەی پاشبنەمای وەرزشەکان |
-| `data/admin.json` | کلیلی GitHub، بە کۆدی قفڵەکە شفرەکراوە (دوای ڕێکخستنی یەکەمجار دروست دەبێت) |
-| `uploads/` | وێنەکان |
+| `cloudflare/worker.js` | **Workerـی Cloudflare** — کۆدەکە دەپشکنێت و هەواڵ، ڕێکخستن و وێنەکان لە بنکەدراوەی **D1**ـی Cloudflare هەڵدەگرێت |
+| `data/news.json`, `data/site.json` | کۆپیی سەرەتایی (پێش ئەوەی یەکەم هەواڵ لە پانێڵەکەوە بڵاو بکەیتەوە) |
 | `manifest.webmanifest`, `sw.js`, `assets/icons/` | ئەپ (PWA) و کارکردن بێ ئینتەرنێت |
 
 **بەشەکانی هەواڵ (١٦):** تۆپی پێ، فوتسال، تۆپی باڵە، تۆپی سەبەتە، تۆپی دەست، ڕاکردن، مەلەکردن، تێنسی سەر مێز، تێنسی سەر زەوی، زۆرانبازی، بۆکسێن، شاخەوانی، پاسکیلسواری، تایکواندۆ، **هەمەڕەنگ** (فیستیڤاڵ، کار و چالاکی) و **گشتی** (ڕاگەیاندنی بۆرد).
 
 ---
 
-## ١. بڵاوکردنەوە · Publish (بەخۆڕایی)
+## ١. ڕێکخستنی Cloudflare · Setup (بەخۆڕایی، تەنها یەکجار)
 
-پانێڵی بەڕێوەبردن هەواڵەکان لە لقی `main`ـی GitHub پاشەکەوت دەکات. بۆیە ماڵپەڕەکە دەبێت **ڕاستەوخۆ بە GitHubـەوە ببەسترێتەوە** تا هەواڵە نوێکان خۆکار دەربکەون. بارکردنی زیپ تەنها وێنەیەکی جێگیری ماڵپەڕەکەیە و هەواڵە نوێکانی تێدا دەرناکەون.
+هەموو شتێک لە ناو Cloudflareـدایە، **GitHub پێویست نییە**:
+- **Pages** — فایلەکانی ماڵپەڕەکە (زیپەکە).
+- **Worker** — ناونیشانی سەرەکیی ماڵپەڕەکە. کۆدی قفڵ دەپشکنێت و هەواڵەکان هەڵدەگرێت.
+- **D1** — بنکەدراوە بۆ هەواڵ، ڕێکخستن و وێنەکان.
 
-### Cloudflare Pages (پێشنیارکراو)
-1. Pull Requestـەکە تێکەڵی `main` بکە (**Merge pull request**).
-2. لە [dash.cloudflare.com](https://dash.cloudflare.com): **Workers & Pages → Create → Pages → Import an existing Git repository** (یان **Connect to Git**).
-3. هەژماری GitHub ببەستەوە و `puksportsboard` هەڵبژێرە.
-4. ڕێکخستنەکان:
-   - **Production branch**: `main`
-   - **Framework preset**: `None`
-   - **Build command**: بەتاڵ بێت (ئەگەر داوای کرد، بنووسە `exit 0`)
-   - **Build output directory**: `/`
-5. **Save and Deploy** — ماڵپەڕەکە لەسەر `https://<ناوی-پرۆژە>.pages.dev` دەبێت. لە **Custom domains** دۆمەینی خۆت زیاد بکە.
+هەموو هەنگاوەکان لە [dash.cloudflare.com](https://dash.cloudflare.com) دەکرێن، لە مۆبایلیش.
 
-هەر هەواڵێک لە 🔒 بەڕێوەبردنەوە بڵاو بکەیتەوە، Cloudflare لە ماوەی نزیکەی یەک خولەکدا خۆکار نوێی دەکاتەوە.
+### ١) ماڵپەڕەکە (Pages)
+**Workers & Pages → Create → Pages → Upload assets** ← ناوێک ← زیپەکە باربکە ← **Deploy**.
+ناونیشانەکەی بنووسە، بۆ نموونە `https://oukils.pages.dev`.
 
-### GitHub Pages (جێگرەوە)
-1. `main` → **Settings → Pages → Deploy from a branch → `main` / `(root)` → Save**
-2. ماڵپەڕەکە: `https://yadabdallall.github.io/puksportsboard/`
+### ٢) بنکەدراوە (D1)
+**Storage & Databases → D1 SQL Database → Create** ← ناو: `puk-db` ← **Create**.
+
+### ٣) Worker
+1. **Workers & Pages → Create → Worker** (Start with Hello World) ← ناو: `puk-sports` ← **Deploy**.
+2. **Edit code** ← هەموو کۆدەکە بسڕەوە.
+3. لە مۆبایلەکەت بکەرەوە: `https://<ماڵپەڕەکەت>.pages.dev/cloudflare/worker.js` ← هەمووی کۆپی بکە ← بیخە ناو ئێدیتەرەکە ← **Deploy**.
+4. **Settings → Bindings → Add → D1 database** ← Variable name: `DB` ← `puk-db` ← **Save**.
+5. **Settings → Variables and Secrets → Add**:
+   - Type **Secret** ← Name: `ADMIN_CODE` ← Value: کۆدی قفڵ (بۆ نموونە `sport2026`)
+   - Type **Text** ← Name: `SITE_ORIGIN` ← Value: ناونیشانی Pages (بۆ نموونە `https://oukils.pages.dev`)
+   - **Deploy**
+6. ئێستا ناونیشانی Workerـەکە **ماڵپەڕە سەرەکییەکەتە**: `https://puk-sports.<ناوی-هەژمار>.workers.dev`
+   - ئەم ناونیشانە بە خەڵک بدە و بۆ ئەپەکە بەکاری بهێنە.
+   - دۆمەینی خۆت: **Worker → Settings → Domains & Routes → Add → Custom domain**.
+
+> ناونیشانی `pages.dev` ڕاستەوخۆ تەنها کۆپیی سەرەتایی پیشان دەدات. هەواڵە نوێکان لە ڕێگەی ناونیشانی Workerـەکەوە دەردەکەون.
+
+### نوێکردنەوەی ماڵپەڕەکە دواتر
+زیپی نوێ لە هەمان پرۆژەی Pages بار بکە (**Create new deployment**). هەواڵەکان لە D1دان، بۆیە هیچیان ناسڕێنەوە.
 
 ---
 
 ## ٢. قفڵ و زیادکردنی هەواڵ · The lock & daily news
 
-لە خوارەوەی ماڵپەڕەکە دوگمەی **🔒 بەڕێوەبردن** هەیە (یان ڕاستەوخۆ `…/puksportsboard/admin/`).
-
-### ڕێکخستنی یەکەمجار (تەنها یەکجار، ٢ خولەک)
-ماڵپەڕەکە سێرڤەری نییە، بۆیە کلیلێکی GitHub پێویستە بۆ ئەوەی هەواڵەکان پاشەکەوت بکات. ئەم کلیلە بە کۆدی قفڵەکە شفرە دەکرێت.
-
-1. لە پانێڵەکە کلیک لە **«ڕێکخستنی قفڵ (یەکەمجار)»** بکە.
-2. بە هەژماری GitHubـی خاوەنی ماڵپەڕەکە بڕۆ بۆ [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new):
-   - **Expiration**: ماوەیەکی درێژ (بۆ نموونە ساڵێک)
-   - **Repository access** → **Only select repositories** → `puksportsboard`
-   - **Permissions** → **Contents** → **Read and write**
-   - **Generate token** → کۆپی بکە.
-3. تۆکنەکە لە پانێڵەکە دابنێ، و **کۆدی قفڵ** بنووسە (دووجار) → **پاشەکەوتکردن و کردنەوە**.
+لە خوارەوەی ماڵپەڕەکە دوگمەی **🔒 بەڕێوەبردن** هەیە (`https://puk-sports.….workers.dev/admin/`). کۆدەکە لە ناو Workerـەکەدا دەپشکنرێت، نەک لە پەڕەکەدا.
 
 ### هەموو ڕۆژێک
 1. **🔒 بەڕێوەبردن** ← کۆدەکە بنووسە ← **کردنەوە**
@@ -80,10 +80,11 @@
 - پانێڵەکە دوای ٣٠ خولەک بێ جوڵە خۆی قفڵ دەکات.
 
 ### ئاسایش · Security notes
-- کۆدەکە خۆی لە هیچ شوێنێک هەڵناگیرێت. تەنها کلیلی GitHub، شفرەکراو بە AES-256 (PBKDF2، 600,000 خول)، لە `data/admin.json`دا هەیە.
-- ئەم فایلە گشتییە، بۆیە هێزی قفڵەکە بەندە بە **درێژی و نەزانراوی کۆدەکە**. بە کەس مەیدە و کاتێک پێویست بوو بیگۆڕە (ڕێکخستنەکان ← گۆڕینی کۆد).
-- ئەگەر گومانت هەبوو کۆدەکە ئاشکرا بووە، تۆکنەکە لە GitHub بسڕەوە (Settings → Developer settings → Personal access tokens) و ڕێکخستنی یەکەمجار دووبارە بکەرەوە. هەر گۆڕانکارییەک لە GitHubدا مێژووی هەیە و دەگەڕێنرێتەوە.
-- کاتێک تۆکنەکە بەسەردەچێت، پانێڵەکە ئاگادارت دەکاتەوە. تۆکنێکی نوێ دروست بکە و «ڕێکخستنی قفڵ» دووبارە بکەرەوە.
+- کۆدەکە تەنها لە ناو Workerـەکەدا (Secret) و بە شێوەی شفرەکراو هەڵدەگیرێت و لە ماڵپەڕەکەدا دیار نییە.
+- دوای ٨ جار کۆدی هەڵە، ئەو ئامێرە بۆ ١٥ خولەک ڕێگری لێدەکرێت.
+- چوونەژوورەوە ١٢ کاتژمێر دەمێنێت. گۆڕینی کۆد هەموو چوونەژوورەوە کۆنەکان هەڵدەوەشێنێتەوە.
+- `sport2026` کۆدێکی کورتە. باشترە کۆدێکی درێژتر بەکاربهێنیت: **ڕێکخستنەکان ← گۆڕینی کۆد**، یان لە Cloudflare `ADMIN_CODE` بگۆڕە.
+- پاشەکەوتکردنێک کە لەسەر کۆپییەکی کۆن بێت ڕەت دەکرێتەوە و پانێڵەکە خۆی دووبارە هەوڵ دەداتەوە، بۆیە دوو کەس پێکەوە دەتوانن کار بکەن.
 
 ---
 
@@ -118,4 +119,4 @@ npx serve .      # then open http://localhost:3000
 
 ## English summary
 
-Framework-free site (`index.html`, Zain font throughout) with a neon hero whose "planets" are 14 sports popular in Kurdistan and Sulaymaniyah. News sections are the 14 sports plus Miscellaneous (festivals, work, activities) and General. Content lives in `data/*.json` and is edited in `/admin/`, a code-locked panel: a fine-grained GitHub token (Contents: read/write on this repo only) is encrypted in the browser with the lock code (PBKDF2-SHA256 600k → AES-GCM) and stored as `data/admin.json`. Entering the code decrypts it, and each publish is one atomic commit (photos resized to JPEG ≤1600px + JSON), retried on concurrent edits. The manifest and service worker make it installable and offline-capable, ready for PWABuilder/Capacitor. See `PROMPT.md` for the full brief.
+Framework-free site (`index.html`, Zain font) with a hero of 14 sports popular in Kurdistan, each on a real photo. News sections are the 14 sports plus Miscellaneous and General. Storage is Cloudflare only: the static site is a Pages project; `cloudflare/worker.js` is a Worker (bindings: D1 `DB`; vars: secret `ADMIN_CODE`, text `SITE_ORIGIN`) that proxies the Pages site, checks the admin code server-side (rate-limited, HMAC session tokens), stores news/settings as revisioned JSON (409 on stale writes) and photos/videos in 1 MB D1 chunks served with Range support. The site reads `/api/news` and `/api/site`, falling back to `data/*.json`. Manifest + service worker make it installable and offline-capable.

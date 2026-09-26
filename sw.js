@@ -2,7 +2,7 @@
    Pages and data/*.json are network-first (daily news always shows fresh when online);
    images, icons and fonts are served from cache and refreshed in the background.
    Bump VERSION when you change index.html's app shell so every phone updates. */
-const VERSION = 'psb-v14';
+const VERSION = 'psb-v15';
 const SHELL = [
   './',
   'index.html',
@@ -71,7 +71,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(request, 'index.html'));
     return;
   }
-  if (sameOrigin && url.pathname.endsWith('.json')) {
+  if (sameOrigin && (url.pathname.endsWith('.json') || url.pathname.includes('/api/'))) {
     event.respondWith(networkFirst(request));
     return;
   }

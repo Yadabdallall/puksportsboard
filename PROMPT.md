@@ -118,18 +118,15 @@ Sections grid (16 tiles: 8+8 on desktop, 4 on tablets, 3 on phones) filters the 
 sport also features it in the hero. Photos section = latest photos from the news.
 About = emblem with a spinning neon ring, text, stats (14 sports · founded · stories · 3 languages),
 contacts and social links (only the ones filled in).
-Editing: a 🔒 "بەڕێوەبردن" button in the footer opens /admin/, a lock screen in the same neon style.
-Only whoever knows the lock code can publish. No server: at one-time setup a fine-grained GitHub token
-(Contents: read/write, this repository only) is encrypted in the browser with the code
-(PBKDF2-SHA256, 600,000 iterations → AES-256-GCM) and committed as data/admin.json. The code itself is
-never stored. Unlocking decrypts the token in memory, and the panel auto-locks after 30 minutes idle;
-wrong codes back off exponentially.
+Editing: a 🔒 "بەڕێوەبردن" button in the footer opens /admin/, a lock screen in the same style. Storage is
+Cloudflare only (no GitHub): a Worker (cloudflare/worker.js) sits in front of the Pages site, checks the
+lock code server-side (secret ADMIN_CODE, 8 wrong tries → 15-minute lockout, 12-hour HMAC sessions), keeps
+news and settings as revisioned JSON in D1 (a save on a stale copy gets 409 and the panel re-reads), and
+stores photos/videos in D1 in 1 MB pieces, served from /media/ with Range support.
 Panel tabs: New story (1. pick the section from 16 icon tiles — required; 2. photos with camera
 support, first = main, ★ to promote, resized in-browser to JPEG ≤1600px; 3. Kurdish text + optional
 Arabic / English; pin to top; draft) · Stories (edit / delete; photos no longer used are removed) ·
-Settings (about, address, phone, email, 7 social links, per-sport hero photos, change code).
-Every save is ONE atomic commit through the Git Data API (blobs → tree → commit → move branch),
-re-reading the JSON at the new head and retrying if someone else committed in between.
+Settings (about, address, phone, email, 7 social links, per-sport hero photo or video, change code).
 All text is rendered with textContent / escaped; URLs are sanitised (no javascript: / data:).
 
 ════════════════════════════════════════════════════════════════════════
@@ -158,6 +155,6 @@ transforms, instant scrolling.
 · Field, headline, lede, both orbs and both labels update together; language switch keeps the sport.
 · body never scrolls horizontally from 320px to 2560px, in all three languages.
 · Entrance runs once; afterwards <html> carries neither .anim nor .play.
-· Adding a story in /admin/ (code required) shows it on the site and in the installed app, in its
+· Adding a story in /admin/ (code required) shows it on the site immediately and in the installed app, in its
   section, without changing any code. A wrong code never unlocks the panel.
 ```

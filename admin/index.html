@@ -261,43 +261,9 @@ h1{background:linear-gradient(180deg,#0f5208 0%,#177d0a 60%,#1f9a0f 100%);-webki
         <button class="primary" type="submit" id="unlock-btn">کردنەوە</button>
       </form>
       <p class="msg" id="lock-msg" role="alert"></p>
-      <button class="link" type="button" id="to-setup">ڕێکخستنی قفڵ (یەکەمجار)</button>
     </div>
   </section>
 
-  <!-- ═══ ONE-TIME SETUP ═══ -->
-  <section id="view-setup" hidden aria-labelledby="setup-h">
-    <div class="panel">
-      <h1 id="setup-h">ڕێکخستنی قفڵ</h1>
-      <p>ئەم هەنگاوە تەنها یەکجار دەکرێت. کلیلێکی GitHub دروست دەکەیت و ئێمە بە کۆدەکەت قفڵی دەکەین. دواتر بۆ زیادکردنی هەواڵ تەنها کۆدەکە پێویستە.</p>
-      <ol class="steps">
-        <li>بە هەژماری GitHubـی خاوەنی ماڵپەڕەکە ئەم لینکە بکەرەوە: <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">دروستکردنی تۆکن ↗</a></li>
-        <li><b>Token name</b>: هەر ناوێک (بۆ نموونە <code>puk-news</code>). <b>Expiration</b>: ماوەیەکی درێژ هەڵبژێرە، بۆ نموونە ساڵێک.</li>
-        <li><b>Repository access</b> ← <b>Only select repositories</b> ← <code>puksportsboard</code></li>
-        <li><b>Permissions</b> ← <b>Contents</b> ← <b>Read and write</b></li>
-        <li><b>Generate token</b>، ئینجا کۆپی بکە و لێرە دایبنێ.</li>
-      </ol>
-      <form id="setup-form" autocomplete="off">
-        <label>تۆکنی GitHub <input id="s-token" type="password" required autocomplete="off" spellcheck="false" dir="ltr" placeholder="github_pat_…"></label>
-        <div class="grid2" style="margin-top:14px">
-          <label>کۆدی قفڵ <input id="s-code" type="password" required autocomplete="new-password" autocapitalize="off" spellcheck="false" dir="ltr"></label>
-          <label>دووبارە کۆدەکە <input id="s-code2" type="password" required autocomplete="new-password" autocapitalize="off" spellcheck="false" dir="ltr"></label>
-        </div>
-        <details>
-          <summary>ڕێکخستنی پێشکەوتوو</summary>
-          <label>Owner <input id="s-owner" dir="ltr" spellcheck="false"></label>
-          <label>Repository <input id="s-repo" dir="ltr" spellcheck="false"></label>
-          <label>Branch <input id="s-branch" dir="ltr" spellcheck="false"></label>
-        </details>
-        <div class="actions">
-          <button class="primary" type="submit" id="setup-btn">پاشەکەوتکردن و کردنەوە</button>
-          <button class="ghost" type="button" id="setup-back">گەڕانەوە</button>
-        </div>
-      </form>
-      <p class="msg" id="setup-msg" role="alert"></p>
-      <p class="note">🔒 تۆکنەکە بە کۆدەکەت شفرە دەکرێت (AES-256) و وەک <code>data/admin.json</code> هەڵدەگیرێت. کۆدەکە خۆی لە هیچ شوێنێک هەڵناگیرێت، بۆیە لەبیری مەکە.</p>
-    </div>
-  </section>
 
   <!-- ═══ EDITOR ═══ -->
   <section id="view-editor" hidden>
@@ -417,9 +383,9 @@ h1{background:linear-gradient(180deg,#0f5208 0%,#177d0a 60%,#1f9a0f 100%);-webki
 <script>
 (function(){
 'use strict';
-/* Where the news lives. Setup can override these (they are saved, unencrypted, in data/admin.json). */
-var DEFAULT_REPO={owner:'Yadabdallall',repo:'puksportsboard',branch:'main'};
-var KDF_ITERATIONS=600000, MAX_PHOTO=1600, JPEG_QUALITY=0.82, AUTO_LOCK_MS=30*60*1000;
+/* Everything is stored in Cloudflare (a Worker + a D1 database, see cloudflare/worker.js).
+   The admin page talks to the Worker on the same address: /api/... */
+var MAX_PHOTO=1600, JPEG_QUALITY=0.82, AUTO_LOCK_MS=30*60*1000;
 /* sections: key, Kurdish name, small hint */
 var CATS=[
   ['football','تۆپی پێ','Football'],['futsal','فوتسال','Futsal'],['volleyball','تۆپی باڵە','Volleyball'],
@@ -432,8 +398,8 @@ var CATS=[
 var SPORTS=CATS.slice(0,14);
 function catName(k){for(var i=0;i<CATS.length;i++)if(CATS[i][0]===k)return CATS[i][1];return 'گشتی';}
 
-var cfg=null, token=null, keyFile=null, data={news:{items:[]},site:{}};
-var editingId=null, selectedCat=null, photos=[], heroPhotos=[], failures=0, lockTimer=null;
+var session=null, data={news:{items:[]},site:{}}, revs={news:0,site:0};
+var editingId=null, selectedCat=null, photos=[], heroPhotos=[], lockTimer=null;
 
 /* ─── small helpers ─── */
 function $(id){return document.getElementById(id);}
@@ -449,206 +415,107 @@ function busy(btn,on,label){
   if(on){btn.dataset.label=btn.innerHTML;btn.disabled=true;btn.innerHTML='<span class="spin" aria-hidden="true"></span>'+esc(label||'…');}
   else if(btn.dataset.label!=null){btn.disabled=false;btn.innerHTML=btn.dataset.label;delete btn.dataset.label;}
 }
-function show(view){['lock','setup','editor'].forEach(function(v){$('view-'+v).hidden=v!==view;});$('lock-btn').hidden=view!=='editor';window.scrollTo(0,0);}
+function show(view){['lock','editor'].forEach(function(v){$('view-'+v).hidden=v!==view;});$('lock-btn').hidden=view!=='editor';window.scrollTo(0,0);}
 
 /* ─── bytes / base64 ─── */
-var enc=new TextEncoder(), dec=new TextDecoder();
 function b64(bytes){bytes=new Uint8Array(bytes);var s='';for(var i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));return btoa(s);}
 function unb64(str){var s=atob(str),b=new Uint8Array(s.length);for(var i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return b;}
 
-/* ─── the lock: the GitHub token is encrypted with the code (PBKDF2 → AES-GCM) ─── */
-function deriveKey(code,salt,iter){
-  return crypto.subtle.importKey('raw',enc.encode(code),'PBKDF2',false,['deriveKey']).then(function(base){
-    return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
-  });
-}
-function sealToken(tok,code,where){
-  var salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
-  return deriveKey(code,salt,KDF_ITERATIONS).then(function(key){
-    return crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,enc.encode(JSON.stringify({token:tok})));
-  }).then(function(ct){
-    return {v:1,kdf:'PBKDF2-SHA256',iter:KDF_ITERATIONS,salt:b64(salt),iv:b64(iv),ct:b64(ct),owner:where.owner,repo:where.repo,branch:where.branch};
-  });
-}
-function openToken(file,code){
-  return deriveKey(code,unb64(file.salt),file.iter||KDF_ITERATIONS).then(function(key){
-    return crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(file.iv)},key,unb64(file.ct));
-  }).then(function(pt){return JSON.parse(dec.decode(pt)).token;});
-}
-function loadKeyFile(){
-  function get(u){return fetch(u,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});}
-  return get('../data/admin.json?t='+Date.now()).then(function(f){
-    /* right after setup GitHub Pages may not have published the file yet */
-    if(f)return f;
-    var r=DEFAULT_REPO;try{r=JSON.parse(localStorage.getItem('psb-repo'))||DEFAULT_REPO;}catch(e){}
-    return get('https://raw.githubusercontent.com/'+r.owner+'/'+r.repo+'/'+r.branch+'/data/admin.json?t='+Date.now());
-  });
-}
-
-/* ─── GitHub API ─── */
-function gh(path,opt){
+/* ─── Cloudflare Worker API ─── */
+function api(path,opt){
   opt=opt||{};
-  var headers={'Accept':opt.raw?'application/vnd.github.raw+json':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Authorization':'Bearer '+token};
-  if(opt.body)headers['Content-Type']='application/json';
-  return fetch('https://api.github.com'+path,{method:opt.method||'GET',headers:headers,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'})
-    .then(function(r){
-      if(!r.ok){return r.text().then(function(t){var e=new Error('GitHub '+r.status+': '+t.slice(0,200));e.status=r.status;throw e;});}
-      if(r.status===204)return null;
-      return opt.raw?r.text():r.json();
+  var headers={};
+  if(session)headers['Authorization']='Bearer '+session;
+  var body=opt.body;
+  if(body&&!(body instanceof Uint8Array)&&!(body instanceof Blob)){headers['Content-Type']='application/json';body=JSON.stringify(body);}
+  if(opt.type)headers['Content-Type']=opt.type;
+  return fetch('../api/'+path,{method:opt.method||'GET',headers:headers,body:body,cache:'no-store'}).then(function(r){
+    var ct=r.headers.get('content-type')||'';
+    if(ct.indexOf('application/json')<0){var e=new Error('no-worker');e.status=r.status;e.noWorker=true;throw e;}
+    return r.json().then(function(j){
+      if(!r.ok){var e=new Error(j.error||('HTTP '+r.status));e.status=r.status;e.info=j;throw e;}
+      return j;
     });
-}
-function rp(p){return '/repos/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+p;}
-function branchPath(){return cfg.branch.split('/').map(encodeURIComponent).join('/');}
-function headSha(){return gh(rp('/git/ref/heads/'+branchPath())).then(function(r){return r.object.sha;});}
-function readJSON(path,ref){
-  return gh(rp('/contents/'+path+'?ref='+ref),{raw:true}).then(function(t){return JSON.parse(t);},function(e){if(e.status===404)return null;throw e;});
-}
-function readAll(ref){
-  return Promise.all([readJSON('data/news.json',ref),readJSON('data/site.json',ref)]).then(function(r){
-    var n=r[0]&&Array.isArray(r[0].items)?r[0]:{items:[]};return {news:n,site:r[1]||{}};
   });
 }
-/* One atomic commit: upload new photos as blobs, then re-read the JSON at the current head,
-   apply the change, write tree + commit, move the branch. Retries if someone else committed meanwhile. */
+function readAll(){
+  return Promise.all([api('news'),api('site')]).then(function(r){
+    revs.news=r[0].rev||0;revs.site=r[1].rev||0;
+    var n=r[0].data&&Array.isArray(r[0].data.items)?r[0].data:{items:[]};
+    return {news:n,site:r[1].data||{}};
+  });
+}
+var TYPES={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',gif:'image/gif',mp4:'video/mp4',m4v:'video/mp4',mov:'video/quicktime',webm:'video/webm'};
+/* Upload new photos, then re-read the current news/settings, apply the change and save.
+   The Worker refuses a save based on an old copy (409), so we re-read and try again. */
 function commit(message,images,apply,progress){
-  var blobs=[];
   function up(i){
     if(i>=images.length)return Promise.resolve();
     if(progress)progress('بارکردنی وێنەکان… '+kuDigits(i+1)+' / '+kuDigits(images.length));
-    return gh(rp('/git/blobs'),{method:'POST',body:{content:images[i].base64,encoding:'base64'}}).then(function(b){
-      blobs.push({path:images[i].path,mode:'100644',type:'blob',sha:b.sha});return up(i+1);
-    });
+    var ext=(images[i].path.split('.').pop()||'').toLowerCase();
+    return api('media?path='+encodeURIComponent(images[i].path.replace(/^media\//,'')),{method:'POST',body:unb64(images[i].base64),type:TYPES[ext]||'application/octet-stream'})
+      .then(function(){return up(i+1);});
   }
   function attempt(n){
     if(progress)progress('پاشەکەوتکردن…');
-    var head,base,fresh,out;
-    return headSha().then(function(sha){head=sha;return gh(rp('/git/commits/'+head));})
-      .then(function(c){base=c.tree.sha;return readAll(head);})
-      .then(function(f){
-        fresh=f;out=apply(fresh)||{};
-        var dels=(out.deletes||[]).filter(function(p){return /^uploads\//.test(p);});
-        if(!dels.length)return [];
-        return gh(rp('/git/trees/'+base+'?recursive=1')).then(function(t){
-          var have={};(t.tree||[]).forEach(function(e){have[e.path]=1;});
-          return dels.filter(function(p){return have[p];});
-        });
-      })
-      .then(function(dels){
-        var tree=blobs.slice();
-        (out.files||[]).forEach(function(f){tree.push({path:f.path,mode:'100644',type:'blob',content:f.text});});
-        dels.forEach(function(p){tree.push({path:p,mode:'100644',type:'blob',sha:null});});
-        return gh(rp('/git/trees'),{method:'POST',body:{base_tree:base,tree:tree}});
-      })
-      .then(function(t){return gh(rp('/git/commits'),{method:'POST',body:{message:message,tree:t.sha,parents:[head]}});})
-      .then(function(c){return gh(rp('/git/refs/heads/'+branchPath()),{method:'PATCH',body:{sha:c.sha,force:false}});})
-      .then(function(){return fresh;},function(e){if(e.status===422&&n<3)return attempt(n+1);throw e;});
+    var fresh;
+    return readAll().then(function(f){
+      fresh=f;var out=apply(fresh)||{};
+      var saves=(out.files||[]).map(function(f){
+        var key=f.path==='data/news.json'?'news':f.path==='data/site.json'?'site':null;
+        if(!key)return Promise.resolve();
+        return api(key,{method:'PUT',body:{data:JSON.parse(f.text),rev:revs[key]}}).then(function(r){revs[key]=r.rev;});
+      });
+      return Promise.all(saves).then(function(){
+        return Promise.all((out.deletes||[]).filter(function(p){return /^media\//.test(p);}).map(function(p){
+          return api('media?path='+encodeURIComponent(p.replace(/^media\//,'')),{method:'DELETE'}).catch(function(){});
+        }));
+      });
+    }).then(function(){return fresh;},function(e){if(e.status===409&&n<4)return attempt(n+1);throw e;});
   }
   return up(0).then(function(){return attempt(1);});
 }
 function json(o){return JSON.stringify(o,null,2)+'\n';}
 function explain(e){
-  if(e&&e.friendly)return e.friendly;
   if(!navigator.onLine)return 'ئینتەرنێت نییە — دواتر هەوڵ بدەرەوە.';
-  var code=e&&e.status?' (GitHub '+e.status+')':'';
-  if(e&&e.status===401)return 'تۆکنی GitHub هەڵەیە، بەسەرچووە یان سڕاوەتەوە. تۆکنێکی نوێ دروست بکە و «ڕێکخستنی قفڵ» دووبارە بکەرەوە.'+code;
-  if(e&&e.status===403)return 'تۆکنەکە ڕێگەی نووسینی نییە. لە ڕێکخستنی تۆکنەکەدا: Repository access ← Only select repositories ← '+(cfg?cfg.repo:'puksportsboard')+'، و Permissions ← Contents ← Read and write.'+code;
-  if(e&&e.status===404)return 'ڕیپۆکە یان لقەکە نەدۆزرایەوە، یان تۆکنەکە دەسەڵاتی بەسەر ئەم ڕیپۆیەدا نییە.'+code;
-  if(e&&e.status===409)return 'ڕیپۆکە بەتاڵە — سەرەتا فایلەکانی ماڵپەڕەکە بار بکە بۆ ناو ڕیپۆکە.'+code;
-  return 'هەڵەیەک ڕوویدا: '+(e&&e.message||e);
+  if(e&&e.noWorker)return NO_WORKER;
+  if(e&&e.status===401){return 'ماوەی چوونەژوورەوە تەواو بوو — دووبارە کۆدەکە بنووسە.';}
+  if(e&&e.status===413)return 'فایلەکە زۆر گەورەیە.';
+  if(e&&e.status===503)return 'Workerـەکە تەواو ڕێکنەخراوە: '+((e.info&&e.info.detail)||'');
+  return 'هەڵەیەک ڕوویدا: '+(e&&e.message||e)+(e&&e.status?' ('+e.status+')':'');
 }
-function fail(text,status){var e=new Error(text);e.friendly=text+(status?' (GitHub '+status+')':'');e.status=status;return e;}
-/* step-by-step check of the token and repository, so setup can say exactly what is wrong */
-function diagnose(){
-  var login='';
-  return gh('/user').then(function(u){login=u.login;},function(e){
-    if(e.status===401)throw fail('تۆکنەکە هەڵەیە یان بەسەرچووە — دڵنیابە تەواوی تۆکنەکەت کۆپی کردووە (بە github_pat_ دەست پێدەکات).',401);
-    throw e;
-  }).then(function(){
-    return gh(rp('')).catch(function(e){
-      if(e.status===404)throw fail('ڕیپۆی «'+cfg.owner+'/'+cfg.repo+'» نەدۆزرایەوە، یان تۆکنەکە دەسەڵاتی بەسەریدا نییە. تۆکنەکە هی هەژماری «'+login+'»ـە. '
-        +'ناوی Owner و Repository بپشکنە، و لە تۆکنەکەدا Only select repositories ← '+cfg.repo+' هەڵبژێرە.',404);
-      throw e;
-    });
-  }).then(function(r){
-    if(r.permissions&&r.permissions.push===false)
-      throw fail('هەژماری «'+login+'» ڕێگەی نووسینی نییە لە ڕیپۆی «'+r.full_name+'». بە هەژماری خاوەنی ڕیپۆکە تۆکن دروست بکە.',403);
-    cfg.owner=r.owner&&r.owner.login||cfg.owner;cfg.repo=r.name||cfg.repo;
-    return gh(rp('/git/ref/heads/'+branchPath())).catch(function(e){
-      if(e.status===409)throw fail('ڕیپۆی «'+r.full_name+'» بەتاڵە — سەرەتا فایلەکانی ماڵپەڕەکە (ناوەڕۆکی زیپەکە) بار بکە بۆ ناوی.',409);
-      if(e.status===404&&r.default_branch&&r.default_branch!==cfg.branch){cfg.branch=r.default_branch;return gh(rp('/git/ref/heads/'+branchPath()));}
-      if(e.status===404)throw fail('لقی «'+cfg.branch+'» لە ڕیپۆکەدا نییە.',404);
-      throw e;
-    });
-  });
-}
+var NO_WORKER='پانێڵی بەڕێوەبردن تەنها لە ڕێگەی ناونیشانی Workerـی Cloudflare کار دەکات (بۆ نموونە puk-sports.….workers.dev/admin/). ڕێنمایی لە README.md ـدایە.';
 
 /* ─── auto-lock after inactivity ─── */
-function lockNow(){token=null;location.reload();}
-function bump(){clearTimeout(lockTimer);if(token)lockTimer=setTimeout(lockNow,AUTO_LOCK_MS);}
+function lockNow(){session=null;location.reload();}
+function bump(){clearTimeout(lockTimer);if(session)lockTimer=setTimeout(lockNow,AUTO_LOCK_MS);}
 ['pointerdown','keydown'].forEach(function(ev){document.addEventListener(ev,bump,{passive:true});});
 $('lock-btn').addEventListener('click',lockNow);
 
-/* ════════ LOCK SCREEN ════════ */
+/* ════════ LOCK SCREEN — the code is checked by the Worker, never stored in the page ════════ */
 $('unlock-form').addEventListener('submit',function(e){
   e.preventDefault();
   var code=$('code').value.trim(), btn=$('unlock-btn'), msg=$('lock-msg');
   if(!code)return;
   msg.textContent='';msg.className='msg';
   busy(btn,true,'کردنەوە…');
-  loadKeyFile().then(function(f){
-    if(!f){busy(btn,false);msg.textContent='قفڵەکە هێشتا ڕێکنەخراوە. «ڕێکخستنی قفڵ» بکە.';return;}
-    keyFile=f;
-    return openToken(f,code).then(function(tok){
-      token=tok;failures=0;
-      cfg={owner:f.owner||DEFAULT_REPO.owner,repo:f.repo||DEFAULT_REPO.repo,branch:f.branch||DEFAULT_REPO.branch};
-      return enterEditor().then(function(){busy(btn,false);$('code').value='';},function(err){busy(btn,false);token=null;msg.textContent=explain(err);});
-    },function(){
-      failures++;
-      var wait=Math.min(30,Math.pow(2,failures-1));
+  api('login',{method:'POST',body:{code:code}}).then(function(r){
+    session=r.token;$('code').value='';
+    return enterEditor().then(function(){busy(btn,false);});
+  }).catch(function(err){
+    busy(btn,false);session=null;
+    if(err.status===401){
       msg.textContent='کۆدەکە هەڵەیە.';
-      var card=$('lock-card');card.classList.remove('shake');void card.offsetWidth;card.classList.add('shake');
-      btn.disabled=true;
-      setTimeout(function(){busy(btn,false);$('code').select();},wait*1000);
-    });
+      var card=$('lock-card');card.classList.remove('shake');void card.offsetWidth;card.classList.add('shake');$('code').select();
+    }else if(err.status===429){
+      msg.textContent='زۆر جار هەڵە کرا — '+kuDigits(Math.ceil(((err.info&&err.info.retry)||900)/60))+' خولەکی تر هەوڵ بدەرەوە.';
+    }else msg.textContent=explain(err);
   });
-});
-$('to-setup').addEventListener('click',function(){
-  var d=keyFile;if(!d){try{d=JSON.parse(localStorage.getItem('psb-repo'));}catch(e){}}d=d||DEFAULT_REPO;
-  $('s-owner').value=d.owner||DEFAULT_REPO.owner;$('s-repo').value=d.repo||DEFAULT_REPO.repo;$('s-branch').value=d.branch||DEFAULT_REPO.branch;
-  show('setup');$('s-token').focus();
-});
-$('setup-back').addEventListener('click',function(){show('lock');});
-
-/* ════════ SETUP ════════ */
-$('setup-form').addEventListener('submit',function(e){
-  e.preventDefault();
-  var msg=$('setup-msg'), btn=$('setup-btn');
-  var tok=$('s-token').value.trim(), c1=$('s-code').value.trim(), c2=$('s-code2').value.trim();
-  msg.className='msg';
-  if(!tok){msg.textContent='تۆکنەکە دابنێ.';return;}
-  if(c1.length<8){msg.textContent='کۆدەکە دەبێت لانیکەم ٨ پیت یان ژمارە بێت.';return;}
-  if(c1!==c2){msg.textContent='دوو کۆدەکە وەک یەک نین.';return;}
-  var where={owner:$('s-owner').value.trim()||DEFAULT_REPO.owner,repo:$('s-repo').value.trim()||DEFAULT_REPO.repo,branch:$('s-branch').value.trim()||DEFAULT_REPO.branch};
-  token=tok;cfg=where;
-  busy(btn,true,'پشکنین…');msg.textContent='';
-  diagnose().then(function(){return sealToken(tok,c1,cfg);}).then(function(file){
-    return commit('Admin: set up the news lock',[],function(){return {files:[{path:'data/admin.json',text:json(file)}]};},function(t){btn.lastChild.textContent=t;})
-      .then(function(){keyFile=file;try{localStorage.setItem('psb-repo',JSON.stringify({owner:cfg.owner,repo:cfg.repo,branch:cfg.branch}));}catch(e){}},
-        function(e){
-          if(e.status===403||e.status===404)throw fail('تۆکنەکە تەنها دەتوانێت بخوێنێتەوە، ناتوانێت بنووسێت. لە GitHub تۆکنەکە بکەرەوە ← Repository access: Only select repositories ← '+cfg.repo
-            +' ← Permissions: Contents = Read and write ← Update. (ئەگەر «Public repositories» هەڵبژێردرابوو، ئەوە تەنها خوێندنە.)',e.status);
-          throw e;
-        });
-  }).then(function(){
-    $('s-token').value=$('s-code').value=$('s-code2').value='';
-    busy(btn,false);toast('قفڵەکە ڕێکخرا ✓');
-    return enterEditor();
-  }).catch(function(err){busy(btn,false);token=null;msg.textContent=explain(err);});
 });
 
 /* ════════ EDITOR ════════ */
 function enterEditor(){
-  return headSha().then(readAll).then(function(d){
+  return readAll().then(function(d){
     data=d;show('editor');bump();
     renderCats();resetForm();renderList();fillSettings();
   });
@@ -768,7 +635,7 @@ $('story-form').addEventListener('submit',function(e){
   status.className='status';
   busy(btn,true,'…');
   function progress(t){status.textContent=t;}
-  prepareImages(photos,'uploads/news',id,progress).then(function(prep){
+  prepareImages(photos,'media/news',id,progress).then(function(prep){
     item.image=prep.paths[0]||'';item.gallery=prep.paths.slice(1);
     return commit((editingId?'Edit news: ':'Add news: ')+title,prep.images,function(fresh){
       var items=fresh.news.items.filter(function(x){return x.id!==id;});
@@ -847,7 +714,7 @@ $('settings-form').addEventListener('submit',function(e){
   var values={};ST.forEach(function(k){values[k]=$('st-'+k).value.trim();});
   busy(btn,true,'…');
   var list=heroPhotos.slice();
-  prepareImages(list,'uploads/sports','hero',function(t){status.textContent=t;}).then(function(prep){
+  prepareImages(list,'media/sports','hero',function(t){status.textContent=t;}).then(function(prep){
     var hero=list.map(function(p,i){var u=prep.paths[i];return isVideoPath(u)?{sport:p.sport,video:u}:{sport:p.sport,image:u};});
     return commit('Update site settings',prep.images,function(fresh){
       var old=(fresh.site.hero_photos||[]).map(function(h){return h&&(h.video||h.image);}).filter(Boolean);
@@ -865,8 +732,8 @@ $('code-form').addEventListener('submit',function(e){
   if(c1.length<8){status.textContent='کۆدەکە دەبێت لانیکەم ٨ پیت یان ژمارە بێت.';return;}
   if(c1!==c2){status.textContent='دوو کۆدەکە وەک یەک نین.';return;}
   status.className='status';busy(btn,true,'…');
-  sealToken(token,c1,cfg).then(function(file){
-    return commit('Admin: change the news lock code',[],function(){return {files:[{path:'data/admin.json',text:json(file)}]};}).then(function(){keyFile=file;});
+  api('code',{method:'POST',body:{code:c1}}).then(function(r){
+    if(r.token)session=r.token;
   }).then(function(){busy(btn,false);$('c-code').value=$('c-code2').value='';status.textContent='کۆدەکە گۆڕدرا ✓ — لەمەودوا کۆدە نوێیەکە بەکاربهێنە.';})
     .catch(function(err){busy(btn,false);status.className='status bad';status.textContent=explain(err);});
 });
@@ -877,8 +744,9 @@ fetch('../index.html').then(function(r){return r.text();}).then(function(h){
   if(sp)document.body.insertBefore(document.importNode(sp,true),document.body.firstChild);
 }).catch(function(){});
 
-if(!window.crypto||!crypto.subtle){$('lock-msg').textContent='ئەم وێبگەڕە پشتگیری قفڵەکە ناکات — تکایە Chrome یان Safariـی نوێ بەکاربهێنە.';}
-loadKeyFile().then(function(f){keyFile=f;if(!f){$('lock-msg').className='msg ok';$('lock-msg').textContent='قفڵەکە هێشتا ڕێکنەخراوە — «ڕێکخستنی قفڵ» بکە.';}});
+/* is the Worker there? */
+api('ping').then(function(r){if(!r.configured){$('lock-msg').textContent='Workerـەکە هەیە بەڵام ADMIN_CODE یان D1 (DB) ڕێکنەخراوە — سەیری README بکە.';}})
+  .catch(function(e){$('lock-msg').textContent=e&&e.noWorker?NO_WORKER:explain(e);});
 $('code').focus();
 })();
 </script>

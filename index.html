@@ -1668,6 +1668,13 @@ function setLang(l){
 /* ════════ DATA (news + site settings) ════════ */
 var news=[], site={}, counts={}, filter='all', limit=7, loadFailed=false, loaded=false;
 function loadJSON(u){return fetch(u,{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});}
+/* news & settings live in Cloudflare (the Worker's /api/); the files in data/ are the starting copy / fallback */
+function loadDoc(key){
+  return fetch('api/'+key,{cache:'no-store'}).then(function(r){
+    if(!r.ok||(r.headers.get('content-type')||'').indexOf('application/json')<0)throw new Error('no api');
+    return r.json();
+  }).then(function(j){return j.data;}).catch(function(){return loadJSON('data/'+key+'.json');});
+}
 function normalize(list){
   var seen={};
   return (Array.isArray(list)?list:[]).filter(function(it){return it&&typeof it==='object'&&!it.draft;}).map(function(it){
@@ -1937,8 +1944,8 @@ window.addEventListener('resize',function(){if(fitQueued)return;fitQueued=true;r
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitTitle);
 
 Promise.all([
-  loadJSON('data/news.json').catch(function(){loadFailed=true;return null;}),
-  loadJSON('data/site.json').catch(function(){return null;})
+  loadDoc('news').catch(function(){loadFailed=true;return null;}),
+  loadDoc('site').catch(function(){return null;})
 ]).then(function(res){
   var n=res[0], s=res[1];
   news=normalize(n&&(n.items||n));
