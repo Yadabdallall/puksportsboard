@@ -1486,6 +1486,7 @@ function show(i,force){
   var prev=courtsEl.querySelector('.court.is-active');
   for(var c=0;c<courts.length;c++){courts[c].classList.toggle('is-active',c===i);if(c===i)courts[c].classList.remove('is-leaving');}
   if(prev&&prev!==courts[i]){prev.classList.add('is-leaving');clearTimeout(prev._t);prev._t=setTimeout(function(){prev.classList.remove('is-leaving');},800);}
+  if(prev&&prev!==courts[i])nextPhoto(i);
   loadBg(i);loadBg(i-1);loadBg(i+1);
   var media=courts[i].classList.contains('has-photo');
   stage.classList.toggle('has-media',media);document.body.classList.toggle('hero-media',media);
@@ -1722,10 +1723,13 @@ var VIDEO_RE=/\.(mp4|m4v|mov|webm)(\?|#|$)/i;
 var DEFAULT_MEDIA={football:'assets/sports/football.jpg',futsal:'assets/sports/futsal.jpg',volleyball:'assets/sports/volleyball.jpg',
   basketball:'assets/sports/basketball.jpg',handball:'assets/sports/handball.jpg',running:'assets/sports/running.jpg',
   swimming:'assets/sports/swimming.jpg',tabletennis:'assets/sports/tabletennis.jpg',tennis:'assets/sports/tennis.jpg',
-  wrestling:'assets/sports/wrestling.jpg'};
+  wrestling:'assets/sports/wrestling.jpg',boxing:['assets/sports/boxing.jpg','assets/sports/boxing-2.jpg'],
+  mountain:'assets/sports/mountain.jpg',cycling:'assets/sports/cycling.jpg',taekwondo:'assets/sports/taekwondo.jpg'};
+/* u: one photo/video, or a list of photos that take turns each time the sport is shown */
 function setMedia(i,u){
   var holder=courts[i].querySelector('.photo');
-  holder.innerHTML='';holder.style.backgroundImage='';holder.removeAttribute('data-bg');
+  holder.innerHTML='';holder.style.backgroundImage='';holder.removeAttribute('data-bg');holder.removeAttribute('data-bgs');
+  if(Array.isArray(u)){if(u.length>1)holder.setAttribute('data-bgs',u.join('|'));u=u[0];}
   courts[i].classList.add('has-photo');
   if(VIDEO_RE.test(u)){
     var v=document.createElement('video');
@@ -1737,6 +1741,13 @@ function setMedia(i,u){
 function loadBg(i){
   var h=courts[(i+N)%N].querySelector('.photo'),u=h.getAttribute('data-bg');
   if(u&&!h.style.backgroundImage)h.style.backgroundImage='url("'+u+'")';
+}
+function nextPhoto(i){
+  var h=courts[i].querySelector('.photo'),list=(h.getAttribute('data-bgs')||'').split('|').filter(Boolean);
+  if(list.length<2)return;
+  var k=((+h.getAttribute('data-n')||0)+1)%list.length;h.setAttribute('data-n',k);
+  h.setAttribute('data-bg',list[k]);h.style.backgroundImage='url("'+list[k]+'")';
+  (new Image()).src=list[(k+1)%list.length];      /* warm the next one */
 }
 function applyDefaultMedia(){KEYS.forEach(function(k,i){if(DEFAULT_MEDIA[k])setMedia(i,DEFAULT_MEDIA[k]);});}
 function applyHeroPhotos(){
