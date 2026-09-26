@@ -15,7 +15,7 @@ must be installable as an app and packageable for the App Store / Google Play.
 ════════════════════════════════════════════════════════════════════════
 1. CONCEPT
 ════════════════════════════════════════════════════════════════════════
-A cinematic full-viewport hero on a black / deep-green neon stadium. Centred: an eyebrow ("وەرزش" /
+A cinematic full-viewport hero on a white / light-green neon stadium (same neon lines and glows; dark-green text). Centred: an eyebrow ("وەرزش" /
 "رياضة" / "SPORT"), a huge glowing gradient sport name, a short neon rule, a paragraph, and a glossy neon
 pill button ("هەواڵەکان ببینە" → the news). Flanking the pill, cropped by the left and right screen edges,
 sit two glowing neon ORBS (a ring with the sport's line icon in the visible half) with labels.

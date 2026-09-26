@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>بۆردی وەرزش — یەکێتیی نیشتمانیی کوردستان</title>
 <meta name="description" content="ماڵپەڕی فەرمیی بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان — دوایین هەواڵ و وێنەی وەرزشی لە سلێمانی و کوردستان.">
-<meta name="theme-color" content="#020805">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#f3fff8">
+<meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/favicon-48.png">
@@ -135,6 +135,7 @@ svg.i,.ico,.sport-ico{fill:none;stroke:currentColor;stroke-width:2.4;stroke-line
 .court .floor .glow2{opacity:.22}
 .court .floor .glow2 *{stroke-width:11px;fill:none}
 .court .photo{display:none}
+.court .photo video.media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .court.has-photo .photo{display:block}
 .court.has-photo .floor{opacity:.55}
 .horizon{position:absolute;left:0;right:0;top:calc(430 * var(--u));height:calc(420 * var(--u));pointer-events:none;
@@ -459,7 +460,7 @@ p.lede{top:calc(442 * var(--u));margin:0 auto;max-width:calc(780 * var(--u));
 .anim .ent-line{transform:translateY(115%);will-change:transform}
 .anim .navbar::after,.anim .links a[aria-current="page"]::after,.anim .rule span{transform:scaleX(0)}
 .anim .logo,.anim .links a,.anim .lang,.anim .burger,.anim p.lede,.anim .label,.anim .cta a,.anim .orb,
-.anim .scroll,.anim .credit,.anim .sky{opacity:0}
+.anim .scroll,.anim .credit,.anim .sky,.anim .sports-btn{opacity:0}
 .anim .sky{will-change:opacity}
 
 .anim.play .sky{animation:ent-fade 1.6s var(--e-slow) .25s both}
@@ -471,7 +472,7 @@ p.lede{top:calc(442 * var(--u));margin:0 auto;max-width:calc(780 * var(--u));
 .anim.play .links a:nth-child(3){animation-delay:.36s}
 .anim.play .links a:nth-child(4){animation-delay:.41s}
 .anim.play .links a:nth-child(5){animation-delay:.44s}
-.anim.play .links a.enroll,.anim.play .burger,.anim.play .lang{--rise:calc(8 * var(--u));animation:ent-settle .6s var(--e-quint) .46s both}
+.anim.play .links a.enroll,.anim.play .burger,.anim.play .lang,.anim.play .sports-btn{--rise:calc(8 * var(--u));animation:ent-settle .6s var(--e-quint) .46s both}
 .anim.play .links a[aria-current="page"]::after{animation:ent-draw .55s var(--e-expo) .6s both}
 .anim.play .eyebrow .ent-line{animation:ent-reveal .75s var(--e-expo) .3s both}
 .anim.play h1.title .ent-line{animation:ent-reveal .95s var(--e-expo) .44s both}
@@ -596,6 +597,37 @@ section[id]{scroll-margin-top:calc(88 * var(--u) + var(--safe-t) + 8px)}
 @keyframes shimmer{to{background-position:-150% 0}}
 
 /* sports */
+/* top "sports types" button + drop-down panel */
+.sports-btn{display:inline-flex;align-items:center;gap:calc(8 * var(--u));height:calc(44 * var(--u));padding:0 calc(16 * var(--u));
+  margin-inline-start:calc(22 * var(--u));margin-inline-end:auto;border-radius:calc(22 * var(--u));cursor:pointer;flex:none;
+  border:calc(1.5 * var(--u)) solid var(--neon);background:rgba(255,255,255,.85);color:var(--accent-hi,#067a39);
+  font-size:calc(18 * var(--u));font-weight:800;line-height:1;
+  box-shadow:0 0 calc(14 * var(--u)) rgba(57,255,143,.55), inset 0 0 calc(10 * var(--u)) rgba(57,255,143,.2);transition:background-color .2s, box-shadow .2s}
+.sports-btn:hover,.sports-btn[aria-expanded="true"]{background:var(--neon);color:var(--btn-ink);box-shadow:0 0 calc(22 * var(--u)) rgba(57,255,143,.8)}
+.sports-btn svg{width:calc(20 * var(--u));height:calc(20 * var(--u))}
+.sports-btn .caret{width:calc(16 * var(--u));height:calc(16 * var(--u));transition:transform .25s}
+.sports-btn[aria-expanded="true"] .caret{transform:rotate(180deg)}
+.sports-btn:focus-visible{outline:calc(2 * var(--u)) solid var(--neon);outline-offset:calc(3 * var(--u))}
+.sports-btn .short{display:none}
+@media (max-width:579px){
+  .wm small{display:none}
+  .sports-btn{margin-inline-start:calc(10 * var(--u));padding:0 calc(12 * var(--u));font-size:calc(17 * var(--u));gap:calc(6 * var(--u))}
+  .sports-btn .caret,.sports-btn .full{display:none}
+  .sports-btn .short{display:inline}
+}
+@media (max-width:339px){ .sports-btn .short{display:none} }
+.sheet{position:fixed;z-index:39;left:50%;top:calc(96 * var(--u) + var(--safe-t));transform:translateX(-50%);
+  width:min(1180px, calc(100% - 24px));max-height:calc(100svh - 96 * var(--u) - var(--safe-t) - 16px);overflow:auto;overscroll-behavior:contain;
+  padding:clamp(14px, 2.4vw, 26px);border-radius:24px;background:rgba(255,255,255,.97);border:1px solid var(--rule);
+  box-shadow:0 0 0 1px rgba(57,255,143,.25), 0 0 40px rgba(57,255,143,.3), 0 30px 60px -20px rgba(10,90,45,.35);
+  animation:sheet-in .28s var(--e-quint)}
+@keyframes sheet-in{from{opacity:0;transform:translate(-50%, -10px)}to{opacity:1;transform:translateX(-50%)}}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.sheet-head h2{font-size:clamp(24px, 3vw, 32px);font-weight:900;color:var(--ink);text-shadow:0 0 14px rgba(57,255,143,.45)}
+.sheet-close{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--rule);background:#fff;color:var(--ink);cursor:pointer}
+.sheet-close:hover{background:var(--neon);color:var(--btn-ink)}
+.sheet-close svg{width:20px;height:20px;stroke-width:3.2}
+@media (prefers-reduced-motion:reduce){ .sheet{animation:none} }
 /* 16 sections (14 sports + miscellaneous + general): 8 + 8 on desktop, 4 on tablets, 3 on phones */
 .sports-grid{--cols:3;--gap:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:var(--gap)}
 @media (min-width:560px){ .sports-grid{--cols:4;--gap:14px} }
@@ -738,6 +770,128 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
   padding:12px 20px;border-radius:999px;background:var(--neon);color:var(--btn-ink);font-weight:700;font-size:16.5px;
   box-shadow:0 0 24px rgba(57,255,143,.6);transition:opacity .25s, transform .3s var(--e-quint)}
 .toast.show{opacity:1;transform:translate(-50%, 0)}
+
+/* ════════════════════════════════════════════════════════════════════
+   LIGHT THEME — white & light green, same neon lines and glows
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  --ink:#0c2e1b; --black:#f3fff8; --deep:#e6fbef; --panel:#ffffff;
+  --muted:rgba(22,74,45,.68); --accent:#0a9a4a; --accent-hi:#067a39;
+  --line:rgba(20,170,85,.22); --rule:rgba(20,170,85,.3);
+  --card:#ffffff; --card-shadow:0 18px 40px -24px rgba(10,90,45,.35);
+}
+html,body{color-scheme:light}
+.sky{background:radial-gradient(120% 75% at 50% 112%, #aef2c9 0%, #d3f9e3 28%, #ecfff4 52%, #fbfffd 76%, #ffffff 100%)}
+.aurora::before{background:radial-gradient(circle, rgba(57,255,143,.30) 0%, rgba(57,255,143,.10) 34%, transparent 64%)}
+.aurora::after{background:radial-gradient(circle, rgba(29,233,182,.22) 0%, rgba(0,200,120,.08) 36%, transparent 66%)}
+.beams{background:
+  conic-gradient(from 132deg at 6% -6%, transparent 0deg, rgba(57,255,143,.10) 9deg, transparent 19deg, transparent 360deg),
+  conic-gradient(from 209deg at 94% -6%, transparent 0deg, rgba(57,255,143,.10) 10deg, transparent 19deg, transparent 360deg)}
+.courts::after{background:linear-gradient(180deg, #ffffff 0%, rgba(255,255,255,.92) 28%, rgba(255,255,255,.4) 46%, rgba(255,255,255,0) 60%)}
+.court .floor{color:#12c25e}
+.court .floor .glow *,.court .floor .glow2 *{stroke:#39ff8f}
+.court .floor .glow{opacity:.35}
+.court .floor .glow2{opacity:.45}
+.court .photo{filter:saturate(1.05)}
+.court .photo::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg, rgba(255,255,255,.72) 0%, rgba(240,255,246,.42) 45%, rgba(255,255,255,.2) 100%)}
+.court.has-photo .floor{opacity:.5}
+.horizon{background:radial-gradient(55% 34% at 50% 50%, rgba(57,255,143,.22), transparent 70%)}
+.sparks::before{background-image:
+  radial-gradient(circle at 12% 18%, rgba(20,200,95,.55) 0 calc(1.3 * var(--u)), transparent calc(2.4 * var(--u))),
+  radial-gradient(circle at 68% 42%, rgba(20,200,95,.4) 0 calc(1 * var(--u)), transparent calc(2 * var(--u))),
+  radial-gradient(circle at 38% 76%, rgba(20,200,95,.5) 0 calc(1.5 * var(--u)), transparent calc(2.6 * var(--u))),
+  radial-gradient(circle at 88% 90%, rgba(20,200,95,.35) 0 calc(1 * var(--u)), transparent calc(2 * var(--u)))}
+.vignette{background:
+  radial-gradient(70% 46% at 50% 36%, rgba(255,255,255,.72) 0%, rgba(255,255,255,.38) 50%, transparent 78%),
+  linear-gradient(180deg, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 17%, rgba(255,255,255,0) 74%, var(--black) 100%)}
+
+/* nav */
+.navbar.is-solid{background:rgba(255,255,255,.86);box-shadow:0 calc(1 * var(--u)) 0 var(--line), 0 calc(10 * var(--u)) calc(30 * var(--u)) rgba(10,90,45,.12)}
+.logo{color:var(--ink)}
+.wm-top i{color:var(--accent);text-shadow:0 0 calc(10 * var(--u)) rgba(57,255,143,.8)}
+.burger span{background:var(--ink)}
+.links a{color:var(--ink)}
+.links a:hover{color:var(--accent)}
+.lang{border-color:var(--rule);background:rgba(255,255,255,.75)}
+.lang button{color:var(--ink)}
+.lang button:hover{color:var(--accent)}
+.lang button[aria-pressed="true"]{color:var(--btn-ink)}
+@media (max-width:1030px), (max-height:620px){
+  .links{background:rgba(255,255,255,.96);border-color:var(--rule);
+    box-shadow:0 calc(18 * var(--u)) calc(44 * var(--u)) rgba(10,90,45,.18), 0 0 calc(30 * var(--u)) rgba(57,255,143,.18)}
+  .links a + a{border-top-color:rgba(10,90,45,.08)}
+}
+
+/* hero copy */
+.eyebrow{color:var(--accent);text-shadow:0 0 calc(8 * var(--u)) rgba(57,255,143,.9), 0 0 calc(24 * var(--u)) rgba(57,255,143,.55)}
+h1.title{filter:drop-shadow(0 0 calc(8 * var(--u)) rgba(57,255,143,.75)) drop-shadow(0 0 calc(30 * var(--u)) rgba(57,255,143,.45))}
+h1.title .ent-line{background:linear-gradient(180deg,#0a3d20 0%,#0b6b35 42%,#0fa34f 72%,#16c95f 100%);
+  -webkit-background-clip:text;background-clip:text}
+p.lede{color:#1b4a30;text-shadow:0 0 calc(10 * var(--u)) rgba(255,255,255,.95)}
+.orb{color:#0fae52}
+.orb::before{background:radial-gradient(circle at 50% 50%, #ffffff 0%, #effff5 58%, #d9fbe8 72%)}
+.label{color:var(--ink);text-shadow:0 0 calc(8 * var(--u)) rgba(57,255,143,.75), 0 0 calc(2 * var(--u)) #fff}
+.scroll{background:rgba(255,255,255,.88)}
+.scroll svg path{stroke:var(--accent)}
+.credit{color:var(--accent-hi);text-shadow:0 0 calc(6 * var(--u)) rgba(57,255,143,.9), 0 0 calc(18 * var(--u)) rgba(57,255,143,.45)}
+
+/* sections */
+.page{background:
+  radial-gradient(900px 520px at 88% 4%, rgba(57,255,143,.14), transparent 62%),
+  radial-gradient(800px 600px at 6% 42%, rgba(57,255,143,.10), transparent 62%),
+  radial-gradient(900px 600px at 80% 86%, rgba(57,255,143,.12), transparent 62%), var(--black)}
+.page::before{background-image:linear-gradient(rgba(20,170,85,.06) 1px, transparent 1px),linear-gradient(90deg, rgba(20,170,85,.06) 1px, transparent 1px)}
+.sec-eyebrow{color:var(--accent);text-shadow:0 0 12px rgba(57,255,143,.7)}
+.sec-title{background:linear-gradient(180deg,#0a3d20 10%,#0b7a3c 56%,#16c95f 100%);-webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 0 16px rgba(57,255,143,.45))}
+.btn{background:#fff;color:var(--accent-hi)}
+.chip{background:#fff;color:var(--ink);border-color:var(--rule)}
+.chip svg{color:var(--accent)}
+.card{background:var(--card);box-shadow:var(--card-shadow)}
+.card:hover{box-shadow:0 0 0 1px rgba(57,255,143,.35), 0 0 32px rgba(57,255,143,.28), var(--card-shadow)}
+.card-media{background:radial-gradient(circle at 50% 62%, #ffffff 0%, #e2fbec 50%, #c9f5da 100%)}
+.card-media::after{background:linear-gradient(180deg, rgba(255,255,255,.18) 0%, transparent 30%)}
+.ph svg{color:#12c25e}
+.ph::before{background:repeating-linear-gradient(115deg, transparent 0 22px, rgba(20,170,85,.07) 22px 23px)}
+.tag{background:rgba(255,255,255,.9);color:var(--accent-hi);border-color:var(--rule)}
+.tag svg{color:var(--accent)}
+.pics{color:#fff}
+.card h3{color:var(--ink)}
+.card p{color:rgba(18,60,36,.78)}
+.more{color:var(--accent)}
+.empty{background:#fff;color:var(--muted)}
+.empty svg.i{color:var(--accent)}
+.skeleton{background:linear-gradient(100deg, #eafbf1 30%, #d4f7e3 50%, #eafbf1 70%);background-size:300% 100%}
+.sport-tile{color:var(--ink);background:radial-gradient(120% 90% at 50% 0%, #e0fbeb, #ffffff 62%);box-shadow:var(--card-shadow)}
+.sport-tile .ring{background:radial-gradient(circle, #ffffff, #e8fcf0)}
+.sport-tile .ring svg{color:#0fae52}
+.sport-tile.is-section .ring{background:radial-gradient(circle, #ffffff, #f0fde0)}
+.shot{background:#e6fbef}
+.about-text p{color:rgba(14,52,31,.86)}
+.stat{background:#fff;box-shadow:var(--card-shadow)}
+.stat b{color:var(--accent-hi);text-shadow:0 0 16px rgba(57,255,143,.8)}
+.contact-item{background:#fff;box-shadow:var(--card-shadow)}
+.contact-item svg{color:var(--accent)}
+.socials a{background:#fff;color:var(--accent)}
+.foot{background:linear-gradient(180deg, #e9fcf1, #ffffff 90%)}
+.foot-links a{color:rgba(14,52,31,.82)}
+.foot-links a:hover,.foot-contact a:hover{color:var(--accent)}
+.foot-contact a{color:var(--ink)}
+.foot-contact svg{color:var(--accent)}
+.credit-big{color:var(--accent-hi);
+  text-shadow:0 0 5px rgba(255,255,255,.9), 0 0 14px rgba(57,255,143,.95), 0 0 36px rgba(57,255,143,.6), 0 0 70px rgba(57,255,143,.3)}
+.copyright{color:var(--muted)}
+
+/* reader */
+.reader{background:linear-gradient(180deg, #ffffff, #f2fff7 60%);color:var(--ink);
+  box-shadow:0 0 0 1px var(--line), 0 0 60px rgba(57,255,143,.25), 0 40px 90px rgba(10,90,45,.25)}
+.reader::backdrop{background:rgba(225,250,236,.72)}
+.reader-close,.reader-nav{background:rgba(255,255,255,.92);color:var(--ink)}
+.reader-media{background:#eafbf1}
+.reader-thumbs button{background:#e6fbef}
+.reader h2{color:var(--ink);text-shadow:0 0 22px rgba(57,255,143,.35)}
+.reader-text p{color:rgba(14,52,31,.88)}
 [hidden]{display:none !important}
 </style>
 </head>
@@ -771,6 +925,8 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
   <symbol id="u-phone" viewBox="0 0 48 48"><path d="M15 6l5 10.5-4.2 3.6c2.5 5.6 6.6 9.7 12.1 12.1l3.6-4.2L42 33l-1.4 6.6c-.3 1.4-1.5 2.4-3 2.4C19.6 41.6 6.4 28.4 6 10.4c0-1.5 1-2.7 2.4-3z"/></symbol>
   <symbol id="u-mail" viewBox="0 0 48 48"><rect x="5" y="10" width="38" height="28" rx="4"/><path d="M6.5 12.5L24 26l17.5-13.5"/></symbol>
   <symbol id="u-lock" viewBox="0 0 48 48"><rect x="10" y="21" width="28" height="21" rx="4"/><path d="M16 21v-6a8 8 0 0 1 16 0v6"/><circle cx="24" cy="31" r="2.6" fill="currentColor"/></symbol>
+  <symbol id="u-grid" viewBox="0 0 48 48"><rect x="7" y="7" width="14" height="14" rx="3.5"/><rect x="27" y="7" width="14" height="14" rx="3.5"/><rect x="7" y="27" width="14" height="14" rx="3.5"/><rect x="27" y="27" width="14" height="14" rx="3.5"/></symbol>
+  <symbol id="u-caret" viewBox="0 0 48 48"><path d="M14 19l10 10 10-10"/></symbol>
   <symbol id="u-download" viewBox="0 0 48 48"><path d="M24 6v25M14 21l10 10 10-10M8 41h32"/></symbol>
   <symbol id="s-facebook" viewBox="0 0 48 48"><path d="M27 43V26h6l1-7h-7v-4.5c0-2 1-3.5 3.5-3.5H34V5.3c-1-.2-3.2-.4-5.4-.4-5.3 0-8.6 3.2-8.6 8.8V19h-6v7h6v17"/></symbol>
   <symbol id="s-instagram" viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10"/><circle cx="24" cy="24" r="8.5"/><circle cx="34.5" cy="13.5" r="1.6" fill="currentColor"/></symbol>
@@ -791,10 +947,13 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
         <small data-i18n="org">یەکێتیی نیشتمانیی کوردستان</small>
       </span>
     </a>
+    <button class="sports-btn" type="button" id="sports-btn" aria-expanded="false" aria-controls="sheet">
+      <svg class="i" viewBox="0 0 48 48" aria-hidden="true"><use href="#u-grid"/></svg><span class="full" data-i18n="sports_btn">جۆرەکانی وەرزش</span><span class="short" data-i18n="sports_btn_short">وەرزشەکان</span>
+      <svg class="i caret" viewBox="0 0 48 48" aria-hidden="true"><use href="#u-caret"/></svg>
+    </button>
     <nav class="links" id="site-nav" aria-label="Main">
       <a href="#top" aria-current="page" data-nav="top" data-i18n="nav_home">سەرەکی</a>
       <a href="#news" data-nav="news" data-i18n="nav_news">هەواڵەکان</a>
-      <a href="#sports" data-nav="sports" data-i18n="nav_sports">بەشەکان</a>
       <a href="#gallery" data-nav="gallery" data-i18n="nav_gallery">وێنەکان</a>
       <a href="#about" data-nav="about" data-i18n="nav_about">دەربارە</a>
       <a class="enroll" href="#contact" data-i18n="nav_contact">پەیوەندی</a>
@@ -810,6 +969,15 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
     </button>
   </div>
 </header>
+
+<!-- ═══ SPORT TYPES (opened from the top button) ═══ -->
+<div class="sheet" id="sheet" hidden role="dialog" aria-labelledby="sheet-title">
+  <div class="sheet-head">
+    <h2 id="sheet-title" data-i18n="sports_title">جۆرەکانی وەرزش</h2>
+    <button class="sheet-close" type="button" id="sheet-close" aria-label="داخستن" data-i18n-aria="close"><svg class="i" viewBox="0 0 48 48" aria-hidden="true"><use href="#u-close"/></svg></button>
+  </div>
+  <div class="sports-grid" id="sports-grid"></div>
+</div>
 
 <!-- ═══ HERO ═══ -->
 <section class="stage" id="top" aria-label="بۆردی وەرزش">
@@ -859,18 +1027,6 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
         <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
       <div class="news-foot"><button class="btn" type="button" id="news-more" hidden data-i18n="more_news">هەواڵی زیاتر</button></div>
-    </div>
-  </section>
-
-  <!-- ═══ SPORTS ═══ -->
-  <section class="block" id="sports" aria-labelledby="sports-title">
-    <div class="wrap">
-      <header class="sec-head">
-        <span class="sec-eyebrow" data-i18n="sports_eyebrow">وەرزش و چالاکی</span>
-        <h2 class="sec-title" id="sports-title" data-i18n="sports_title">بەشەکان</h2>
-        <div class="sec-rule"></div>
-      </header>
-      <div class="sports-grid" id="sports-grid"></div>
     </div>
   </section>
 
@@ -924,7 +1080,6 @@ a.contact-item:hover{border-color:rgba(57,255,143,.55);box-shadow:0 0 22px rgba(
         </a>
         <nav class="foot-links" aria-label="Footer">
           <a href="#news" data-i18n="nav_news">هەواڵەکان</a>
-          <a href="#sports" data-i18n="nav_sports">بەشەکان</a>
           <a href="#gallery" data-i18n="nav_gallery">وێنەکان</a>
           <a href="#about" data-i18n="nav_about">دەربارە</a>
           <a href="#contact" data-i18n="nav_contact">پەیوەندی</a>
@@ -1020,7 +1175,9 @@ var T={
   load_error:['نەتوانرا هەواڵەکان باربکرێن. تکایە دواتر هەوڵ بدەرەوە.','تعذّر تحميل الأخبار. يرجى المحاولة لاحقاً.','Couldn’t load the news. Please try again later.'],
   read_more:['زیاتر بخوێنەوە','اقرأ المزيد','Read more'],
   sports_eyebrow:['وەرزش و چالاکی','رياضات ونشاطات','Sports & activities'],
-  sports_title:['بەشەکان','الأقسام','Sections'],
+  sports_title:['جۆرەکانی وەرزش','أنواع الرياضة','Sports types'],
+  sports_btn:['جۆرەکانی وەرزش','أنواع الرياضة','Sports types'],
+  sports_btn_short:['وەرزشەکان','الرياضات','Sports'],
   misc_sub:['فیستیڤاڵ، کار و چالاکییەکان','المهرجانات والفعاليات والنشاطات','Festivals, work & activities'],
   general_sub:['ڕاگەیاندن و هەواڵی بۆرد','إعلانات وأخبار الهيئة','Board announcements'],
   admin:['بەڕێوەبردن','الإدارة','Admin'],
@@ -1270,6 +1427,7 @@ function show(i,force){
   setSlot(orbL,labelL,SPORTS[(i+(rtl?1:-1)+N)%N]);
   setSlot(orbR,labelR,SPORTS[(i+(rtl?-1:1)+N)%N]);
   stage.setAttribute('data-sport',s.k);
+  if(typeof syncVideos==='function'&&courts.length)syncVideos();
 }
 function showKey(k){var i=KEYS.indexOf(k);if(i>=0)show(i);}
 [orbL,orbR].forEach(function(b){b.addEventListener('click',function(){showKey(this.getAttribute('data-sport'));});});
@@ -1326,7 +1484,7 @@ window.addEventListener('scroll',onScroll,{passive:true});onScroll();
       links.forEach(function(a){if(a.getAttribute('data-nav')===en.target.id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
     });
   },{rootMargin:'-45% 0px -50% 0px'});
-  ['top','news','sports','gallery','about'].forEach(function(id){io.observe($(id));});
+  ['top','news','gallery','about'].forEach(function(id){io.observe($(id));});
 })();
 
 /* ════════ LANGUAGE ════════ */
@@ -1433,8 +1591,19 @@ function renderSports(){
 $('sports-grid').addEventListener('click',function(e){
   var b=e.target.closest('.sport-tile');if(!b)return;
   var k=b.getAttribute('data-k');if(KEYS.indexOf(k)>=0)showKey(k);setFilter(k);
+  setSheet(false);
   $('news').scrollIntoView({behavior:reduced?'auto':'smooth'});
 });
+/* sport-types panel, opened from the button at the top */
+var sheet=$('sheet'), sheetBtn=$('sports-btn');
+function setSheet(open){
+  sheet.hidden=!open;sheetBtn.setAttribute('aria-expanded',String(open));
+  if(open){setMenu(false);var f=sheet.querySelector('.sport-tile');if(f)f.focus({preventScroll:true});}
+}
+sheetBtn.addEventListener('click',function(e){e.stopPropagation();setSheet(sheet.hidden);});
+$('sheet-close').addEventListener('click',function(){setSheet(false);sheetBtn.focus();});
+document.addEventListener('click',function(e){if(!sheet.hidden&&!sheet.contains(e.target)&&!sheetBtn.contains(e.target))setSheet(false);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!sheet.hidden){setSheet(false);sheetBtn.focus();}});
 
 /* ─── gallery ─── */
 function renderGallery(){
@@ -1473,13 +1642,34 @@ function renderAbout(){
   }).join('');
   $('socials').hidden=!soc.length;
 }
+/* real photo or video behind each sport (uploaded from the admin panel) */
+var VIDEO_RE=/\.(mp4|m4v|mov|webm)(\?|#|$)/i;
 function applyHeroPhotos(){
   (Array.isArray(site.hero_photos)?site.hero_photos:[]).forEach(function(p){
-    var i=KEYS.indexOf(p&&p.sport),u=safeUrl(p&&p.image);if(i<0||!u)return;
+    var i=KEYS.indexOf(p&&p.sport),u=safeUrl(p&&(p.video||p.image));if(i<0||!u)return;
+    var holder=courts[i].querySelector('.photo');
     courts[i].classList.add('has-photo');
-    courts[i].querySelector('.photo').style.backgroundImage='url("'+u+'")';
+    if(VIDEO_RE.test(u)){
+      /* only the featured sport's clip is fetched and played — one decoder at a time keeps iPhones happy */
+      var v=document.createElement('video');
+      v.className='media';v.muted=true;v.loop=true;v.playsInline=true;v.preload='none';
+      v.setAttribute('muted','');v.setAttribute('playsinline','');v.setAttribute('aria-hidden','true');
+      v.setAttribute('data-src',u);
+      holder.appendChild(v);
+    }else holder.style.backgroundImage='url("'+u+'")';
+  });
+  syncVideos();
+}
+function syncVideos(){
+  courts.forEach(function(c,idx){
+    var v=c.querySelector('video.media');if(!v)return;
+    if(idx===current&&!reduced&&!document.hidden){
+      if(!v.getAttribute('src'))v.src=v.getAttribute('data-src');
+      var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});
+    }else v.pause();
   });
 }
+document.addEventListener('visibilitychange',syncVideos);
 function renderAll(){renderChips();renderNews();renderSports();renderGallery();renderAbout();if(reader.open&&openId)fillReader(openId,photoIdx);}
 
 /* ════════ READER (article dialog, deep-linked as #news/<id>) ════════ */

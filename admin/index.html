@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#020805">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#f3fff8">
+<meta name="color-scheme" content="light">
 <title>بەڕێوەبردن — بۆردی وەرزش</title>
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="../assets/icons/apple-touch-icon.png">
@@ -186,6 +186,45 @@ legend .n{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-
   box-shadow:0 0 24px rgba(57,255,143,.6);transition:opacity .25s, transform .3s}
 .toast.show{opacity:1;transform:translate(-50%, 0)}
 .toast.bad{background:var(--danger);color:#1a0003;box-shadow:0 0 24px rgba(255,107,122,.5)}
+
+/* light theme — white & light green, same neon */
+:root{--black:#f3fff8;--panel:#ffffff;--line:rgba(20,170,85,.24);--ink:#0c2e1b;--muted:rgba(22,74,45,.68);--neon-hi:#067a39}
+html{background:var(--black)}
+body{color:var(--ink);background:radial-gradient(900px 520px at 85% -10%, rgba(57,255,143,.2), transparent 62%),
+  radial-gradient(800px 600px at 0% 100%, rgba(57,255,143,.14), transparent 62%),var(--black)}
+.top{background:rgba(255,255,255,.88)}
+.brand{color:var(--ink)}
+.brand i{color:#0a9a4a}
+h1{background:linear-gradient(180deg,#0a3d20 10%,#0b7a3c 56%,#16c95f 100%);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 14px rgba(57,255,143,.5))}
+p{color:rgba(14,52,31,.86)}
+code{background:rgba(57,255,143,.18)}
+.ghost{background:#fff}
+.danger{background:#fff5f6;color:#b3122a}
+.lock-card{background:#fff;box-shadow:0 0 50px rgba(57,255,143,.28), 0 30px 60px -30px rgba(10,90,45,.35)}
+.lock-ico{background:radial-gradient(circle, #ffffff, #e6fbef);color:#0fae52}
+input[type=text],input[type=password],input[type=date],input[type=email],input[type=tel],input[type=url],input:not([type]),textarea,select{
+  background:#fbfffd;color:var(--ink);border-color:rgba(20,170,85,.35)}
+label{color:#067a39}
+.check{color:var(--ink)}
+details{background:#f5fff9}
+summary{color:#067a39}
+.msg,.err,.status.bad{color:#c0162f}
+.msg.ok,.status{color:#067a39}
+legend{color:var(--ink)}
+.panel,fieldset{box-shadow:0 18px 40px -26px rgba(10,90,45,.3)}
+.tabs button{background:#fff;color:var(--ink)}
+.cat{background:#fff;color:var(--ink)}
+.cat svg{color:#0fae52}
+.cat[aria-checked=true]{background:linear-gradient(180deg, rgba(57,255,143,.35), #effff5)}
+.photo{background:#e6fbef}
+.photo video{width:100%;height:100%;object-fit:cover;display:block}
+.add-photo{color:#067a39}
+.actions{background:linear-gradient(180deg, transparent, var(--black) 30%)}
+.row .thumb{background:#e6fbef}
+.row .thumb svg{color:#0fae52}
+.badge{color:#067a39}
+.badge.draft{background:rgba(255,190,60,.2);color:#8a5a00}
+.empty{background:#fff}
 @media (prefers-reduced-motion:reduce){ .shake,.spin{animation:none} }
 </style>
 </head>
@@ -337,12 +376,12 @@ legend .n{width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-
           <label>X (Twitter) <input id="st-x" type="url" dir="ltr"></label>
           <label>WhatsApp <input id="st-whatsapp" type="url" dir="ltr" placeholder="https://wa.me/964…"></label>
         </div>
-        <h3>وێنەی پاشبنەمای وەرزشەکان (بەشی سەرەوە)</h3>
-        <p class="hint">ئارەزوومەندانە — وێنەکە بە ڕەنگی سەوزی نیۆن لە پشت هێڵەکانی یاریگاکەوە پیشان دەدرێت.</p>
+        <h3>ڤیدیۆ یان وێنەی ڕاستەقینەی هەر وەرزشێک (بەشی سەرەوە)</h3>
+        <p class="hint">وەرزشەکە هەڵبژێرە و ڤیدیۆیەکی کورت (٥–١٥ چرکە، MP4، کەمتر لە ٢٤ مێگابایت) یان وێنەیەک زیاد بکە. ڤیدیۆکە بێدەنگ و بەردەوام لە پشت ناوی وەرزشەکە دەجووڵێت.</p>
         <div class="photos" id="hero-photos" style="margin-top:10px"></div>
         <div class="hero-add">
           <select id="hero-sport" aria-label="وەرزش"></select>
-          <label class="ghost" style="flex-direction:row;cursor:pointer">+ وێنە<input type="file" id="hero-input" accept="image/*" class="sr"></label>
+          <label class="ghost" style="flex-direction:row;cursor:pointer">+ ڤیدیۆ یان وێنە<input type="file" id="hero-input" accept="video/mp4,video/quicktime,video/webm,image/*" class="sr"></label>
         </div>
         <div class="actions">
           <button class="primary" type="submit" id="settings-btn">پاشەکەوتکردن</button>
@@ -623,16 +662,25 @@ function prepareImages(list,folder,stem,progress){
     return chain.then(function(){
       if(!p.file){paths.push(p.url);return;}
       n++;if(progress)progress('ئامادەکردنی وێنەکان… '+kuDigits(n));
+      if(isVideo(p.file)){ /* videos are uploaded as they are (no re-encoding in the browser) */
+        return p.file.arrayBuffer().then(b64).then(function(b){
+          var ext=(/\.(mp4|m4v|mov|webm)$/i.exec(p.file.name)||[,'mp4'])[1].toLowerCase();
+          var path=folder+'/'+stem+'-'+stamp+'-'+n+'.'+ext;out.push({path:path,base64:b});paths.push(path);
+        });
+      }
       return toJpegBase64(p.file).then(function(b){
         var path=folder+'/'+stem+'-'+stamp+'-'+n+'.jpg';out.push({path:path,base64:b});paths.push(path);
       });
     });
   },Promise.resolve()).then(function(){return {images:out,paths:paths};});
 }
+var MAX_VIDEO=24*1024*1024; /* Cloudflare Pages serves files up to 25 MB */
+function isVideo(f){return /^video\//.test(f.type)||/\.(mp4|m4v|mov|webm)$/i.test(f.name||'');}
+function isVideoPath(u){return /\.(mp4|m4v|mov|webm)$/i.test(String(u||''));}
 function usedPaths(d,skipId){
   var used={};
   d.news.items.forEach(function(it){if(it.id===skipId)return;[it.image].concat(it.gallery||[]).forEach(function(u){if(u)used[String(u).replace(/^\/+/,'')]=1;});});
-  (d.site.hero_photos||[]).forEach(function(h){if(h&&h.image)used[String(h.image).replace(/^\/+/,'')]=1;});
+  (d.site.hero_photos||[]).forEach(function(h){var u=h&&(h.video||h.image);if(u)used[String(u).replace(/^\/+/,'')]=1;});
   return used;
 }
 
@@ -728,21 +776,22 @@ $('list').addEventListener('click',function(e){
 var ST=['about_ku','about_ar','about_en','address_ku','address_ar','address_en','founded','phone','email','facebook','instagram','youtube','tiktok','telegram','x','whatsapp'];
 function fillSettings(){
   ST.forEach(function(k){$('st-'+k).value=data.site[k]||'';});
-  heroPhotos=(data.site.hero_photos||[]).filter(function(h){return h&&h.sport&&h.image;}).map(function(h){return {sport:h.sport,url:h.image,preview:siteUrl(h.image)};});
+  heroPhotos=(data.site.hero_photos||[]).filter(function(h){return h&&h.sport&&(h.video||h.image);}).map(function(h){var u=h.video||h.image;return {sport:h.sport,url:u,preview:siteUrl(u),video:isVideoPath(u)};});
   $('hero-sport').innerHTML=SPORTS.map(function(c){return '<option value="'+c[0]+'">'+esc(c[1])+'</option>';}).join('');
   renderHero();
 }
 function renderHero(){
   $('hero-photos').innerHTML=heroPhotos.map(function(p,i){
-    return '<div class="photo"><img src="'+esc(p.preview)+'" alt=""><span class="main">'+esc(catName(p.sport))+'</span>'
+    return '<div class="photo">'+(p.video?'<video src="'+esc(p.preview)+'" muted loop playsinline autoplay></video>':'<img src="'+esc(p.preview)+'" alt="">')+'<span class="main">'+esc(catName(p.sport))+'</span>'
       +'<div class="tools"><button type="button" data-i="'+i+'" aria-label="لابردن">✕</button></div></div>';
   }).join('');
 }
 $('hero-input').addEventListener('change',function(){
   var f=this.files[0];this.value='';if(!f)return;
   var sport=$('hero-sport').value;
+  if(isVideo(f)&&f.size>MAX_VIDEO){toast('ڤیدیۆکە زۆر گەورەیە — دەبێت لە ٢٤ مێگابایت کەمتر بێت. ڤیدیۆیەکی کورتتر (٥–١٥ چرکە) هەڵبژێرە.',true);return;}
   heroPhotos=heroPhotos.filter(function(p){return p.sport!==sport;});
-  heroPhotos.push({sport:sport,file:f,preview:URL.createObjectURL(f)});renderHero();
+  heroPhotos.push({sport:sport,file:f,preview:URL.createObjectURL(f),video:isVideo(f)});renderHero();
 });
 $('hero-photos').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;heroPhotos.splice(+b.getAttribute('data-i'),1);renderHero();});
 $('settings-form').addEventListener('submit',function(e){
@@ -752,9 +801,9 @@ $('settings-form').addEventListener('submit',function(e){
   busy(btn,true,'…');
   var list=heroPhotos.slice();
   prepareImages(list,'uploads/sports','hero',function(t){status.textContent=t;}).then(function(prep){
-    var hero=list.map(function(p,i){return {sport:p.sport,image:prep.paths[i]};});
+    var hero=list.map(function(p,i){var u=prep.paths[i];return isVideoPath(u)?{sport:p.sport,video:u}:{sport:p.sport,image:u};});
     return commit('Update site settings',prep.images,function(fresh){
-      var old=(fresh.site.hero_photos||[]).map(function(h){return h&&h.image;}).filter(Boolean);
+      var old=(fresh.site.hero_photos||[]).map(function(h){return h&&(h.video||h.image);}).filter(Boolean);
       var site=Object.assign({},fresh.site,values,{hero_photos:hero});
       fresh.site=site;
       var used=usedPaths(fresh,null),dels=old.filter(function(u){return !used[String(u).replace(/^\/+/,'')];}).map(function(u){return String(u).replace(/^\/+/,'');});
