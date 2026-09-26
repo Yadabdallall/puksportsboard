@@ -556,6 +556,9 @@ section[id]{scroll-margin-top:calc(88 * var(--u) + var(--safe-t) + 8px)}
 .ph{position:absolute;inset:0;display:grid;place-items:center}
 .ph svg{width:30%;max-width:120px;color:var(--neon);filter:drop-shadow(0 0 8px rgba(57,255,143,.85)) drop-shadow(0 0 24px rgba(57,255,143,.4))}
 .ph img{width:38%;max-width:170px;filter:drop-shadow(0 0 22px rgba(57,255,143,.4))}
+.ph-over{z-index:1;background:linear-gradient(180deg, rgba(0,12,6,.1), rgba(0,12,6,.3))}
+.ph-over::before{display:none}
+.ph.ph-over img{width:26%;max-width:130px;filter:drop-shadow(0 0 18px rgba(57,255,143,.55)) drop-shadow(0 4px 14px rgba(0,0,0,.5))}
 .ph::before{content:"";position:absolute;inset:0;
   background:repeating-linear-gradient(115deg, transparent 0 22px, rgba(57,255,143,.05) 22px 23px)}
 .tag{position:absolute;top:14px;inset-inline-start:14px;z-index:1;display:inline-flex;align-items:center;gap:7px;
@@ -1619,11 +1622,14 @@ function renderChips(){
   }).join('');
 }
 $('news-chips').addEventListener('click',function(e){var b=e.target.closest('.chip');if(b)setFilter(b.getAttribute('data-k'));});
+/* "General" stories without their own photo use the Sulaymaniyah night view, with the board's emblem on top */
+var GENERAL_PHOTO='assets/sports/general.jpg';
 function media(n,lead){
   var s=sportOf(n.sport);
   var img=n.imgs[0]
     ?'<img src="'+esc(n.imgs[0])+'" alt="" loading="'+(lead?'eager':'lazy')+'" decoding="async">'
-    :(n.sport==='general'?'<div class="ph"><img src="assets/img/logo.png" alt=""></div>':'<div class="ph">'+sportIcon(n.sport)+'</div>');
+    :(n.sport==='general'?'<img src="'+GENERAL_PHOTO+'" alt="" loading="'+(lead?'eager':'lazy')+'" decoding="async"><div class="ph ph-over"><img src="assets/img/logo.png" alt=""></div>'
+      :'<div class="ph">'+sportIcon(n.sport)+'</div>');
   return img+'<span class="tag">'+sportIcon(n.sport)+esc(nm(s))+'</span>'
     +(n.imgs.length>1?'<span class="pics">'+icon('u-camera')+fmtNum(n.imgs.length)+'</span>':'');
 }
@@ -1783,7 +1789,7 @@ function fillReader(id,idx){
       +(n.imgs.length>1?'<button type="button" class="reader-nav prev" data-step="'+(lang==='en'?-1:1)+'" aria-label="'+esc(t(lang==='en'?'prev':'next'))+'">'+icon('u-arrow')+'</button>'
         +'<button type="button" class="reader-nav next" data-step="'+(lang==='en'?1:-1)+'" aria-label="'+esc(t(lang==='en'?'next':'prev'))+'">'+icon('u-arrow')+'</button>':'');
   }else{
-    m.innerHTML=n.sport==='general'?'<div class="ph"><img src="assets/img/logo.png" alt=""></div>':'<div class="ph">'+sportIcon(n.sport)+'</div>';
+    m.innerHTML=n.sport==='general'?'<img src="'+GENERAL_PHOTO+'" alt="">':'<div class="ph">'+sportIcon(n.sport)+'</div>';
   }
   $('reader-thumbs').hidden=n.imgs.length<2;
   $('reader-thumbs').innerHTML=n.imgs.length<2?'':n.imgs.map(function(u,i){
