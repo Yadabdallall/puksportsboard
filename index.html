@@ -120,8 +120,8 @@ svg.i,.ico,.sport-ico{fill:none;stroke:currentColor;stroke-width:2.4;stroke-line
 .courts::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(180deg, #010604 0%, rgba(1,6,4,.9) 28%, rgba(1,6,4,.35) 46%, rgba(1,6,4,0) 60%)}
 .court{position:absolute;inset:0;display:none;perspective:calc(980 * var(--u));perspective-origin:50% 8%}
-.court.is-active{display:block;animation:court-in .35s linear both}
-.court.is-leaving{display:block;animation:court-out .35s linear both}
+.court.is-active{display:block;animation:court-in .35s linear backwards}
+.court.is-leaving{display:block;animation:court-out .35s linear forwards}
 @keyframes court-in{from{opacity:0}to{opacity:1}}
 @keyframes court-out{from{opacity:1}to{opacity:0}}
 .court .photo{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;
@@ -503,8 +503,7 @@ p.lede{top:calc(442 * var(--u));margin:0 auto;max-width:calc(780 * var(--u));
 .page::before{content:"";position:absolute;inset:0;pointer-events:none;
   background-image:linear-gradient(rgba(57,255,143,.03) 1px, transparent 1px),linear-gradient(90deg, rgba(57,255,143,.03) 1px, transparent 1px);
   background-size:56px 56px;
-  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
-          mask-image:linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent)}
+}
 .wrap{position:relative;max-width:1240px;margin:0 auto;padding:0 clamp(16px, 4vw, 40px)}
 .block{padding-top:clamp(64px, 9vw, 120px)}
 section[id]{scroll-margin-top:calc(88 * var(--u) + var(--safe-t) + 8px)}
@@ -560,8 +559,7 @@ section[id]{scroll-margin-top:calc(88 * var(--u) + var(--safe-t) + 8px)}
 .ph::before{content:"";position:absolute;inset:0;
   background:repeating-linear-gradient(115deg, transparent 0 22px, rgba(57,255,143,.05) 22px 23px)}
 .tag{position:absolute;top:14px;inset-inline-start:14px;z-index:1;display:inline-flex;align-items:center;gap:7px;
-  padding:6px 12px 6px 10px;border-radius:999px;background:rgba(2,12,7,.74);
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(57,255,143,.38);
+  padding:6px 12px 6px 10px;border-radius:999px;background:rgba(2,12,7,.74);border:1px solid rgba(57,255,143,.38);
   color:var(--neon-hi);font-size:14.5px;font-weight:700;line-height:1.3}
 .tag svg{width:16px;height:16px;color:var(--neon)}
 .pics{position:absolute;bottom:12px;inset-inline-end:14px;z-index:1;display:inline-flex;align-items:center;gap:6px;
@@ -892,6 +890,24 @@ p.lede{color:#1b4a30;text-shadow:0 0 calc(10 * var(--u)) rgba(255,255,255,.95)}
 .reader-thumbs button{background:#e6fbef}
 .reader h2{color:var(--ink);text-shadow:0 0 22px rgba(57,255,143,.35)}
 .reader-text p{color:rgba(14,52,31,.88)}
+
+/* ════════════════════════════════════════════════════════════════════
+   PHONES & TABLETS (touch): lightweight rendering. iOS Safari closes a page
+   that uses too much graphics memory, so: flat pitch instead of 3D, no
+   endless animations, no blur effects.
+   ════════════════════════════════════════════════════════════════════ */
+@media (hover:none), (max-width:1030px){
+  .court{perspective:none}
+  .court .floor{transform:translateX(-50%) scaleY(.5);transform-origin:50% 100%}
+  .aurora,.sparks,.beams{display:none}
+  .orb::after,.scroll svg,.credit-big,.about-logo::after{animation:none}
+  .navbar.is-solid,.links,.sheet,.reader-close,.reader::backdrop{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .navbar.is-solid{background:rgba(255,255,255,.97)}
+  h1.title{filter:drop-shadow(0 0 calc(10 * var(--u)) rgba(57,255,143,.6))}
+  .sec-title{filter:none;text-shadow:none}
+  .card,.sport-tile,.card-media > img,.shot img{transition:none}
+  .card:hover,.sport-tile:hover{transform:none}
+}
 [hidden]{display:none !important}
 </style>
 </head>
