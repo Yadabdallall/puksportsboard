@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ckb" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ئەندازیارنامە — ئینسایکلۆپیدیای بەشە ئەندازیارییەکان</title>
+  <meta name="description" content="ئینسایکلۆپیدیایەکی سادە و جێگیر بۆ هەموو بەشە ئەندازیارییەکان: چی دەخوێنن، کارەکانیان، لقەکان، ماستەر و دکتۆرا، نەرمەکاڵا، ڕەنگی کڵاو و کەرەستەی سەلامەتی، و زیرەکترین ئەندازیارانی جیهان.">
+  <meta name="theme-color" content="#050b16">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 150'%3E%3Cpath fill='%23FFB81C' d='M12 114C12 104 30 100 56 100H164C190 100 208 104 208 114S190 128 164 128H56C30 128 12 124 12 114ZM32 108C32 56 66 16 110 16S188 56 188 108Z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://en.wikipedia.org">
+  <link rel="preconnect" href="https://upload.wikimedia.org">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zain:wght@300;400;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
+  <!-- ژمارە کوردییەکان (٠١٢٣…): Zain ژمارەکانی بە شێوەی لاتینی دەنووسێت، بۆیە تەنها ژمارەکان لە Vazirmatn وەردەگرین -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&text=%D9%A0%D9%A1%D9%A2%D9%A3%D9%A4%D9%A5%D9%A6%D9%A7%D9%A8%D9%A9%D9%AA%D9%AB&display=swap">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <defs><filter id="hblur" x="-30%" y="-300%" width="160%" height="700%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+  </svg>
+
+  <!-- باکگراوندی جووڵاو -->
+  <canvas id="bg" aria-hidden="true"></canvas>
+  <div class="grid-layer" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="progress" id="progress" aria-hidden="true"></div>
+
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#/" aria-label="ئەندازیارنامە — سەرەتا">
+      <span class="brand-helmet" id="brandHelmet"></span>
+      <span class="brand-tx"><b>ئەندازیارنامە</b><small>ئینسایکلۆپیدیای ئەندازیاری</small></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="لیستی سەرەکی">
+      <a href="#departments">بەشەکان</a>
+      <a href="#colors">ڕەنگی کڵاو</a>
+      <a href="#safety">سەلامەتی</a>
+      <a href="#legends">ئەندازیاران</a>
+      <a href="#quiz" class="nav-cta">کام بەش بۆ من؟</a>
+    </nav>
+    <button class="menu-btn" id="menuBtn" aria-label="کردنەوەی لیست" aria-expanded="false" aria-controls="nav"></button>
+  </header>
+
+  <main id="home">
+    <!-- ═════ سەرەتا ═════ -->
+    <section class="hero" id="top">
+      <div class="hero-tx">
+        <p class="kicker mono" dir="ltr"><span class="blink"></span>ENGINEERING · ENCYCLOPEDIA · KURDISH</p>
+        <h1 class="hero-title">
+          <span class="line" data-py="-0.1" data-abs><span class="split">هەموو بەشە</span></span>
+          <span class="line acc" data-py="-0.18" data-abs><span class="split">ئەندازیارییەکان</span></span>
+          <span class="line" data-py="-0.26" data-abs><span class="split">لە یەک شوێندا</span></span>
+        </h1>
+        <p class="hero-lead rv">ئەم ماڵپەڕە ئینسایکلۆپیدیایەکی سادە و جێگیرە؛ تیشک دەخاتە سەر گرنگترین بەشەکانی ئەندازیاری، سروشتی کارکردنیان، نەرمەکاڵا سەرەکییەکان، و بوارەکانی کار لە هەریەکەیاندا. ئامانجمان هاوکاریکردنی تۆیە لە تێگەیشتن و هەڵبژاردنی دروستی بەشەکەت.</p>
+        <div class="hero-cta rv">
+          <a class="btn primary" href="#departments" data-icon="arrowL">بەشەکان ببینە</a>
+          <a class="btn ghost" href="#quiz" data-icon="cap">کام بەش بۆ من گونجاوە؟</a>
+        </div>
+      </div>
+
+      <div class="hero-stage" id="heroStage" role="button" tabindex="0" aria-label="کڵاوی بەشەکە — کرتە بکە بۆ چوونە ژوورەوە">
+        <div class="stage-rings" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="stage-dim dim-top mono" dir="ltr" aria-hidden="true">R 110</div>
+        <div class="stage-dim dim-side mono" dir="ltr" aria-hidden="true">H 150</div>
+        <div class="stage-helmet" id="heroHelmet"></div>
+        <div class="stage-label" id="heroLabel">
+          <span class="mono" id="heroNum" dir="ltr"></span>
+          <b id="heroDept"></b>
+          <small id="heroColor"></small>
+        </div>
+        <span class="stage-hint">کرتە بکە و کڵاوەکە لەسەر بکە</span>
+      </div>
+
+      <a class="scroll-cue" href="#intro" aria-label="بڕۆ خوارەوە"><span></span></a>
+    </section>
+
+    <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+
+    <!-- ═════ ناساندن ═════ -->
+    <section class="sec" id="intro">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">01 / OVERVIEW</span>
+        <h2 class="split">ئەندازیاری چییە؟</h2>
+        <p class="lead rv">ئەندازیاری بەکارهێنانی زانست و بیرکارییە بۆ چارەسەرکردنی کێشەکانی ژیان: لە پرد و بینا و کارەباوە تا مۆبایل، دەرمان و مووشەک. هەر بەشێک جیهانێکی تایبەتی خۆی هەیە — ئێمە هەموویانت بۆ دەکەینەوە.</p>
+      </header>
+      <div class="stats" id="stats"></div>
+      <div class="bigword" dir="ltr" data-px="-0.4" aria-hidden="true">ENGINEERING</div>
+    </section>
+
+    <!-- ═════ ڕەنگی کڵاو ═════ -->
+    <section class="sec" id="colors">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">02 / HELMET COLORS</span>
+        <h2 class="split">ڕەنگی کڵاوی هەر بەشێک</h2>
+        <p class="lead rv">لەم ماڵپەڕەدا هەر بەشێک ڕەنگی تایبەتی خۆی هەیە — هەمان ڕەنگی ئەو کڵاوەی کاتێک دەچیتە ناو بەشەکە لەسەری دەکەیت. کرتە لە هەر کڵاوێک بکە بۆ چوونە ژوورەوە.</p>
+      </header>
+      <div class="helmet-rail" id="helmetRail"></div>
+    </section>
+
+    <!-- ═════ بەشەکان ═════ -->
+    <section class="sec" id="departments">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">03 / DEPARTMENTS</span>
+        <h2 class="split">بەشە ئەندازیارییەکان</h2>
+        <p class="lead rv">بەشێک هەڵبژێرە بۆ ئەوەی بزانیت چۆنە، چی دەخوێنن، چەند لقی هەیە، ماستەر و دکتۆراکەی چییە، و زیرەکترین ئەندازیارانی کێن.</p>
+      </header>
+      <label class="search rv" data-icon="search">
+        <span class="sr-only">گەڕان لە بەشەکان</span>
+        <input id="deptSearch" type="search" placeholder="بگەڕێ: کارەبا، نەوت، AutoCAD، GIS …" autocomplete="off">
+      </label>
+      <div class="dept-grid" id="deptGrid"></div>
+      <div class="bigword" dir="ltr" data-px="0.4" aria-hidden="true">DESIGN · BUILD · INNOVATE</div>
+    </section>
+
+    <!-- ═════ سەلامەتی ═════ -->
+    <section class="sec" id="safety">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">04 / SAFETY FIRST</span>
+        <h2 class="split">کڵاو و سەیفتی</h2>
+        <p class="lead rv">سەلامەتی یەکەم ڕێسای ئەندازیارییە. لێرەدا کۆدی ڕەنگی کڵاو لە سایتدا، جۆرەکانی کڵاو، پۆلە کارەباییەکان و هەموو کەرەستەکانی پاراستنی کەسی (PPE) دەناسیت.</p>
+      </header>
+
+      <h3 class="sub rv">کۆدی ڕەنگی کڵاو لە سایتدا</h3>
+      <p class="note rv">ئەمە ڕێنمایییەکی گشتی و باوە؛ ڕەنگەکان لە وڵاتێکەوە بۆ وڵاتێکی تر و لە کۆمپانیایەکەوە بۆ کۆمپانیایەکی تر جیاوازن. هەمیشە ڕێسای سایتەکەی خۆت پەیڕەو بکە.</p>
+      <div class="code-grid" id="codeGrid"></div>
+
+      <div class="two">
+        <div>
+          <h3 class="sub rv">جۆرەکانی کڵاو بەپێی لێدان</h3>
+          <div class="type-grid" id="typeGrid"></div>
+        </div>
+        <div>
+          <h3 class="sub rv">پۆلەکانی کارەبا</h3>
+          <div class="class-grid" id="classGrid"></div>
+        </div>
+      </div>
+
+      <h3 class="sub rv">شێوەکانی کڵاو</h3>
+      <div class="style-grid" id="styleGrid"></div>
+
+      <div class="two">
+        <div class="panel rv">
+          <h3 class="sub" data-icon="shield">ستانداردە نێودەوڵەتییەکان</h3>
+          <ul class="std" id="stdList"></ul>
+        </div>
+        <div class="panel rv">
+          <h3 class="sub" data-icon="info">چۆن ئاگاداری کڵاوەکەت بیت</h3>
+          <ul class="care" id="careList"></ul>
+        </div>
+      </div>
+
+      <h3 class="sub rv">کەرەستەکانی پاراستنی کەسی (PPE)</h3>
+      <p class="note rv">خاڵە ڕەنگاوڕەنگەکانی خوارەوەی هەر کارتێک پیشانی دەدەن کام بەش ئەم کەرەستەیەی پێویستە.</p>
+      <div class="ppe-grid" id="ppeGrid"></div>
+      <div class="bigword" dir="ltr" data-px="-0.4" aria-hidden="true">SAFETY FIRST</div>
+    </section>
+
+    <!-- ═════ ئەندازیاران ═════ -->
+    <section class="sec" id="legends">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">05 / LEGENDS</span>
+        <h2 class="split">زیرەکترین ئەندازیارانی جیهان</h2>
+        <p class="lead rv">٧٠ ئەندازیار و داهێنەر — ٥ کەس بۆ هەر بەشێک، هەر یەکێکیان بە ٣ پڕۆژەی بەهێزەوە. کرتە لە هەر کەسێک بکە بۆ بینینی پڕۆژەکانی.</p>
+      </header>
+      <div class="legs">
+        <div class="leg-row"><div class="leg-track" id="legRow1"></div></div>
+        <div class="leg-row rev"><div class="leg-track" id="legRow2"></div></div>
+      </div>
+    </section>
+
+    <!-- ═════ تاقیکردنەوە ═════ -->
+    <section class="sec" id="quiz">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">06 / FIND YOUR FIELD</span>
+        <h2 class="split">کام بەش بۆ تۆ گونجاوە؟</h2>
+        <p class="lead rv">شەش پرسیاری خێرا وەڵام بدەرەوە و سێ گونجاوترین بەش بۆ خۆت ببینە.</p>
+      </header>
+      <div class="quiz rv" id="quizBox" aria-live="polite"></div>
+    </section>
+
+    <!-- ═════ بەشەکانی تر ═════ -->
+    <section class="sec" id="others">
+      <header class="sec-head">
+        <span class="sec-num mono" dir="ltr">07 / MORE FIELDS</span>
+        <h2 class="split">بەشە ئەندازیارییەکانی تر</h2>
+        <p class="lead rv">جگە لە بەشە سەرەکییەکان، ئەم پسپۆڕییانەش لە زانکۆکانی جیهاندا هەن و زۆربەیان لقێکی یەکێک لە بەشە سەرەکییەکانن.</p>
+      </header>
+      <div class="others-grid"></div>
+    </section>
+  </main>
+
+  <main id="dept" class="dept" hidden></main>
+
+  <footer class="footer">
+    <div class="foot-in">
+      <div class="foot-brand">
+        <b>ئەندازیارنامە</b>
+        <p>ئینسایکلۆپیدیایەکی سادە و جێگیر بۆ تێگەیشتن و هەڵبژاردنی دروستی بەشی ئەندازیاری.</p>
+      </div>
+      <div class="foot-note">
+        <p><b>سەرچاوەی وێنەکان:</b> وێنەی ئەندازیاران و پڕۆژەکان ڕاستەوخۆ لە ویکیپیدیا و ویکیمیدیا کۆمنزەوە (وێنەی ئازاد) دەهێنرێن. بۆ وێنەی زیاتر، لە هەر کارتێکدا دوگمەی «وێنەکان لە گووگڵ» هەیە.</p>
+        <p><b>تێبینی:</b> ڕەنگی کڵاوی بەشەکان لەم ماڵپەڕەدا بۆ ناساندن و جیاکردنەوەیە؛ لە سایتی ڕاستەقینەدا ڕێسای کۆمپانیا و وڵات پەیڕەو دەکرێت.</p>
+      </div>
+      <button class="to-top" id="toTop" data-icon="up">بۆ سەرەوە</button>
+    </div>
+  </footer>
+
+  <!-- ئەنیمەیشنی کڵاو لەسەرکردن -->
+  <div class="drop" id="drop" hidden>
+    <div class="drop-veil"></div>
+    <div class="drop-center">
+      <svg class="drop-person" viewBox="0 0 220 230" aria-hidden="true">
+        <circle cx="110" cy="112" r="44"/>
+        <path d="M92 152v12M128 152v12M34 228c4-40 36-60 76-60s72 20 76 60"/>
+        <path class="face" d="M96 118c8 8 20 8 28 0M94 100h.01M126 100h.01"/>
+      </svg>
+      <div class="drop-helmet"></div>
+      <span class="drop-ring"></span>
+      <p class="drop-title"></p>
+      <p class="drop-sub"></p>
+    </div>
+  </div>
+
+  <script src="assets/js/common.js"></script>
+  <script src="assets/js/depts-1.js"></script>
+  <script src="assets/js/depts-2.js"></script>
+  <script src="assets/js/depts-3.js"></script>
+  <script src="assets/js/bg.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
