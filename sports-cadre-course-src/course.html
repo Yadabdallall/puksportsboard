@@ -41,12 +41,12 @@
   .hero {
     flex: none;
     position: relative;
-    height: 334px;
+    height: 358px;
     background:
       radial-gradient(120% 90% at 50% 0%, var(--green-600) 0%, var(--green-800) 55%, var(--green-900) 100%);
     color: #fff;
     text-align: center;
-    padding-top: 26px;
+    padding-top: 24px;
     overflow: hidden;
   }
   .hero svg.deco { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -54,7 +54,7 @@
 
   .logo {
     width: 104px; height: 104px;
-    margin: 0 auto 10px;
+    margin: 0 auto 9px;
     border-radius: 50%;
     background: #fff;
     display: grid; place-items: center;
@@ -62,13 +62,10 @@
     overflow: hidden;
   }
   .logo img { width: 96%; height: 96%; object-fit: contain; }
-  .logo .ph {
-    width: 82px; height: 82px; border-radius: 50%;
-    border: 2px dashed var(--gold);
-    display: grid; place-items: center;
-    color: var(--green-700); font-size: 19px; font-weight: 700;
-  }
 
+  .office {
+    font-size: 17px; font-weight: 700; color: #e4efe9; line-height: 1.3;
+  }
   .org {
     display: inline-flex; align-items: center; gap: 12px;
     font-size: 20px; font-weight: 700; color: var(--gold-soft);
@@ -78,15 +75,20 @@
     content: ""; width: 34px; height: 2px; background: var(--gold); border-radius: 2px;
   }
   .title {
-    font-size: 48px; font-weight: 900; line-height: 1.15;
+    font-size: 48px; font-weight: 900; line-height: 1.1;
     margin-top: 4px;
     text-shadow: 0 3px 14px rgba(0,0,0,.25);
   }
-  .subtitle {
-    font-size: 18px; font-weight: 400; line-height: 1.5;
-    color: #dfece6;
-    margin-top: 6px;
+  .patron {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 8px;
+    padding: 4px 18px 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(231,207,138,.45);
+    background: rgba(255,255,255,.07);
+    font-size: 16.5px; font-weight: 700; color: #fff; line-height: 1.5;
   }
+  .patron span { color: var(--gold-soft); font-weight: 400; }
 
   /* ---------- Stats ---------- */
   .stats {
@@ -98,46 +100,47 @@
     background: #fff;
     border-radius: 18px;
     box-shadow: 0 12px 30px rgba(6,46,35,.14), 0 2px 6px rgba(6,46,35,.06);
-    padding: 13px 8px 12px;
+    padding: 11px 8px 10px;
     z-index: 2;
   }
   .stat { text-align: center; padding: 2px 6px; }
   .stat + .stat { border-right: 1px solid #e4ebe7; }
   .stat .num {
-    font-size: 40px; font-weight: 900; line-height: 1;
+    font-size: 37px; font-weight: 900; line-height: 1;
     color: var(--green-700);
   }
   .stat .lbl { font-size: 16px; font-weight: 400; color: var(--muted); margin-top: 4px; white-space: nowrap; }
 
   /* ---------- Body ---------- */
-  .content { padding: 20px 46px 0; flex: 1; }
+  .content { padding: 16px 38px 0; flex: 1; }
 
-  .section { margin-bottom: 14px; }
+  .section { margin-bottom: 13px; }
+  .section:last-child { margin-bottom: 0; }
   .h {
     display: flex; align-items: center; gap: 10px;
-    font-size: 22px; font-weight: 800; color: var(--green-800);
-    margin-bottom: 4px;
+    font-size: 21px; font-weight: 800; color: var(--green-800);
+    margin-bottom: 3px;
   }
   .h::before {
     content: ""; width: 5px; height: 20px; border-radius: 3px;
     background: linear-gradient(var(--gold), #a8801f);
   }
   p {
-    font-size: 16px; line-height: 1.75; font-weight: 400;
+    font-size: 16px; line-height: 1.72; font-weight: 400;
     text-align: justify;
   }
   p strong { font-weight: 800; color: var(--green-700); }
 
   .centers {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    margin-top: 10px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-top: 8px;
   }
   .center {
     position: relative;
     background: #fff;
     border: 1px solid #dfe9e3;
     border-radius: 16px;
-    padding: 14px 16px 14px;
+    padding: 13px 12px 8px;
     overflow: hidden;
   }
   .center::before {
@@ -145,28 +148,28 @@
     background: linear-gradient(to left, var(--green-600), var(--gold));
   }
   .center .city {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 9px;
+    padding-bottom: 8px; margin-bottom: 2px;
+    border-bottom: 1px solid #e6eee9;
   }
   .pin {
     flex: none;
-    width: 34px; height: 34px; border-radius: 10px;
+    width: 32px; height: 32px; border-radius: 10px;
     background: var(--green-50);
     display: grid; place-items: center;
   }
-  .center .tag { font-size: 13.5px; color: var(--muted); font-weight: 500; line-height: 1.2; }
-  .center .name { font-size: 22px; font-weight: 900; color: var(--green-800); line-height: 1.15; }
-  .center .desc { font-size: 14.5px; color: var(--muted); margin: 4px 0 8px; line-height: 1.5; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip {
-    font-size: 15px; font-weight: 700;
-    padding: 1px 11px 2px;
-    border-radius: 999px;
-    background: var(--green-50);
-    color: var(--green-700);
-    border: 1px solid #d3e5db;
+  .center .name { font-size: 19px; white-space: nowrap; font-weight: 900; color: var(--green-800); line-height: 1.15; }
+  .areas { list-style: none; }
+  .areas li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; color: var(--green-900);
+    line-height: 1.45; padding: 2.5px 2px; white-space: nowrap;
   }
-  .chip.more { background: transparent; color: var(--muted); border-style: dashed; font-weight: 500; }
+  .areas li + li { border-top: 1px dashed #e3ece7; }
+  .areas li::before {
+    content: ""; flex: none; width: 7px; height: 7px; border-radius: 2px;
+    background: var(--gold); transform: rotate(45deg);
+  }
 
   .goal {
     position: relative;
@@ -174,13 +177,9 @@
     border: 1px solid #d9e7df;
     border-right: 5px solid var(--gold);
     border-radius: 14px;
-    padding: 12px 20px;
+    padding: 10px 18px;
   }
-  .goal .q {
-    position: absolute; left: 16px; top: -6px;
-    font-size: 92px; line-height: 1; color: rgba(201,162,58,.25); font-weight: 900;
-  }
-  .goal p { font-size: 16.5px; font-weight: 700; line-height: 1.75; color: var(--green-900); }
+  .goal p { font-size: 16px; font-weight: 700; line-height: 1.7; color: var(--green-900); }
 
   /* ---------- Footer ---------- */
   .footer {
@@ -189,7 +188,7 @@
     background: var(--green-900);
     color: #cfe0d8;
     display: flex; align-items: center; justify-content: center; gap: 14px;
-    height: 48px;
+    height: 44px;
     font-size: 16px; font-weight: 500;
     position: relative;
   }
@@ -230,16 +229,17 @@
     <div class="logo">
       <img src="logo-clean.png" alt="بۆردی وەرزشی">
     </div>
+    <div class="office">مەکتەبی سکرتاریەتی سەرۆک مام جەلال</div>
     <div class="org">بۆردی وەرزشی</div>
     <h1 class="title">خولی پێگەیاندنی کادری وەرزشی</h1>
-    <div class="subtitle">خولێکی ئەکادیمی، گشتگیر و ستراتیژی بۆ سەرجەم کادرانی وەرزشی لە هەموو کوردستان</div>
+    <div class="patron"><span>بە سەرپەرشتی</span> مەڵبەندی دیراساتی گشتی یەکێتیی نیشتمانیی کوردستان</div>
   </header>
 
   <section class="stats">
     <div class="stat"><div class="num">71</div><div class="lbl">کادری وەرزشی</div></div>
     <div class="stat"><div class="num">2</div><div class="lbl">مانگی تەواو</div></div>
     <div class="stat"><div class="num">2</div><div class="lbl">ڕۆژ لە هەفتەیەکدا</div></div>
-    <div class="stat"><div class="num">2</div><div class="lbl">ناوەندی سەرەکی</div></div>
+    <div class="stat"><div class="num">3</div><div class="lbl">سەنتەری سەرەکی</div></div>
   </section>
 
   <main class="content">
@@ -256,53 +256,57 @@
     </section>
 
     <section class="section">
-      <h2 class="h">ناوەندەکانی خولەکە</h2>
+      <h2 class="h">سەنتەرەکانی خولەکە</h2>
       <p>
-        لە پێناو ڕەخساندنی کارئاسانی و دەستگیرۆیی تەواو بۆ بەشداربووان، خولەکە بەسەر دوو ناوەندی سەرەکیدا دابەشکراوە و لە دوو شاردا دەوترێتەوە:
+        لە پێناو ڕەخساندنی کارئاسانی و دەستگیرۆیی تەواو بۆ بەشداربووان، خولەکە بەسەر سێ سەنتەری سەرەکیدا دابەشکراوە و لە سێ شوێندا دەوترێتەوە:
       </p>
 
       <div class="centers">
         <div class="center">
           <div class="city">
             <span class="pin">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
             </span>
-            <div>
-              <div class="tag">ناوەندی یەکەم</div>
-              <div class="name">شاری هەولێر</div>
-            </div>
+            <div class="name">سەنتەری هەولێر</div>
           </div>
-          <div class="desc">بۆ کادرانی پارێزگا و ناوچەکانی:</div>
-          <div class="chips">
-            <span class="chip">هەولێر</span>
-            <span class="chip">دهۆک</span>
-            <span class="chip">زاخۆ</span>
-            <span class="chip">ئاکرێ</span>
-            <span class="chip">سۆران</span>
-            <span class="chip">ڕواندز</span>
-            <span class="chip more">و هیتر</span>
-          </div>
+          <ul class="areas">
+            <li>پارێزگای هەولێر</li>
+            <li>ئیدارەی سەربەخۆی سۆران</li>
+            <li>کۆیە</li>
+            <li>دهۆک</li>
+            <li>موصڵ</li>
+          </ul>
         </div>
 
         <div class="center">
           <div class="city">
             <span class="pin">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
             </span>
-            <div>
-              <div class="tag">ناوەندی دووەم</div>
-              <div class="name">شاری سلێمانی</div>
-            </div>
+            <div class="name">سەنتەری سلێمانی</div>
           </div>
-          <div class="desc">بۆ کادرانی سنووری:</div>
-          <div class="chips">
-            <span class="chip">سلێمانی</span>
-            <span class="chip">کەرکووک</span>
-            <span class="chip">هەڵەبجە</span>
-            <span class="chip">ڕانیە</span>
-            <span class="chip">کۆیە</span>
-            <span class="chip more">و هیتر</span>
+          <ul class="areas">
+            <li>پارێزگای سلێمانی</li>
+            <li>پارێزگای هەڵەبجە</li>
+            <li>پارێزگای کەرکووک</li>
+            <li>چەمچەماڵ</li>
+            <li>ئیدارەی سەربەخۆی ڕاپەڕین</li>
+          </ul>
+        </div>
+
+        <div class="center">
+          <div class="city">
+            <span class="pin">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+            </span>
+            <div class="name">سەنتەری گەرمیان</div>
           </div>
+          <ul class="areas">
+            <li>گەرمیان</li>
+            <li>دەربەندیخان</li>
+            <li>شارەزوور</li>
+            <li>خانەقین</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -319,9 +323,9 @@
   </main>
 
   <footer class="footer">
-    <b>بۆردی وەرزشی</b>
+    <span>مەکتەبی سکرتاریەتی سەرۆک مام جەلال</span>
     <span class="dot"></span>
-    <span>بۆ داهاتوویەکی وەرزشیی پتەوتر لە کوردستان</span>
+    <b>بۆردی وەرزشی</b>
   </footer>
 
 </div>
