@@ -4,6 +4,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
+| [`output/sports/football.mp4`](output/sports/football.mp4) and the other files in `output/sports/`: one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
 | [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -12,6 +13,45 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | [`output/puk-sports-board-3d-warm.mp4`](output/puk-sports-board-3d-warm.mp4): the same picture with the warm, lighter music | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d_warm.py` |
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
+
+## Sport films (45 s, 4K): one template for every sport
+
+`./make_sport.sh football` makes a 45 s vertical film about one sport, picture, music and
+sound, with nothing to edit by hand. Every sport in [`sports/sports.json`](sports/sports.json)
+can have one; [`sports/SPORTS.md`](sports/SPORTS.md) lists all 113 of them in 17 categories,
+marked ✅ played in Kurdistan or 🔜 coming. [`sports/PROMPT.md`](sports/PROMPT.md) is a
+ready prompt to paste into a new Claude Code session to get the film for any sport; the steps
+behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the repository.
+
+- **Look:** flat 2D motion graphics in the logo's green (#129901), beige, petrol blue and a
+  little ink, with a fine paper grain, quiet shapes drifting behind, and a blue sheet with a
+  green edge sweeping across on every cut.
+- **Story, on the bars of the music (96 bpm):**
+  - 0–5 s: the sport's icon drops into a green disc; its Kurdish and English names, a tagline
+    and its category.
+  - 5–15 s: «چۆن یاری دەکرێت؟», the field drawn out from the centre and a play on the beat:
+    passes and a goal, a rally over the net, a run round the bases, a duel, a race, arrows on a
+    target, a lift, a climb, a chess game... with the score word («گۆڵ!») at the big moment and
+    two lines on how it is played.
+  - 15–25 s: «بە ژمارە», three facts counted up in Kurdish digits, and the sport's names
+    running along a blue band.
+  - 25–32.5 s: a two-line phrase on the green, word by word, the key word in a blue tag.
+  - 32.5–37.5 s: «لە کوردستان» with a tick, or «بەم زووانە لە کوردستان / لە داهاتوودا دێت»
+    with a turning hourglass.
+  - 37.5–45 s: the logo with rings on the beat, the sport's icon orbiting, and «هەمیشە لە پاڵتانین».
+- **Music:** arranged per sport from the same real instruments as the other films. The
+  sport's mood sets the harmony and the instruments: energetic (driving piano,
+  four-on-the-floor), heroic (minor, low strings, horns, taiko-like drums, a major ending),
+  elegant (piano, harp, strings) or adventure (lydian lift, horn melody, harp). The key comes
+  from the sport, so two sports never sound alike. The play's own sounds land on its moments:
+  kicks, bounces, racket hits, punches, splashes, clanks, a whistle or the ring bell at the start.
+- **Data:** each sport in `sports.json` names its field, play, icon, sound family and mood, and
+  carries its texts. The drawings are in `sportfilm/glyphs.js` (44 icons), `sportfilm/fields.js`
+  (25 fields, courts, tracks and boards) and `sportfilm/plays.js` (14 plays).
+- **Build:** `make_sport.sh` renders four lossless parts side by side (about 10 minutes for 4K
+  on 4 cores) while the music is written, then encodes once with a bitrate cap so the film stays
+  under 29 MiB. `./make_sport.sh <sport> stills` renders check stills only, and
+  `sportfilm.html?sport=<id>&draft` previews a sport whose texts aren't written yet.
 
 ## Editorial poster film (30 s, 4K)
 
@@ -160,6 +200,13 @@ motion-video/
 ├── trio3d.html         # 30 s boxing / volleyball / table tennis film (same 3D engine)
 ├── editorial.html      # the same story as an editorial poster (2D)
 ├── photos.html         # 30 s photo film template (needs assets/photos/)
+├── sportfilm.html      # 45 s 2D film for any sport (?sport=<id>)
+├── sportfilm/          # its icons (glyphs.js), fields (fields.js) and plays (plays.js)
+├── sports/
+│   ├── sports.json     # every sport: names, category, Kurdistan or coming, look, sound, texts
+│   ├── SPORTS.md       # the list in Kurdish, made by make_list.py
+│   └── PROMPT.md       # the prompt to paste for a new sport film
+├── make_sport.sh       # one command: picture, music and encode for one sport
 ├── package.json        # three.js + Playwright (npm install)
 ├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
 ├── patch_video.py      # splices a re-rendered keyframe interval into a finished video
@@ -171,11 +218,13 @@ motion-video/
 │   ├── kurdistan.py    # score for the sports-of-Kurdistan film
 │   ├── photos.py       # score for the photo film
 │   ├── trio.py         # score and prop sounds for the boxing / volleyball / table tennis film
+│   ├── sportfilm.py    # music and play sounds for the sport films, arranged per sport
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
-│   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits
+│   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for Kurdish digits and chess pieces
 └── output/
+    ├── sports/         # one film per sport, e.g. football.mp4
     ├── puk-sports-board-kurdistan.mp4
     ├── puk-sports-board-3d-cinematic.mp4
     ├── puk-sports-board-3d-warm.mp4
@@ -205,6 +254,9 @@ Playwright and the instrument samples.
 
 ```bash
 cd motion-video
+# a sport film: everything in one command (see sports/SPORTS.md for the ids)
+./make_sport.sh football
+
 # 3D vertical video: render the picture once, then add each score
 node render.mjs --page sport3d.html --cues audio/sport3d-cues.json
 python3 audio/sport3d.py audio/sport3d-cues.json output/sport3d-sfx.wav
@@ -247,7 +299,7 @@ Other options:
 ## Credits
 
 - Font: [Zain](https://fonts.google.com/specimen/Zain), SIL Open Font License 1.1 (`assets/fonts/OFL.txt`)
-- Podium digits ١ ٢ ٣: DejaVu Sans Bold, Bitstream Vera licence (`assets/fonts/DejaVu-LICENSE.txt`). Zain draws Arabic-Indic digits in Western shapes.
-- Piano (3D video): Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0, via the `@audio-samples/piano-mp3-*` npm packages
-- Strings, horn and harp (3D video): [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky, CC-BY 3.0, via the `tonejs-instrument-*-mp3` npm packages
+- Kurdish digits ١ ٢ ٣ and the chess pieces: DejaVu Sans Bold, Bitstream Vera licence (`assets/fonts/DejaVu-LICENSE.txt`). Zain draws Arabic-Indic digits in Western shapes.
+- Piano (3D, Kurdistan, trio and sport films): Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0, via the `@audio-samples/piano-mp3-*` npm packages
+- Strings, horn and harp (the same films): [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky, CC-BY 3.0, via the `tonejs-instrument-*-mp3` npm packages
 - Everything else (the player, ball, 3D objects, effects and the other videos' sounds) is drawn or generated in code for this project.

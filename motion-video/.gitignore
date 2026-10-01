@@ -2,3 +2,4 @@ output/stills/
 output/*.wav
 node_modules/
 __pycache__/
+output/sports/.work-*/

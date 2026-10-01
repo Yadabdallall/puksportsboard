@@ -196,7 +196,7 @@ const PLAYS = {
     const { home, first, second, third, mound, deep } = F;
     const bases = [home, first, second, third, home];
     const fielders = [mound, [home[0], home[1] + 4], [first[0] + 3, first[1] - 6], [second[0] + 12, second[1] + 4], [second[0] - 12, second[1] + 4],
-      [third[0] - 3, third[1] - 6], [40, 34], [75, 22], [110, 34]];
+      [third[0] - 3, third[1] - 6], ...F.outfield];
     return {
       scoreAt: EV[5],
       events: [[EV[0], 'hit'], [EV[1], 'land'], [EV[2], 'step'], [EV[3], 'step'], [EV[4], 'step'], [EV[5], 'score']],

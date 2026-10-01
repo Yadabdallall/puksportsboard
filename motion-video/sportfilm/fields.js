@@ -351,12 +351,13 @@ function tableField(kind) {
 }
 
 function diamondField() {
-  const w = 150, h = 125, home = [75, 117], R = 105, B = 27.43;
+  const w = 116, h = 98, home = [58, 92], R = 80, B = 27.43;
   const d = B / Math.SQRT2;
   const first = [home[0] + d, home[1] - d], second = [home[0], home[1] - 2 * d], third = [home[0] - d, home[1] - d];
   const mound = [home[0], home[1] - 18.44];
   return {
-    w, h, pad: 0, card: C.greenDark, home, first, second, third, mound, deep: [52, 26],
+    w, h, pad: 0, card: C.greenDark, home, first, second, third, mound, deep: [36, 26],
+    outfield: [[30, 36], [58, 22], [86, 36]],
     draw(t, s) {
       const fan = () => { ctx.beginPath(); ctx.moveTo(...home); ctx.arc(home[0], home[1], R, -Math.PI * 0.75, -Math.PI * 0.25); ctx.closePath(); };
       ctx.save();
