@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Film</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script>
+/*
+ * A 45 s vertical (9:16) 2D motion film about one sport, for the PUK Sports
+ * Board. Everything about the sport comes from sports/sports.json, picked
+ * with ?sport=<id>, so one template makes a film for every sport:
+ *
+ *    0 –  5 s  the sport's icon, name and tagline
+ *    5 – 15 s  how it is played: the field, drawn line by line, and a play
+ *   15 – 25 s  three facts, counted up in Kurdish digits
+ *   25 – 32.5  a short phrase on the board's green
+ *   32.5–37.5  in Kurdistan today, or coming in the future
+ *   37.5–45 s  the board's logo and name
+ *
+ * Colours: the logo's green, beige, petrol blue and a little ink. The film is
+ * 18 bars at 96 bpm; audio/sportfilm.py writes music that follows the same
+ * bars and the cues from window.soundCues(). Layout is in 1080x1920 units;
+ * ?scale=2 renders 4K. renderFrame(t) is a pure function of time.
+ *
+ * The drawings live in sportfilm/: glyphs.js (the sport icons), fields.js
+ * (fields, courts, tracks...) and plays.js (what moves on them).
+ */
+const W = 1080, H = 1920, DURATION = 45;
+const QS = new URLSearchParams(location.search);
+const SCALE = Number(QS.get('scale') || 1);
+const SPORT_ID = QS.get('sport') || 'football';
+const BEAT = 60 / 96, BAR = 4 * BEAT; // 96 bpm: a bar is 2.5 s, the film is 18 bars
+
+const C = {
+  beige: '#f1e8d5', beige2: '#e5d7ba', card: '#f8f2e6', white: '#fbf8f1',
+  green: '#129901', greenDark: '#0e7a01', greenDeep: '#0a5a00',
+  blue: '#1f5f7d', blueDark: '#174a62', blueLight: '#7fa8bb',
+  ink: '#161616',
+};
+const LINE = 'rgba(248, 243, 231, 0.95)';
+
+// the film's clock
+const CUTS = [5, 15, 25, 32.5, 37.5];
+const EV = [6.25, 7.5, 8.75, 10, 11.25, 12.5, 13.75]; // the play's moments, on the beat
+const FACT_IN = [15.3, 17.8, 20.3];
+const WORDS_AT = 25.55, STATUS_AT = 33.0, LOGO_AT = 37.75, OUTRO = 44.2;
+const sectionAt = t => (t < 5 ? 0 : t < 15 ? 1 : t < 25 ? 2 : t < 32.5 ? 3 : t < 37.5 ? 4 : 5);
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  inOut: u => (u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2),
+  out: u => 1 - Math.pow(1 - u, 3),
+  in: u => u * u * u,
+  expo: u => (u >= 1 ? 1 : 1 - Math.pow(2, -10 * u)),
+  expoInOut: u => (u <= 0 ? 0 : u >= 1 ? 1 : u < .5 ? Math.pow(2, 20 * u - 10) / 2 : (2 - Math.pow(2, -20 * u + 10)) / 2),
+  back: u => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  sine: u => 0.5 - 0.5 * Math.cos(Math.PI * u),
+};
+const lerp2 = (p, q, u) => [lerp(p[0], q[0], u), lerp(p[1], q[1], u)];
+// a small deterministic random, so every render of a frame is identical
+const rand = seed => { let s = seed % 2147483647 || 1; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646; };
+const hash = str => [...str].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 2147483647, 7);
+
+// numbers in Kurdish digits (٠١٢٣٤٥٦٧٨٩) with the Arabic decimal separator
+const KD = '٠١٢٣٤٥٦٧٨٩';
+const decimals = n => (String(n).split('.')[1] || '').length;
+const kd = (n, dec = decimals(n)) => n.toFixed(dec).replace(/\d/g, d => KD[d]).replace('.', '٫');
+
+const stage = document.getElementById('stage');
+stage.width = W * SCALE;
+stage.height = H * SCALE;
+const ctx = stage.getContext('2d');
+
+// text: Zain for the letters; DejaVu Sans Bold only for Kurdish digits and the chess pieces
+const font = (weight, size) => `${weight} ${size}px Zain`;
+function text(str, x, y, { size = 40, weight = 800, color = C.ink, align = 'center', dir = 'rtl', ls = 0, alpha = 1 } = {}) {
+  ctx.save();
+  ctx.font = font(weight, size);
+  ctx.direction = dir;
+  ctx.textAlign = align;
+  ctx.fillStyle = color;
+  ctx.globalAlpha *= alpha;
+  if (ls) ctx.letterSpacing = `${ls}px`;
+  ctx.fillText(str, x, y);
+  ctx.restore();
+}
+function measure(str, size, weight = 800, ls = 0) {
+  ctx.save();
+  ctx.font = font(weight, size);
+  ctx.letterSpacing = `${ls}px`;
+  const w = ctx.measureText(str).width;
+  ctx.restore();
+  return w;
+}
+const fitSize = (str, weight, max, maxW, min = 40) => clamp(Math.floor(max * Math.min(1, maxW / measure(str, max, weight))), min, max);
+function wrap(str, size, weight, maxW) {
+  const lines = [];
+  let cur = '';
+  for (const w of str.split(' ')) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (cur && measure(next, size, weight) > maxW) { lines.push(cur); cur = w; } else cur = next;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+// a line of text rising out of a mask, the way titles enter in this film
+function riseText(str, x, y, u, opts) {
+  if (u <= 0) return;
+  const size = opts.size || 40;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, y - size * 1.15, W, size * 1.55);
+  ctx.clip();
+  text(str, x, y + (1 - ease.expo(u)) * size * 1.3, opts);
+  ctx.restore();
+}
+function pill(str, cx, y, u, { size = 40, weight = 800, bg = C.blue, color = C.beige, padX = 34 } = {}) {
+  if (u <= 0) return;
+  const w = measure(str, size, weight) + padX * 2, h = size * 1.55;
+  const k = ease.expoInOut(clamp(u * 1.4));
+  ctx.save();
+  ctx.fillStyle = bg;
+  ctx.beginPath();
+  ctx.roundRect(cx - w * k / 2, y - h * 0.68, w * k, h, h / 2);
+  ctx.fill();
+  ctx.clip();
+  text(str, cx, y, { size, weight, color, alpha: clamp(u * 3 - 1.2) });
+  ctx.restore();
+}
+function disc(x, y, r, color) {
+  ctx.beginPath();
+  ctx.arc(x, y, Math.max(0, r), 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+function ring(x, y, r, color, lw, alpha = 1) {
+  if (alpha <= 0 || r <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lw;
+  ctx.stroke();
+  ctx.restore();
+}
+</script>
+<script src="sportfilm/glyphs.js"></script>
+<script src="sportfilm/fields.js"></script>
+<script src="sportfilm/plays.js"></script>
+<script>
+// ---------------------------------------------------------------- assets
+const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+// Zain draws Kurdish digits in Western shapes, so they come from DejaVu Sans Bold instead
+['400', '700', '800', '900'].forEach(w => fontFaces.push(new FontFace('Zain', 'url(assets/fonts/DejaVuSans-Bold.ttf)',
+  { weight: w, unicodeRange: 'U+0660-066C, U+06F0-06F9' })));
+fontFaces.push(new FontFace('Pieces', 'url(assets/fonts/DejaVuSans-Bold.ttf)', { weight: '700' }));
+fontFaces.forEach(f => document.fonts.add(f));
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+
+let S, CAT, F, PLAY, grainTex;
+
+function makeGrain() {
+  // a fine, static paper grain, made once
+  const c = document.createElement('canvas');
+  c.width = 540; c.height = 960;
+  const g = c.getContext('2d');
+  const d = g.createImageData(c.width, c.height);
+  const r = rand(4242);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const v = 128 + (r() - 0.5) * 34;
+    d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+    d.data[i + 3] = 255;
+  }
+  g.putImageData(d, 0, 0);
+  return c;
+}
+
+// ---------------------------------------------------------------- background
+// quiet shapes drifting behind every section, different in each one
+const SHAPES = [0, 1, 2, 3, 4, 5].map(sec => {
+  const r = rand(97 + sec * 131);
+  return Array.from({ length: 9 }, (_, i) => ({
+    x: r() * W, y: 160 + r() * (H - 320), s: 14 + r() * 38, kind: i % 4, ph: r() * 6.28, sp: 0.25 + r() * 0.35,
+    col: i % 3 === 0 ? 'blue' : 'green',
+  }));
+});
+function backdrop(t, sec) {
+  const green = sec === 3;
+  ctx.fillStyle = green ? C.green : C.beige;
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.globalAlpha = green ? 0.07 : 0.085;
+  ctx.globalCompositeOperation = green ? 'soft-light' : 'multiply';
+  ctx.drawImage(grainTex, 0, 0, W, H);
+  ctx.restore();
+  // a soft corner block in the opposite colour, sliding a little
+  ctx.save();
+  ctx.globalAlpha = green ? 0.14 : 0.07;
+  ctx.fillStyle = green ? C.blue : C.green;
+  ctx.beginPath();
+  ctx.arc(W + 40 + Math.sin(t * 0.3) * 20, -60, 420, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = green ? C.beige : C.blue;
+  ctx.beginPath();
+  ctx.arc(-120, H + 80 + Math.cos(t * 0.25) * 20, 460, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  for (const p of SHAPES[sec]) {
+    const x = p.x + Math.sin(t * p.sp + p.ph) * 26, y = p.y + Math.cos(t * p.sp * 0.8 + p.ph) * 34;
+    const col = green ? C.beige : C[p.col];
+    ctx.save();
+    ctx.globalAlpha = green ? 0.16 : 0.13;
+    ctx.translate(x, y);
+    ctx.rotate(t * 0.2 + p.ph);
+    ctx.strokeStyle = col;
+    ctx.fillStyle = col;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    if (p.kind === 0) { ctx.beginPath(); ctx.arc(0, 0, p.s, 0, Math.PI * 2); ctx.stroke(); }
+    if (p.kind === 1) { ctx.beginPath(); ctx.arc(0, 0, p.s * 0.35, 0, Math.PI * 2); ctx.fill(); }
+    if (p.kind === 2) { ctx.beginPath(); ctx.moveTo(-p.s * 0.5, 0); ctx.lineTo(p.s * 0.5, 0); ctx.moveTo(0, -p.s * 0.5); ctx.lineTo(0, p.s * 0.5); ctx.stroke(); }
+    if (p.kind === 3) { ctx.beginPath(); ctx.arc(0, 0, p.s * 0.8, 0, Math.PI); ctx.stroke(); }
+    ctx.restore();
+  }
+}
+
+// ---------------------------------------------------------------- frame furniture
+function chrome(t, sec) {
+  const a = Math.min(prog(t, 0.6, 1.4), 1 - prog(t, OUTRO - 0.3, OUTRO + 0.2));
+  if (a <= 0) return;
+  const col = sec === 3 ? C.beige : C.ink;
+  ctx.save();
+  ctx.globalAlpha = a;
+  text('PUK SPORTS BOARD', 60, 104, { size: 28, weight: 700, color: col, align: 'left', dir: 'ltr', ls: 6 });
+  // progress: one bar per section, the current one long and green
+  for (let i = 5; i >= 0; i--) {
+    const k = i === sec ? 1 : 0;
+    const x1 = W - 60 - (5 - i) * 46 - (i < sec ? 0 : 0);
+    ctx.fillStyle = sec === 3 ? (k ? C.beige : 'rgba(241,232,213,0.4)') : k ? C.green : 'rgba(22,22,22,0.18)';
+    ctx.beginPath();
+    ctx.roundRect(x1 - 34, 86, 34, 10, 5);
+    ctx.fill();
+  }
+  ctx.fillStyle = col;
+  ctx.globalAlpha = a * 0.25;
+  ctx.fillRect(60, 130, W - 120, 2);
+  // bottom signature, gone on the end card
+  const b = a * (1 - prog(t, 37.2, 37.6));
+  if (b > 0) {
+    ctx.globalAlpha = b * 0.25;
+    ctx.fillRect(60, 1752, W - 120, 2);
+    ctx.globalAlpha = b;
+    ctx.drawImage(logoImg, 60, 1782, 78, 78);
+    text('بۆردی وەرزشی', 156, 1836, { size: 34, weight: 800, color: col, align: 'left' });
+    text(S.ku, W - 60, 1836, { size: 34, weight: 800, color: sec === 3 ? C.beige : C.green, align: 'right' });
+  }
+  ctx.restore();
+}
+
+function header(t, t0, num, title, color = C.ink) {
+  const u = prog(t, t0 + 0.1, t0 + 0.8);
+  if (u <= 0) return;
+  const k = ease.expo(u);
+  ctx.save();
+  ctx.globalAlpha = k;
+  ctx.fillStyle = C.green;
+  ctx.beginPath();
+  ctx.roundRect(W - 60 - 96, 182, 96, 72, 36);
+  ctx.fill();
+  text(num, W - 60 - 48, 234, { size: 40, weight: 800, color: C.beige });
+  ctx.restore();
+  riseText(title, W - 60 - 120, 238, prog(t, t0 + 0.2, t0 + 0.9), { size: 60, weight: 900, color, align: 'right' });
+}
+
+// a blue sheet with a green edge sweeps across on every cut
+function transitions(t) {
+  for (const c of CUTS) {
+    const u = prog(t, c - 0.42, c + 0.42);
+    if (u <= 0 || u >= 1) continue;
+    const layers = [[C.green, 0], [C.blue, 0.1]];
+    for (const [col, off] of layers) {
+      const v = clamp((u - off) / 0.9);
+      const a = ease.expoInOut(clamp(v * 2)), b = ease.expoInOut(clamp(v * 2 - 1));
+      const x0 = W * (1 - a), x1 = W * (1 - b), sk = 160;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(x0, 0); ctx.lineTo(x1 + sk + 2, 0); ctx.lineTo(x1 + 2, H); ctx.lineTo(x0 - sk, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+// ---------------------------------------------------------------- 1. intro
+const ICON = { x: 540, y: 690 };
+function introScene(t) {
+  const u = ease.back(prog(t, 0.15, 0.85)), ub = ease.back(prog(t, 0.3, 1.0));
+  disc(ICON.x + 26, ICON.y + 26, 250 * ub, C.blue);
+  disc(ICON.x, ICON.y, 250 * u, C.green);
+  // a dashed ring turning slowly, with a dot riding it
+  const ra = prog(t, 0.7, 1.4);
+  if (ra > 0) {
+    ctx.save();
+    ctx.globalAlpha = ra;
+    ctx.setLineDash([3, 16]);
+    ctx.lineCap = 'round';
+    ctx.lineDashOffset = -t * 30;
+    ring(ICON.x, ICON.y, 312, C.ink, 4, 0.5);
+    ctx.setLineDash([]);
+    const a = -Math.PI / 2 + t * 0.9;
+    disc(ICON.x + Math.cos(a) * 312, ICON.y + Math.sin(a) * 312, 13, C.blue);
+    disc(ICON.x - Math.cos(a) * 312, ICON.y - Math.sin(a) * 312, 8, C.green);
+    ctx.restore();
+  }
+  // the sport's icon drops in and settles
+  const LAND = 1.25;
+  if (t > 0.6) {
+    let y = ICON.y;
+    if (t < LAND) y -= 900 * (1 - ease.in(prog(t, 0.6, LAND)));
+    else y -= 46 * Math.exp(-(t - LAND) * 5.5) * Math.abs(Math.sin((t - LAND) * 9));
+    const squash = t > LAND ? 1 + 0.12 * Math.exp(-(t - LAND) * 9) : 1;
+    glyph(S.gear, ICON.x, y, 1.62, 0.05 * Math.sin(t * 1.3), t, squash);
+  }
+  // name, English name, tagline, category
+  const size = fitSize(S.ku, 900, 190, 940, 84);
+  riseText(S.ku, 540, 1170, prog(t, 1.3, 2.0), { size, weight: 900, color: C.green });
+  const eu = prog(t, 1.7, 2.4);
+  if (eu > 0) text(S.en, 540 + (1 - ease.expo(eu)) * 60, 1330, { size: 42, weight: 700, color: C.blue, dir: 'ltr', ls: 12, alpha: ease.expo(eu) });
+  riseText(S.tagline, 540, 1440, prog(t, 2.05, 2.75), { size: fitSize(S.tagline, 700, 60, 900), weight: 700, color: C.ink });
+  pill(CAT.ku, 540, 1555, prog(t, 2.5, 3.3), { size: 36, bg: C.blue, color: C.beige });
+  const lu = ease.expoInOut(prog(t, 1.5, 2.3));
+  if (lu > 0) { ctx.fillStyle = C.blue; ctx.fillRect(540 - 70 * lu, 1262, 140 * lu, 6); }
+}
+
+// ---------------------------------------------------------------- 2. the field and the play
+const CARD = { x: 90, y: 296, w: 900, h: 1060 };
+function fieldScene(t) {
+  header(t, 5, kd(1), 'چۆن یاری دەکرێت؟');
+  const u = ease.expo(prog(t, 5.05, 5.85));
+  if (u <= 0) return;
+  ctx.save();
+  ctx.translate(0, (1 - u) * 140);
+  ctx.globalAlpha = clamp(u * 1.5);
+  ctx.fillStyle = 'rgba(22,22,22,0.12)';
+  ctx.beginPath(); ctx.roundRect(CARD.x + 16, CARD.y + 16, CARD.w, CARD.h, 42); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(CARD.x, CARD.y, CARD.w, CARD.h, 42);
+  ctx.fillStyle = F.card;
+  ctx.fill();
+  ctx.clip();
+  // fit the field (in its own units) into the card
+  const pad = 62, aw = CARD.w - pad * 2, ah = CARD.h - pad * 2;
+  const fw = F.w + 2 * (F.pad || 0), fh = F.h + 2 * (F.pad || 0);
+  const s = Math.min(aw / fw, ah / fh);
+  const ox = CARD.x + CARD.w / 2 - (F.w / 2) * s, oy = CARD.y + CARD.h / 2 - (F.h / 2) * s;
+  // the lines are drawn out from the centre
+  const reveal = ease.inOut(prog(t, 5.3, 6.4));
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CARD.x + CARD.w / 2, CARD.y + CARD.h / 2, 760 * reveal, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.translate(ox, oy);
+  ctx.scale(s, s);
+  ctx.lineWidth = 3.4 / s;
+  ctx.strokeStyle = F.line || LINE;
+  ctx.fillStyle = F.line || LINE;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  F.draw(t, s);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(ox, oy);
+  ctx.scale(s, s);
+  PLAY.draw(t, s);
+  ctx.restore();
+  ctx.restore();
+  // the score word, if the play has a big moment
+  if (S.scoreWord && PLAY.scoreAt) {
+    const su = prog(t, PLAY.scoreAt, PLAY.scoreAt + 0.5);
+    if (su > 0) {
+      const k = ease.back(su);
+      ctx.save();
+      ctx.translate(540, CARD.y + 120);
+      ctx.scale(k, k);
+      pill(S.scoreWord, 0, 0, 1, { size: 64, weight: 900, bg: C.beige, color: C.green, padX: 44 });
+      ctx.restore();
+    }
+  }
+  // two lines about the sport
+  riseText(S.about[0], 540, 1490, prog(t, 6.0, 6.8), { size: fitSize(S.about[0], 800, 56, 940), weight: 800, color: C.ink });
+  riseText(S.about[1], 540, 1576, prog(t, 6.35, 7.15), { size: fitSize(S.about[1], 800, 56, 940), weight: 800, color: C.blue });
+}
+
+// ---------------------------------------------------------------- 3. facts
+function factsScene(t) {
+  header(t, 15, kd(2), 'بە ژمارە');
+  S.facts.forEach(([n, label], i) => {
+    const t0 = FACT_IN[i];
+    const u = ease.expo(prog(t, t0 - 0.1, t0 + 0.7));
+    if (u <= 0) return;
+    const y = 300 + i * 362, h = 318, x = 90, w = 900;
+    const float = Math.sin(t * 1.1 + i * 1.7) * 5;
+    ctx.save();
+    ctx.translate((1 - u) * -1100, float);
+    ctx.fillStyle = 'rgba(22,22,22,0.10)';
+    ctx.beginPath(); ctx.roundRect(x + 14, y + 14, w, h, 34); ctx.fill();
+    ctx.fillStyle = C.card;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 34); ctx.fill();
+    // the number block on the reading side
+    const bw = 330, col = i === 1 ? C.blue : C.green;
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 34); ctx.clip();
+    ctx.fillStyle = col;
+    ctx.fillRect(x + w - bw, y, bw, h);
+    // a few rings turning inside the block
+    ring(x + w - bw / 2, y + h / 2, 150 + 8 * Math.sin(t * 2 + i), 'rgba(241,232,213,0.18)', 3);
+    ctx.restore();
+    const cu = ease.expo(prog(t, t0 + 0.15, t0 + 1.55));
+    const str = kd(n * cu, decimals(n));
+    const size = fitSize(kd(n), 900, 150, bw - 56, 60);
+    text(str, x + w - bw / 2, y + h / 2 + size * 0.36, { size, weight: 900, color: C.beige });
+    // the label, wrapped
+    const lsz = 46, lines = wrap(label, lsz, 800, 470);
+    const ly = y + h / 2 - ((lines.length - 1) * lsz * 1.3) / 2 + lsz * 0.35;
+    lines.forEach((ln, j) => riseText(ln, x + w - bw - 44, ly + j * lsz * 1.3, prog(t, t0 + 0.35 + j * 0.12, t0 + 1.0 + j * 0.12),
+      { size: lsz, weight: 800, color: C.ink, align: 'right' }));
+    // a thin line fills under the label as the number counts
+    ctx.fillStyle = col;
+    ctx.globalAlpha = 0.9;
+    const lw = 470 * cu;
+    ctx.fillRect(x + w - bw - 44 - lw, y + h - 46, lw, 5);
+    ctx.restore();
+  });
+  // the sport's names running along a blue band
+  const bu = ease.expo(prog(t, 15.5, 16.4));
+  if (bu > 0) {
+    ctx.save();
+    ctx.translate(540, 1500);
+    ctx.rotate(-0.035);
+    ctx.fillStyle = C.blue;
+    ctx.fillRect(-W * bu, -62, W * 2 * bu, 124);
+    ctx.beginPath(); ctx.rect(-W, -62, W * 2, 124); ctx.clip();
+    const items = [[S.en, 'ltr', 50, 700, 8], ['•', 'ltr', 50, 700, 0], [S.ku, 'rtl', 56, 900, 0], ['•', 'ltr', 50, 700, 0]];
+    const widths = items.map(([s, , sz, wt, ls]) => measure(s, sz, wt, ls) + 44);
+    const period = widths.reduce((a, b) => a + b, 0);
+    let x = -W + ((t * 90) % period) - period;
+    while (x < W) {
+      items.forEach(([s, dir, sz, wt, ls], k) => {
+        text(s, x + widths[k] / 2, 18, { size: sz, weight: wt, color: C.beige, dir, ls, alpha: k % 2 ? 0.6 : 1 });
+        x += widths[k];
+      });
+    }
+    ctx.restore();
+  }
+}
+
+// ---------------------------------------------------------------- 4. the phrase
+function phraseScene(t) {
+  // the icon, huge and faint, turning behind the words
+  ctx.save();
+  ctx.globalAlpha = 0.1 * prog(t, 25, 25.8);
+  glyph(S.gear, 540, 960, 5.2, t * 0.06, t);
+  ctx.restore();
+  // corner brackets drawing in around the text
+  const bu = ease.expoInOut(prog(t, 25.3, 26.2));
+  ctx.save();
+  ctx.strokeStyle = C.beige;
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  const L = 90 * bu;
+  [[130, 640, 1, 1], [950, 640, -1, 1], [130, 1290, 1, -1], [950, 1290, -1, -1]].forEach(([x, y, sx, sy]) => {
+    if (bu <= 0) return;
+    ctx.beginPath(); ctx.moveTo(x + sx * L, y); ctx.lineTo(x, y); ctx.lineTo(x, y + sy * L); ctx.stroke();
+  });
+  ctx.restore();
+  // the words appear one by one; the accent word gets a blue tag
+  const lines = S.phrase;
+  const size = Math.min(...lines.map(l => fitSize(l, 900, 150, 800, 70)));
+  const strip = w => w.replace(/[،,.!؟?]/g, '');
+  let k = 0;
+  lines.forEach((ln, li) => {
+    const words = ln.split(' ');
+    const sp = size * 0.28;
+    const ws = words.map(w => measure(w, size, 900));
+    const total = ws.reduce((a, b) => a + b, 0) + sp * (words.length - 1);
+    let xr = 540 + total / 2;
+    const y = 900 + li * size * 1.32 - (lines.length - 1) * size * 0.66;
+    words.forEach((w, j) => {
+      const d = WORDS_AT + k * 0.32;
+      k++;
+      const u = prog(t, d, d + 0.75);
+      const cx = xr - ws[j] / 2;
+      if (strip(w) === strip(S.accent) && u > 0) {
+        const hu = ease.expoInOut(prog(t, d + 0.25, d + 0.9));
+        const bw = (ws[j] + 44) * hu;
+        ctx.fillStyle = C.blue;
+        ctx.beginPath();
+        ctx.roundRect(xr + 22 - bw, y - size * 0.86, bw, size * 1.16, 18);
+        ctx.fill();
+      }
+      riseText(w, cx, y, u, { size, weight: 900, color: C.beige });
+      xr -= ws[j] + sp;
+    });
+  });
+  // the sport's name between two short lines
+  const nu = ease.expo(prog(t, 27.2, 28.0));
+  if (nu > 0) {
+    text(S.ku, 540, 1420, { size: 44, weight: 800, color: C.beige, alpha: nu });
+    const tw = measure(S.ku, 44, 800);
+    ctx.fillStyle = C.beige;
+    ctx.globalAlpha = nu;
+    ctx.fillRect(540 + tw / 2 + 24, 1404, 70 * nu, 4);
+    ctx.fillRect(540 - tw / 2 - 24 - 70 * nu, 1404, 70 * nu, 4);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------------------------------------------------------------- 5. in Kurdistan, or coming
+function statusScene(t) {
+  const here = S.kurdistan;
+  const col = here ? C.green : C.blue;
+  const cx = 540, cy = 690;
+  // rings sent out on the beat
+  for (let i = 0; i < 6; i++) {
+    const r0 = STATUS_AT + i * 2 * BEAT;
+    const v = prog(t, r0, r0 + 1.6);
+    if (v > 0 && v < 1) ring(cx, cy, 200 + 240 * ease.out(v), col, 6 * (1 - v) + 1, 0.5 * (1 - v));
+  }
+  const u = ease.back(prog(t, 32.6, STATUS_AT + 0.05));
+  disc(cx + 22, cy + 22, 200 * u, here ? C.blue : C.green);
+  disc(cx, cy, 200 * u, col);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = C.beige;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (here) {
+    // a tick, drawn
+    const k = ease.inOut(prog(t, STATUS_AT + 0.1, STATUS_AT + 0.6));
+    const pts = [[-78, 4], [-22, 60], [86, -58]];
+    const l1 = Math.hypot(56, 56), l2 = Math.hypot(108, 118), d = k * (l1 + l2);
+    ctx.lineWidth = 34;
+    ctx.beginPath();
+    ctx.moveTo(...pts[0]);
+    if (d <= l1) ctx.lineTo(...lerp2(pts[0], pts[1], d / l1));
+    else { ctx.lineTo(...pts[1]); ctx.lineTo(...lerp2(pts[1], pts[2], (d - l1) / l2)); }
+    if (k > 0) ctx.stroke();
+  } else {
+    // an hourglass that turns over and lets its sand run
+    const k = prog(t, STATUS_AT + 0.1, STATUS_AT + 0.9);
+    ctx.rotate(Math.PI * ease.inOut(k) + Math.PI);
+    ctx.globalAlpha = clamp(k * 4);
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.moveTo(-62, -96); ctx.lineTo(62, -96); ctx.moveTo(-62, 96); ctx.lineTo(62, 96);
+    ctx.moveTo(-48, -96); ctx.bezierCurveTo(-48, -30, -8, -14, -8, 0); ctx.bezierCurveTo(-8, 14, -48, 30, -48, 96);
+    ctx.moveTo(48, -96); ctx.bezierCurveTo(48, -30, 8, -14, 8, 0); ctx.bezierCurveTo(8, 14, 48, 30, 48, 96);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.translate(cx, cy);
+    const sand = prog(t, STATUS_AT + 0.9, 37.3);
+    if (k >= 1) {
+      ctx.fillStyle = C.beige;
+      ctx.beginPath(); // top: what is left
+      ctx.moveTo(-36 * (1 - sand) - 6, -70 + 60 * sand); ctx.lineTo(36 * (1 - sand) + 6, -70 + 60 * sand); ctx.lineTo(0, -6); ctx.closePath();
+      if (sand < 0.98) ctx.fill();
+      ctx.beginPath(); // bottom: a growing heap
+      ctx.moveTo(-40, 86); ctx.lineTo(40, 86); ctx.lineTo(0, 86 - 70 * sand); ctx.closePath(); ctx.fill();
+      ctx.fillRect(-2.5, -6, 5, 92 - 70 * sand);
+    }
+  }
+  ctx.restore();
+  const p = (a, b) => prog(t, a, b);
+  if (here) {
+    riseText('لە کوردستان', 540, 1100, p(33.3, 34.0), { size: 150, weight: 900, color: C.green });
+    pill('یاریزانانمان دەدرەوشێنەوە', 540, 1250, p(33.75, 34.6), { size: 50, weight: 900, bg: C.green, color: C.beige });
+    riseText('بۆردی وەرزشی هەمیشە پشتیوانیانە', 540, 1400, p(34.2, 34.9), { size: 50, weight: 700, color: C.ink });
+  } else {
+    riseText('بەم زووانە', 540, 1060, p(33.3, 34.0), { size: 140, weight: 900, color: C.blue });
+    riseText('لە کوردستان', 540, 1190, p(33.55, 34.25), { size: 104, weight: 900, color: C.green });
+    pill('لە داهاتوودا دێت', 540, 1330, p(33.9, 34.7), { size: 52, weight: 900, bg: C.blue, color: C.beige });
+    riseText('داهاتووی ئەم وەرزشە لێرەوە دەست پێدەکات', 540, 1470, p(34.3, 35.0), { size: 46, weight: 700, color: C.ink });
+  }
+}
+
+// ---------------------------------------------------------------- 6. end card
+function endScene(t) {
+  const LX = 540, LY = 760;
+  for (let i = 0; i < 6; i++) {
+    const r0 = LOGO_AT + 0.2 + i * 2 * BEAT;
+    const v = prog(t, r0, r0 + 1.8);
+    if (v > 0 && v < 1) ring(LX, LY, 240 + 260 * ease.out(v), C.green, 7 * (1 - v) + 1, 0.55 * (1 - v));
+  }
+  // an orbit with the sport's icon going round the logo
+  const ou = ease.expoInOut(prog(t, LOGO_AT + 0.2, LOGO_AT + 1.2));
+  if (ou > 0) {
+    ctx.save();
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.ellipse(LX, LY, 380, 300, -0.25, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ou);
+    ctx.stroke();
+    ctx.setLineDash([3, 15]);
+    ctx.lineCap = 'round';
+    ctx.lineDashOffset = t * 24;
+    ring(LX, LY, 290, C.ink, 4, 0.35);
+    ctx.restore();
+    const a = -Math.PI / 2 + (t - LOGO_AT) * 0.75;
+    const ex = Math.cos(a) * 380, ey = Math.sin(a) * 300, r = -0.25;
+    const gx = LX + ex * Math.cos(r) - ey * Math.sin(r), gy = LY + ex * Math.sin(r) + ey * Math.cos(r);
+    const gu = ease.back(prog(t, LOGO_AT + 0.9, LOGO_AT + 1.5));
+    disc(gx, gy, 72 * gu, C.blue);
+    if (gu > 0) glyph(S.gear, gx, gy, 0.5 * gu, 0, t);
+    const b = a + Math.PI;
+    const ex2 = Math.cos(b) * 380, ey2 = Math.sin(b) * 300;
+    disc(LX + ex2 * Math.cos(r) - ey2 * Math.sin(r), LY + ex2 * Math.sin(r) + ey2 * Math.cos(r), 16 * gu, C.green);
+  }
+  const lu = prog(t, LOGO_AT, LOGO_AT + 0.75);
+  if (lu > 0) {
+    const s = 430 * lerp(0.6, 1, ease.back(lu));
+    ctx.save();
+    ctx.globalAlpha = clamp(lu * 2);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoImg, LX - s / 2, LY - s / 2, s, s);
+    ctx.restore();
+  }
+  riseText('بۆردی وەرزشی', 540, 1270, prog(t, LOGO_AT + 0.45, LOGO_AT + 1.2), { size: 132, weight: 900, color: C.green });
+  riseText('یەکێتیی نیشتمانیی کوردستان', 540, 1376, prog(t, LOGO_AT + 0.7, LOGO_AT + 1.4), { size: 62, weight: 800, color: C.ink });
+  pill('هەمیشە لە پاڵتانین', 540, 1530, prog(t, LOGO_AT + 1.1, LOGO_AT + 1.9), { size: 64, weight: 900, bg: C.green, color: C.beige, padX: 48 });
+  const ru = ease.expoInOut(prog(t, LOGO_AT + 0.9, LOGO_AT + 1.6));
+  if (ru > 0) { ctx.fillStyle = C.blue; ctx.fillRect(540 - 90 * ru, 1420, 180 * ru, 5); }
+}
+
+// ---------------------------------------------------------------- frame
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.lineCap = 'butt';
+  ctx.setLineDash([]);
+  const sec = sectionAt(t);
+  backdrop(t, sec);
+  [introScene, fieldScene, factsScene, phraseScene, statusScene, endScene][sec](t);
+  chrome(t, sec);
+  transitions(t);
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.45)), ease.inOut(prog(t, OUTRO, DURATION)));
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(241, 232, 213, ${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+const MISSING = s => ['tagline', 'about', 'facts', 'phrase', 'accent'].filter(k => !s[k]);
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode(), fetch('sports/sports.json').then(r => r.json())])
+  .then(all => {
+    const data = all[all.length - 1];
+    S = data.sports.find(s => s.id === SPORT_ID);
+    if (!S) throw new Error(`no sport "${SPORT_ID}" in sports/sports.json`);
+    const missing = MISSING(S);
+    // ?draft fills missing texts with placeholders, to preview a sport's field and play
+    const draft = { tagline: '…', about: ['…', '…'], facts: [[1, '…'], [2, '…'], [3, '…']], phrase: ['…', '…'], accent: '…' };
+    if (missing.length && QS.has('draft')) missing.forEach(k => { S[k] = draft[k]; });
+    else if (missing.length) throw new Error(`sports.json: "${SPORT_ID}" has no ${missing.join(', ')}`);
+    CAT = data.categories.find(c => c.id === S.cat);
+    const [field, fv] = S.field.split('/');
+    const [play, pv] = S.play.split('/');
+    if (!FIELDS[field]) throw new Error(`unknown field "${field}"`);
+    if (!PLAYS[play]) throw new Error(`unknown play "${play}"`);
+    F = FIELDS[field](fv);
+    PLAY = PLAYS[play](F, pv, S);
+    grainTex = makeGrain();
+    return true;
+  });
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION, bpm: 96, bars: 18,
+  sport: { id: S.id, mood: S.mood, key: S.key || null, sfx: S.sfx, start: S.start || null, kurdistan: S.kurdistan },
+  cuts: CUTS,
+  land: 1.25,
+  title: 1.3,
+  start: 5.9,
+  events: PLAY.events.map(([t, role]) => ({ t: +t.toFixed(3), role })),
+  counts: FACT_IN.map(t0 => [+(t0 + 0.15).toFixed(3), +(t0 + 1.55).toFixed(3)]),
+  words: S.phrase.join(' ').split(' ').map((_, k) => +(WORDS_AT + k * 0.32).toFixed(3)),
+  status: STATUS_AT,
+  logo: LOGO_AT,
+  outro: OUTRO,
+});
+
+if (!QS.has('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>

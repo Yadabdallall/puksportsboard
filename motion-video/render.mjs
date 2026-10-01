@@ -13,6 +13,7 @@
 //   node render.mjs --cues audio/cues.json -> sound cue times for audio.py
 //   node render.mjs --frames 250:460      -> only frames 250..459, no audio (to patch
 //                                            one keyframe interval of an earlier render)
+//   node render.mjs --query sport=judo    -> extra URL parameters for the page
 //
 // Needs Playwright (npm i playwright) and ffmpeg (on PATH or via $FFMPEG).
 import { spawn } from 'node:child_process';
@@ -39,7 +40,7 @@ const pageFile = args.page || 'index.html';
 const out = path.resolve(here, args.out || 'output/puk-sports-board-motion.mp4');
 const ffmpeg = process.env.FFMPEG || 'ffmpeg';
 
-const MIME = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.js': 'text/javascript' };
+const MIME = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.js': 'text/javascript', '.json': 'application/json' };
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
 await page.route('http://motion.local/**', async route => {
@@ -52,7 +53,7 @@ await page.route('http://motion.local/**', async route => {
   }
 });
 page.on('pageerror', e => { console.error('page error:', e); process.exitCode = 1; });
-await page.goto(`http://motion.local/${pageFile}?capture${args.scale ? `&scale=${args.scale}` : ''}${args.dof === '0' ? '&dof=0' : ''}`);
+await page.goto(`http://motion.local/${pageFile}?capture${args.scale ? `&scale=${args.scale}` : ''}${args.dof === '0' ? '&dof=0' : ''}${args.query ? `&${args.query}` : ''}`);
 await page.evaluate(() => window.ready);
 const duration = await page.evaluate(() => window.DURATION);
 
