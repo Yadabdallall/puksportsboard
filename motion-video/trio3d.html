@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Trio</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; display: block; }
+  #gl { position: absolute; left: -99999px; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script type="module">
+/*
+ * Vertical (9:16) 30 s film for the PUK Sports Board: boxing, volleyball and
+ * table tennis as soft, realistic 3D props on deep green, with glowing
+ * Kurdish phrases in Zain.
+ * three.js renders each 3D shot; the text and the logo are drawn on top in
+ * 2D. renderFrame(t) is a pure function of time (see render.mjs --page).
+ */
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const W = 1080, H = 1920, DURATION = 30;
+// Layout is in 1080x1920 units; ?scale=1.5 renders 3K (1620x2880), ?scale=2 4K.
+const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
+// ?dof=0 turns the depth-of-field blur off: crisper objects and ~40% faster renders.
+const DOF = new URLSearchParams(location.search).get('dof') !== '0';
+const BEAT = 60 / 96; // the music runs at 96 bpm: 2.5 s per bar, 12 bars
+const BAR = 4 * BEAT;
+
+// Each shot is two bars. `label` names the sport above the phrase; the words
+// in `accent` are set in green.
+const SHOTS = [
+  { name: 'gloves', start: 0, end: 5.2, label: 'بۆکسێن', text: ['هێز لە دڵەوە', 'دەست پێدەکات'], accent: ['دڵەوە'], textIn: 1.6, textOut: 4.75 },
+  { name: 'bag', start: 4.8, end: 10.2, label: 'ڕاهێنان', text: ['ئارەقەی ئەمڕۆ،', 'سەرکەوتنی سبەینێیە'], accent: ['سەرکەوتنی'], textIn: 5.6, textOut: 9.75 },
+  { name: 'volleyball', start: 9.8, end: 15.2, label: 'بالە', text: ['هەر خاڵێک،', 'بە یەکڕیزی دەبرێتەوە'], accent: ['یەکڕیزی'], textIn: 10.6, textOut: 14.75 },
+  { name: 'tabletennis', start: 14.8, end: 20.2, label: 'تێنسی سەر مێز', text: ['خێرایی و هێمنی،', 'لە یەک کاتدا'], accent: ['هێمنی'], textIn: 15.6, textOut: 19.75 },
+  { name: 'trio', start: 19.8, end: 25.2, label: 'یەکڕیزی', text: ['وەرزش،', 'شانازیی کوردستانە'], accent: ['کوردستانە'], textIn: 20.6, textOut: 24.7 },
+  { name: 'end', start: 25.6, end: 30 },
+];
+const END_TEXT = { title: 'بۆردی وەرزشی', sub: 'یەکێتیی نیشتمانیی کوردستان', line: 'هەمیشە لە پاڵتانین' };
+const WIPE = 25.0;     // cream circle wipe into the end card (bar 11)
+const OUTRO = 29.35;
+
+const COL = {
+  bg: new THREE.Color('#0d271b'),
+  floor: '#12301f',
+  cream: '#ebe5d6',
+  accent: '#34d872',
+};
+const ACCENT_CSS = '#46e486';
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  out: u => 1 - Math.pow(1 - u, 3),
+  outQuint: u => 1 - Math.pow(1 - u, 5),
+  in: u => u * u * u,
+  outBack: u => { const c1 = 1.6, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  sine: u => 0.5 - 0.5 * Math.cos(Math.PI * u),
+};
+
+// ---------------------------------------------------------------- renderer
+const glCanvas = document.createElement('canvas');
+glCanvas.id = 'gl';
+document.body.appendChild(glCanvas);
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W * SCALE, H * SCALE, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const stage = document.getElementById('stage');
+stage.width = W * SCALE;
+stage.height = H * SCALE;
+const ctx = stage.getContext('2d');
+
+function makeScene(fogNear, fogFar) {
+  const s = new THREE.Scene();
+  s.background = COL.bg.clone();
+  s.fog = new THREE.Fog(COL.bg, fogNear, fogFar);
+  s.environment = envMap;
+  s.environmentIntensity = 0.3;
+  const hemi = new THREE.HemisphereLight('#dff7e6', '#0a2016', 0.35);
+  s.add(hemi);
+  const key = new THREE.DirectionalLight('#fff6e6', 1.5);
+  key.position.set(-4, 7, 5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048); // fixed, so the shadow softness is the same at any scale
+  key.shadow.radius = 5;
+  key.shadow.bias = -0.0004;
+  const sc = key.shadow.camera;
+  sc.left = -6; sc.right = 6; sc.top = 6; sc.bottom = -6; sc.near = 0.5; sc.far = 30;
+  s.add(key);
+  const rim = new THREE.DirectionalLight('#7dffb0', 0.8);
+  rim.position.set(5, 3, -6);
+  s.add(rim);
+  return s;
+}
+
+const cream = new THREE.MeshStandardMaterial({ color: COL.cream, roughness: 0.62, metalness: 0 });
+const accentMat = () => new THREE.MeshStandardMaterial({ color: COL.accent, emissive: '#1fcf5c', emissiveIntensity: 2.2, roughness: 0.35 });
+function floor(scene, y = 0) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: COL.floor, roughness: 0.95 }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.y = y;
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+const shadowy = o => { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
+
+// ---------------------------------------------------------------- football geometry
+// Truncated icosahedron with softly puffed panels: dark-green pentagons,
+// cream hexagons and thin recessed seams.
+function footballGeometry(R = 1) {
+  const p = (1 + Math.sqrt(5)) / 2;
+  const ico = [[-1, p, 0], [1, p, 0], [-1, -p, 0], [1, -p, 0], [0, -1, p], [0, 1, p], [0, -1, -p], [0, 1, -p], [p, 0, -1], [p, 0, 1], [-p, 0, -1], [-p, 0, 1]].map(v => new THREE.Vector3(...v));
+  const faces = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+  const third = (a, b) => ico[a].clone().lerp(ico[b], 1 / 3);
+  const panels = [];
+  // hexagons: one per icosahedron face
+  for (const [a, b, c] of faces) panels.push({ pts: [third(a, b), third(b, a), third(b, c), third(c, b), third(c, a), third(a, c)], dark: false });
+  // pentagons: one per icosahedron vertex, ordered around it
+  for (let v = 0; v < 12; v++) {
+    const nbrs = [];
+    for (let u = 0; u < 12; u++) if (u !== v && ico[u].distanceTo(ico[v]) < 2.1) nbrs.push(third(v, u));
+    const n = ico[v].clone().normalize();
+    const cen = nbrs.reduce((s, q) => s.add(q), new THREE.Vector3()).divideScalar(5);
+    const ref = nbrs[0].clone().sub(cen).normalize();
+    const ref2 = new THREE.Vector3().crossVectors(n, ref);
+    nbrs.sort((q1, q2) => {
+      const a1 = Math.atan2(q1.clone().sub(cen).dot(ref2), q1.clone().sub(cen).dot(ref));
+      const a2 = Math.atan2(q2.clone().sub(cen).dot(ref2), q2.clone().sub(cen).dot(ref));
+      return a1 - a2;
+    });
+    panels.push({ pts: nbrs, dark: true });
+  }
+  const pos = [], col = [];
+  const cDark = new THREE.Color('#15452b'), cLight = new THREE.Color(COL.cream);
+  const M = 7, Lr = 6;
+  const inset = 0.955;
+  for (const pn of panels) {
+    const cen = pn.pts.reduce((s, q) => s.add(q.clone()), new THREE.Vector3()).divideScalar(pn.pts.length);
+    const c = pn.dark ? cDark : cLight;
+    const k = pn.pts.length;
+    const at = (i, l, s) => {
+      const e = pn.pts[i % k].clone().lerp(pn.pts[(i + 1) % k], l / Lr);
+      const q = cen.clone().lerp(e, s * inset).normalize();
+      return q.multiplyScalar(R * (1 - 0.022 * Math.pow(s, 5)));
+    };
+    for (let i = 0; i < k; i++) {
+      for (let j = 0; j < M; j++) {
+        const s0 = j / M, s1 = (j + 1) / M;
+        for (let l = 0; l < Lr; l++) {
+          const a = at(i, l, s0), b = at(i, l + 1, s0), cc = at(i, l + 1, s1), d = at(i, l, s1);
+          for (const v of [a, d, cc, a, cc, b]) { pos.push(v.x, v.y, v.z); col.push(c.r, c.g, c.b); }
+        }
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  // smooth normals: on a sphere the normal is the direction from the centre
+  const P = g.attributes.position, N = g.attributes.normal, v = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) {
+    v.fromBufferAttribute(P, i).normalize();
+    N.setXYZ(i, v.x, v.y, v.z);
+  }
+  return g;
+}
+function makeFootball(R) {
+  const grp = new THREE.Group();
+  const panels = new THREE.Mesh(footballGeometry(R), new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.4 }));
+  const core = new THREE.Mesh(new THREE.SphereGeometry(R * 0.975, 64, 48), new THREE.MeshStandardMaterial({ color: '#0b1f15', roughness: 0.9 }));
+  grp.add(core, panels);
+  return shadowy(grp);
+}
+
+// ---------------------------------------------------------------- ball textures
+// Equirectangular canvas textures for the balls that aren't built from panels.
+function ballTexture(draw) {
+  const c = document.createElement('canvas');
+  c.width = 2048; c.height = 1024;
+  const g = c.getContext('2d');
+  draw(g, c.width, c.height);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+function seamPath(g, W2, H2, f) {
+  g.beginPath();
+  for (let i = 0; i <= 400; i++) {
+    const v = i / 400, u = f(v);
+    i ? g.lineTo(u * W2, v * H2) : g.moveTo(u * W2, v * H2);
+  }
+}
+const volleyTex = ballTexture((g, w, h) => {
+  // three swirling bands of three strips each, in cream, green and white
+  g.fillStyle = '#efe9da';
+  g.fillRect(0, 0, w, h);
+  const cols = ['#1f7a45', '#f6f2e6', '#e3dccb'];
+  for (let band = 0; band < 3; band++) {
+    for (let s = 0; s < 3; s++) {
+      g.fillStyle = cols[(band + s) % 3];
+      g.beginPath();
+      const off = band / 3, y0 = 0.18 + s * 0.215, y1 = y0 + 0.215;
+      for (let i = 0; i <= 200; i++) {
+        const u = i / 200;
+        g.lineTo((off + u / 3) * w, (y0 + 0.08 * Math.sin(u * Math.PI * 2 + band)) * h);
+      }
+      for (let i = 200; i >= 0; i--) {
+        const u = i / 200;
+        g.lineTo((off + u / 3) * w, (y1 + 0.08 * Math.sin(u * Math.PI * 2 + band)) * h);
+      }
+      g.closePath();
+      g.fill();
+    }
+  }
+  g.strokeStyle = 'rgba(20, 40, 28, 0.55)';
+  g.lineWidth = 6;
+  for (let k = 0; k <= 3; k++) { g.beginPath(); g.moveTo(k / 3 * w, 0); g.lineTo(k / 3 * w, h); g.stroke(); }
+});
+const basketTex = ballTexture((g, w, h) => {
+  g.fillStyle = '#c4622d';
+  g.fillRect(0, 0, w, h);
+  // pebbled leather
+  const r = (() => { let s = 7; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+  for (let i = 0; i < 60000; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(90, 35, 10, 0.18)' : 'rgba(255, 190, 140, 0.10)';
+    g.fillRect(r() * w, r() * h, 3, 3);
+  }
+  g.strokeStyle = '#231710';
+  g.lineWidth = 14;
+  g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w, h / 2); g.stroke();
+  for (const u of [0.25, 0.75]) { g.beginPath(); g.moveTo(u * w, 0); g.lineTo(u * w, h); g.stroke(); }
+  for (const c of [0, 0.5, 1]) {
+    for (const sgn of [-1, 1]) {
+      seamPath(g, w, h, v => c + sgn * 0.17 * Math.cos((v - 0.5) * Math.PI));
+      g.stroke();
+    }
+  }
+});
+const tennisTex = ballTexture((g, w, h) => {
+  g.fillStyle = '#c9d93a';
+  g.fillRect(0, 0, w, h);
+  const r = (() => { let s = 3; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
+  for (let i = 0; i < 50000; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(120, 140, 20, 0.2)' : 'rgba(250, 255, 190, 0.2)';
+    g.fillRect(r() * w, r() * h, 2, 2);
+  }
+  g.strokeStyle = '#f4f1e4';
+  g.lineWidth = 26;
+  seamPath(g, w, h, v => v);
+  g.beginPath();
+  for (let i = 0; i <= 400; i++) {
+    const u = i / 400, v = 0.5 + 0.28 * Math.sin(u * Math.PI * 4);
+    i ? g.lineTo(u * w, v * h) : g.moveTo(u * w, v * h);
+  }
+  g.stroke();
+});
+function texturedBall(R, tex, roughness = 0.55) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(R, 96, 64), new THREE.MeshStandardMaterial({ map: tex, roughness }));
+  m.castShadow = true;
+  m.receiveShadow = true;
+  return m;
+}
+const makeVolleyball = R => texturedBall(R, volleyTex, 0.5);
+const makeBasketball = R => texturedBall(R, basketTex, 0.75);
+const makeTennisBall = R => texturedBall(R, tennisTex, 0.95);
+
+// A ball that falls to `y` and settles, landing first at t0.
+function dropY(t, t0, rest, h = 2.6) {
+  if (t < t0) return rest + h * (1 - ease.in(prog(t, t0 - 0.62, t0)));
+  const k = t - t0;
+  return rest + Math.abs(Math.sin(k * 7.5)) * 0.42 * Math.exp(-k * 3.2);
+}
+
+function lines(points, color = COL.cream, opacity = 0.8) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+}
+
+// ---------------------------------------------------------------- props
+// Leather: cream with a soft sheen; the trims in the brand's deep green.
+const leather = new THREE.MeshPhysicalMaterial({ color: '#ece4d2', roughness: 0.42, clearcoat: 0.45, clearcoatRoughness: 0.35, sheen: 0.4, sheenRoughness: 0.6, sheenColor: '#ffffff' });
+const leatherGreen = new THREE.MeshPhysicalMaterial({ color: '#1d5e3b', roughness: 0.45, clearcoat: 0.4, clearcoatRoughness: 0.35 });
+const stitchMat = new THREE.MeshStandardMaterial({ color: '#c9bfa8', roughness: 0.8 });
+
+// A boxing glove, about 0.8 m tall (fist up, cuff down): one smooth turned
+// body flattened front to back, knuckles, a thumb along the side, a closed cuff
+// with a green band.
+const gloveProfile = [[0, -0.37], [0.15, -0.375], [0.2, -0.36], [0.212, -0.33], [0.215, -0.2], [0.208, -0.06],
+  [0.21, 0.0], [0.25, 0.08], [0.285, 0.17], [0.3, 0.25], [0.29, 0.32], [0.25, 0.38], [0.18, 0.42], [0.09, 0.44], [0, 0.445]]
+  .map(([r, y]) => new THREE.Vector2(r, y));
+const gloveBodyGeo = new THREE.LatheGeometry(gloveProfile, 96);
+function makeGlove(side = 1) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(gloveBodyGeo, leather);
+  body.scale.set(1, 1, 0.84);
+  const knuckle = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), leather);
+  knuckle.scale.set(0.25, 0.17, 0.17);
+  knuckle.position.set(0, 0.3, 0.1);
+  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.17, 16, 32), leather);
+  thumb.position.set(0.225 * side, 0.12, 0.1);
+  thumb.rotation.set(0.25, 0, -0.18 * side);
+  const thumbTip = new THREE.Mesh(new THREE.SphereGeometry(0.072, 32, 24), leather);
+  thumbTip.position.set(0.245 * side, 0.215, 0.13);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.219, 0.221, 0.11, 96, 1, true), leatherGreen);
+  band.scale.set(1, 1, 0.84);
+  band.position.y = -0.16;
+  const seamA = new THREE.Mesh(new THREE.TorusGeometry(0.221, 0.005, 8, 96), stitchMat);
+  seamA.scale.set(1, 0.84, 1);
+  seamA.rotation.x = Math.PI / 2;
+  seamA.position.y = -0.1;
+  const seamB = seamA.clone();
+  seamB.position.y = -0.22;
+  const patch = new THREE.Mesh(new RoundedBoxGeometry(0.16, 0.06, 0.01, 2, 0.004), leatherGreen);
+  patch.position.set(0, 0.2, 0.26);
+  patch.rotation.x = -0.15;
+  g.add(body, knuckle, thumb, thumbTip, band, seamA, seamB, patch);
+  return shadowy(g);
+}
+
+// A table-tennis bat: red rubber on one face, black on the other, wooden handle.
+function makePaddle(rubber = '#b3262b') {
+  const g = new THREE.Group();
+  const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.008, 64), new THREE.MeshStandardMaterial({ color: '#c9a77a', roughness: 0.7 }));
+  const faceA = new THREE.Mesh(new THREE.CylinderGeometry(0.074, 0.074, 0.003, 64), new THREE.MeshStandardMaterial({ color: rubber, roughness: 0.55 }));
+  faceA.position.y = 0.0055;
+  const faceB = new THREE.Mesh(new THREE.CylinderGeometry(0.074, 0.074, 0.003, 64), new THREE.MeshStandardMaterial({ color: '#1b1b1b', roughness: 0.55 }));
+  faceB.position.y = -0.0055;
+  const handle = new THREE.Mesh(new RoundedBoxGeometry(0.03, 0.022, 0.1, 3, 0.008), new THREE.MeshStandardMaterial({ color: '#b48b5a', roughness: 0.6 }));
+  handle.position.z = 0.115;
+  g.add(blade, faceA, faceB, handle);
+  g.rotation.x = Math.PI / 2; // stand the bat up
+  const outer = new THREE.Group();
+  outer.add(g);
+  return shadowy(outer);
+}
+const ppBallMat = new THREE.MeshStandardMaterial({ color: '#fbf7ee', roughness: 0.35 });
+
+// ---------------------------------------------------------------- shot: hanging gloves
+const SG = (() => {
+  const scene = makeScene(8, 22);
+  floor(scene, -1.2);
+  const cam = new THREE.PerspectiveCamera(30, W / H, 0.1, 100);
+  const hook = new THREE.Vector3(0, 2.0, 0);
+  const gloves = [makeGlove(1), makeGlove(-1)];
+  gloves.forEach(g => scene.add(g));
+  const laces = lines(new Array(12).fill(0), '#e9e2cf', 0.9);
+  scene.add(laces);
+  const peg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 24), leatherGreen);
+  peg.rotation.x = Math.PI / 2;
+  peg.position.copy(hook);
+  scene.add(peg);
+  return {
+    scene, cam, focus: 6, aperture: 0.002,
+    update(t) {
+      const arr = laces.geometry.attributes.position.array;
+      gloves.forEach((g, i) => {
+        const sw = Math.sin(t * 1.3 + i * 1.7) * 0.07;
+        const len = 1.15 + i * 0.22;
+        const x = (i ? -0.2 : 0.18) + Math.sin(sw) * len;
+        const y = hook.y - Math.cos(sw) * len;
+        g.position.set(x, y, i ? -0.1 : 0.05);
+        g.rotation.set(Math.PI + 0.1, t * 0.25 * (i ? -1 : 1) + i * 2.2, sw * 0.6);
+        // two laces per glove, from the cuff up to the peg
+        const cuffTop = new THREE.Vector3(0, -0.37, 0).applyEuler(g.rotation).add(g.position);
+        for (let k = 0; k < 2; k++) {
+          const o = (i * 2 + k) * 6;
+          arr[o] = cuffTop.x + (k ? 0.05 : -0.05); arr[o + 1] = cuffTop.y; arr[o + 2] = cuffTop.z;
+          arr[o + 3] = hook.x + (k ? 0.02 : -0.02); arr[o + 4] = hook.y; arr[o + 5] = hook.z;
+        }
+      });
+      laces.geometry.attributes.position.needsUpdate = true;
+      const u = ease.sine(prog(t, 0, 5.2));
+      cam.position.set(lerp(-0.7, 0.6, u), lerp(1.2, 1.0, u), lerp(6.0, 5.3, u));
+      cam.lookAt(0, 0.15, 0);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: punching bag
+const SP = (() => {
+  const scene = makeScene(9, 24);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(32, W / H, 0.1, 100);
+  const pivot = new THREE.Vector3(0, 3.3, 0);
+  const bag = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 1.05, 16, 64), leatherGreen);
+  body.position.y = -1.25;
+  const bandTop = new THREE.Mesh(new THREE.CylinderGeometry(0.348, 0.348, 0.08, 64), leather);
+  bandTop.position.y = -0.82;
+  const bandBot = bandTop.clone();
+  bandBot.position.y = -1.68;
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.06, 24, 16), leather);
+  cap.position.y = -0.48;
+  bag.add(body, bandTop, bandBot, cap);
+  shadowy(bag);
+  bag.position.copy(pivot);
+  scene.add(bag);
+  const chains = lines(new Array(24).fill(0), '#cfc6b2', 0.9); // three chains and the hanger
+  scene.add(chains);
+  const glove = makeGlove(1);
+  scene.add(glove);
+  const hits = [6.25, 7.5, 8.75]; // on beats of bars 3 and 4
+  return {
+    scene, cam, focus: 6, aperture: 0.002, hits,
+    update(t) {
+      // damped swing from each punch
+      let ang = 0;
+      for (const h of hits) if (t > h) ang += 0.16 * Math.exp(-(t - h) * 1.1) * Math.sin((t - h) * 3.4);
+      bag.rotation.set(0, t * 0.08, -ang);
+      const top = new THREE.Vector3(0, -0.48, 0).applyEuler(bag.rotation).add(pivot);
+      const arr = chains.geometry.attributes.position.array;
+      for (let k = 0; k < 3; k++) {
+        const a = k / 3 * Math.PI * 2;
+        const p = new THREE.Vector3(Math.cos(a) * 0.3, -0.82, Math.sin(a) * 0.3).applyEuler(bag.rotation).add(pivot);
+        arr.set([p.x, p.y, p.z, top.x, top.y, top.z], k * 6);
+      }
+      arr.set([top.x, top.y, top.z, pivot.x, pivot.y + 0.4, pivot.z], 18);
+      chains.geometry.attributes.position.needsUpdate = true;
+      // the glove: wind back, strike on the beat, recoil
+      const h = hits.find(x => t < x + 0.6) ?? hits[hits.length - 1];
+      const k = t - h;
+      const reach = k < -0.35 ? 0 : k < 0 ? ease.in(prog(k, -0.35, 0)) : 1 - ease.out(prog(k, 0, 0.5));
+      const contact = new THREE.Vector3(-0.36, 2.1, 0.1).applyAxisAngle(new THREE.Vector3(0, 0, 1), -ang * 0.4);
+      glove.position.set(lerp(-1.5, contact.x - 0.45, reach), lerp(1.85, contact.y, reach), lerp(0.55, 0.2, reach));
+      glove.rotation.set(0.25, 0.35, -Math.PI / 2); // fist first, towards the bag
+      const u = ease.sine(prog(t, 4.8, 10.2));
+      cam.position.set(lerp(2.2, 1.5, u), lerp(1.9, 1.7, u), lerp(6.6, 6.0, u));
+      cam.lookAt(-0.25, 1.65, 0);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: volleyball spike
+const SVB = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(36, W / H, 0.1, 100);
+  const NW = 3.4, NT = 1.55, NB = 0.95;
+  const g = new THREE.Group();
+  const postG = new THREE.CylinderGeometry(0.04, 0.04, 1.75, 20);
+  for (const x of [-NW / 2 - 0.05, NW / 2 + 0.05]) {
+    const p = new THREE.Mesh(postG, cream); p.position.set(x, 0.875, 0); g.add(p);
+  }
+  const band = new THREE.Mesh(new RoundedBoxGeometry(NW, 0.06, 0.02, 2, 0.01), cream);
+  band.position.y = NT;
+  g.add(band);
+  const pts = [];
+  for (let x = -NW / 2; x <= NW / 2 + 1e-6; x += 0.1) pts.push(x, NB, 0, x, NT, 0);
+  for (let y = NB; y <= NT + 1e-6; y += 0.1) pts.push(-NW / 2, y, 0, NW / 2, y, 0);
+  g.add(lines(pts, COL.cream, 0.5));
+  g.rotation.y = Math.PI / 2; // the net runs away from the camera
+  scene.add(shadowy(g));
+  const ball = makeVolleyball(0.18);
+  scene.add(ball);
+  const set = 11.25, spike = 12.5, land = 12.86; // spike on the bar-6 downbeat
+  const A = new THREE.Vector3(-0.9, 1.0, 0.6), TOP = new THREE.Vector3(-0.35, 2.55, 0.3), LAND = new THREE.Vector3(1.3, 0.18, 1.1);
+  return {
+    scene, cam, focus: 6, aperture: 0.002, spike, land,
+    update(t) {
+      let p;
+      if (t < set) p = A.clone().setY(A.y + 0.2 * Math.sin(t * 2));
+      else if (t < spike) {
+        const u = prog(t, set, spike);
+        p = A.clone().lerp(TOP, u);
+        p.y = lerp(A.y, TOP.y, Math.sin(u * Math.PI / 2));
+      } else if (t < land) p = TOP.clone().lerp(LAND, ease.in(prog(t, spike, land)) * 0.35 + prog(t, spike, land) * 0.65);
+      else {
+        const k = t - land;
+        p = LAND.clone().add(new THREE.Vector3(k * 0.9, Math.abs(Math.sin(k * 4.5)) * 0.8 * Math.exp(-k * 1.4), k * 0.5));
+      }
+      ball.position.copy(p);
+      ball.rotation.set(t * 2.5, t * 1.5, 0);
+      const u = ease.sine(prog(t, 9.8, 15.2));
+      cam.position.set(lerp(3.6, 3.0, u), lerp(0.55, 0.7, u), lerp(4.8, 4.2, u));
+      cam.lookAt(0.1, 1.55, 0.3);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: table tennis
+const STT = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(34, W / H, 0.1, 100);
+  const L = 2.74, Wd = 1.525, TH = 0.76;
+  const table = new THREE.Group();
+  const top = new THREE.Mesh(new RoundedBoxGeometry(Wd, 0.04, L, 2, 0.01), new THREE.MeshStandardMaterial({ color: '#17563a', roughness: 0.45 }));
+  top.position.y = TH;
+  const white = new THREE.MeshStandardMaterial({ color: '#f3efe4', roughness: 0.5 });
+  const lineGeo = (w, d, x, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.002, d), white); m.position.set(x, TH + 0.021, z); return m; };
+  table.add(top, lineGeo(0.02, L, Wd / 2 - 0.01, 0), lineGeo(0.02, L, -Wd / 2 + 0.01, 0), lineGeo(Wd, 0.02, 0, L / 2 - 0.01), lineGeo(Wd, 0.02, 0, -L / 2 + 0.01), lineGeo(0.006, L, 0, 0));
+  for (const [x, z] of [[-0.6, -1.1], [0.6, -1.1], [-0.6, 1.1], [0.6, 1.1]]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, TH, 16), new THREE.MeshStandardMaterial({ color: '#2a2f2c', roughness: 0.5, metalness: 0.4 }));
+    leg.position.set(x, TH / 2, z);
+    table.add(leg);
+  }
+  const netMesh = new THREE.Mesh(new THREE.BoxGeometry(Wd + 0.2, 0.1525, 0.004), new THREE.MeshStandardMaterial({ color: '#f6f2e8', roughness: 0.9, transparent: true, opacity: 0.55 }));
+  netMesh.position.set(0, TH + 0.096, 0);
+  const tape = new THREE.Mesh(new THREE.BoxGeometry(Wd + 0.2, 0.012, 0.006), white);
+  tape.position.set(0, TH + 0.17, 0);
+  table.add(netMesh, tape);
+  scene.add(shadowy(table));
+  const batA = makePaddle('#b3262b'), batB = makePaddle('#1b1b1b');
+  scene.add(batA, batB);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.032, 32, 24), ppBallMat);
+  ball.castShadow = true;
+  scene.add(ball);
+  batA.scale.setScalar(1.5);
+  batB.scale.setScalar(1.5);
+  // a rally: hits on every beat, each crossing the net with one bounce
+  const first = 6 * BAR + 2 * BEAT; // 16.25 s
+  const n = 6;
+  const hits = Array.from({ length: n }, (_, i) => first + i * BEAT);
+  const end = (i) => ({ x: (i % 2 ? 0.35 : -0.3), z: (i % 2 ? -1.55 : 1.55), y: TH + 0.25 });
+  return {
+    scene, cam, focus: 6, aperture: 0.002, hits,
+    bounces: hits.slice(0, -1).map(h => h + BEAT * 0.62),
+    update(t) {
+      let i = hits.findIndex(h => t < h) - 1;
+      if (i < -1) i = n - 1;
+      let p;
+      if (t < hits[0]) { const e = end(0); p = new THREE.Vector3(e.x, e.y + 0.12 * Math.sin(t * 5), e.z); }
+      else if (i >= n - 1 || i < 0) { // after the last hit the ball drifts off the far end
+        const e = end(n - 1), k = t - hits[n - 1];
+        p = new THREE.Vector3(e.x * (1 - k * 0.3), e.y + 0.3 * k - 2 * k * k, e.z + (e.z > 0 ? -1 : 1) * k * 2.2);
+      } else {
+        const a = end(i), b = end(i + 1);
+        const u = prog(t, hits[i], hits[i + 1]);
+        const ub = 0.62; // bounce on the far half
+        let y;
+        if (u < ub) { const v = u / ub; y = lerp(a.y, TH + 0.02, v) + Math.sin(v * Math.PI) * 0.18; }
+        else { const v = (u - ub) / (1 - ub); y = lerp(TH + 0.02, b.y, v) + Math.sin(v * Math.PI) * 0.12; }
+        p = new THREE.Vector3(lerp(a.x, b.x, u), y, lerp(a.z, b.z, u));
+      }
+      ball.position.copy(p);
+      // the bats follow the ball's line at each end and swing through at the hit
+      [batA, batB].forEach((bat, side) => {
+        const z = side ? -1.62 : 1.62;
+        const near = hits.filter((h, k) => k % 2 === side);
+        const h = near.reduce((best, x) => Math.abs(t - x) < Math.abs(t - best) ? x : best, near[0]);
+        const sw = Math.exp(-(((t - h) / 0.12) ** 2));
+        bat.position.set(lerp(side ? 0.25 : -0.2, p.x, 0.6), TH + 0.22 + 0.05 * sw, z + (side ? 1 : -1) * 0.08 * sw);
+        bat.rotation.set(0, (side ? 1 : -1) * (0.9 - 0.7 * sw), (side ? 0.3 : -0.3));
+      });
+      const u = ease.sine(prog(t, 14.8, 20.2));
+      cam.position.set(lerp(0.3, 0.05, u), lerp(1.75, 1.6, u), lerp(4.1, 3.8, u));
+      cam.lookAt(-0.05, 0.45, -0.4);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: the three together
+const ST = (() => {
+  const scene = makeScene(10, 26);
+  floor(scene);
+  const cam = new THREE.PerspectiveCamera(32, W / H, 0.1, 100);
+  const glove = makeGlove(1), vb = makeVolleyball(0.21), bat = makePaddle('#b3262b');
+  bat.scale.setScalar(2.2);
+  glove.scale.setScalar(0.62);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.022, 32, 24), ppBallMat);
+  const items = [
+    { obj: glove, h: 0.7, lift: 0.24, rot: [0, 0.5, 0] },
+    { obj: vb, h: 0.9, lift: 0.21, rot: [0.2, 0, 0] },
+    { obj: bat, h: 0.6, lift: 0.3, rot: [0, 0.6, 0] },
+  ];
+  items.forEach((it, i) => {
+    const ped = new THREE.Mesh(new RoundedBoxGeometry(0.66, it.h, 0.66, 4, 0.05), cream);
+    ped.position.set((i - 1) * 0.74, it.h / 2, (i - 1) * 0.55);
+    it.ped = ped;
+    scene.add(shadowy(ped), it.obj);
+  });
+  scene.add(ball);
+  return {
+    scene, cam, focus: 6, aperture: 0.002,
+    update(t) {
+      items.forEach((it, i) => {
+        const u = ease.outBack(prog(t, 20.0 + i * BEAT / 2, 20.7 + i * BEAT / 2));
+        it.ped.position.y = lerp(-it.h / 2 - 0.05, it.h / 2, u);
+        it.obj.position.set(it.ped.position.x, it.ped.position.y + it.h / 2 + it.lift + 0.03 * Math.sin(t * 1.5 + i), it.ped.position.z);
+        it.obj.rotation.set(it.rot[0], it.rot[1] + t * 0.35, it.rot[2]);
+      });
+      const b = items[2];
+      ball.position.set(b.obj.position.x + 0.12, b.ped.position.y + b.h / 2 + 0.022 + Math.abs(Math.sin(t * 4)) * 0.18, b.obj.position.z + 0.1);
+      const s = ease.sine(prog(t, 19.8, 25.2));
+      cam.position.set(lerp(2.4, 1.2, s), lerp(2.2, 1.9, s), lerp(6.2, 6.7, s));
+      cam.lookAt(0.15, -0.05, 0.1);
+    },
+  };
+})();
+
+// ---------------------------------------------------------------- shot: end card backdrop
+const SE = (() => {
+  const scene = makeScene(6, 18);
+  const cam = new THREE.PerspectiveCamera(35, W / H, 0.1, 100);
+  cam.position.set(0, 0, 8);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.012, 16, 200), new THREE.MeshStandardMaterial({ color: COL.cream, roughness: 0.4, emissive: '#1a3a28', emissiveIntensity: 0.25 }));
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.9, 0.006, 12, 200), new THREE.MeshStandardMaterial({ color: COL.accent, emissive: '#1fcf5c', emissiveIntensity: 0.5 }));
+  ring.position.y = ring2.position.y = 0.47;
+  scene.add(ring, ring2);
+  const glove = makeGlove(1);
+  glove.scale.setScalar(0.45);
+  const drift = [[glove, -1.15, 2.5, -2], [makeVolleyball(0.2), 1.2, 2.8, -3], [makePaddle('#b3262b'), 1.25, -2.6, -1.5]];
+  drift[2][0].scale.setScalar(1.8);
+  drift.forEach(([m, x, y, z]) => { m.userData.base = [x, y, z]; scene.add(m); });
+  return {
+    scene, cam, focus: 8, aperture: 0.006,
+    update(t) {
+      const u = ease.outQuint(prog(t, WIPE + 0.4, WIPE + 2.2));
+      ring.scale.setScalar(lerp(0.6, 1, u));
+      ring2.scale.setScalar(lerp(0.4, 1, ease.outQuint(prog(t, WIPE + 0.6, WIPE + 2.6))));
+      ring.rotation.set(0.35 * Math.sin(t * 0.6), 0.45 * Math.sin(t * 0.45), 0);
+      ring2.rotation.set(-0.3 * Math.sin(t * 0.5 + 1), -0.4 * Math.sin(t * 0.4 + 2), 0);
+      drift.forEach(([m], i) => {
+        const [x, y, z] = m.userData.base;
+        m.position.set(x + Math.sin(t * 0.4 + i) * 0.12, y + Math.sin(t * 0.55 + i * 2) * 0.1, z);
+        m.rotation.set(Math.sin(t * 0.5) * 0.3, t * 0.4 + i, 0);
+      });
+      cam.position.z = lerp(8.6, 8, ease.out(prog(t, WIPE + 0.4, DURATION)));
+    },
+  };
+})();
+
+const SCENES = { gloves: SG, bag: SP, volleyball: SVB, tabletennis: STT, trio: ST, end: SE };
+
+// ---------------------------------------------------------------- post-processing
+// a multisampled target, so the 3D edges are antialiased through the post-processing
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(W * SCALE, H * SCALE, { type: THREE.HalfFloatType, samples: 4 }));
+composer.setPixelRatio(1);
+composer.setSize(W * SCALE, H * SCALE);
+const renderPass = new RenderPass(SG.scene, SG.cam);
+const bokeh = new BokehPass(SG.scene, SG.cam, { focus: 7, aperture: 0.002, maxblur: 0.009 });
+const bloom = new UnrealBloomPass(new THREE.Vector2(W * SCALE / 2, H * SCALE / 2), 0.2, 0.5, 1.2);
+composer.addPass(renderPass);
+if (DOF) composer.addPass(bokeh);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+function render3D(shot, t) {
+  const s = SCENES[shot.name];
+  s.update(t);
+  renderPass.scene = bokeh.scene = s.scene;
+  renderPass.camera = bokeh.camera = s.cam;
+  bokeh.uniforms.focus.value = s.focus;
+  bokeh.uniforms.aperture.value = s.aperture;
+  bokeh.uniforms.nearClip.value = s.cam.near;
+  bokeh.uniforms.farClip.value = s.cam.far;
+  bokeh.uniforms.aspect.value = W / H;
+  composer.render();
+  return glCanvas;
+}
+
+// ---------------------------------------------------------------- 2D overlay
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.forEach(f => document.fonts.add(f));
+
+// A line of words, right to left; accent words in green.
+function wordsLine(text, accent, x, y, size, weight, alpha = 1) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px Zain`;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'right';
+  const words = text.split(' ');
+  const ws = words.map(w => ctx.measureText(w).width);
+  const sp = ctx.measureText(' ').width;
+  const total = ws.reduce((a, b) => a + b, 0) + sp * (words.length - 1);
+  const fit = Math.min(1, 940 / total);
+  ctx.translate(x, y);
+  ctx.scale(fit, fit);
+  ctx.translate(-x, -y);
+  let xr = x + total / 2;
+  ctx.globalAlpha = alpha;
+  const x0 = xr;
+  for (const pass of [0, 1, 2]) {
+    xr = x0;
+    words.forEach((w, i) => {
+      const green = accent.includes(w.replace(/[،,.!؟?]/g, ''));
+      if (pass === 0) { ctx.shadowColor = green ? 'rgba(70, 228, 134, 0.5)' : 'rgba(255, 255, 255, 0.3)'; ctx.shadowBlur = 32 * SCALE; }
+      else if (pass === 1) { ctx.shadowColor = green ? 'rgba(120, 255, 170, 0.55)' : 'rgba(255, 255, 255, 0.4)'; ctx.shadowBlur = 9 * SCALE; }
+      else ctx.shadowBlur = 0;
+      ctx.fillStyle = green ? ACCENT_CSS : '#ffffff';
+      ctx.fillText(w, xr, y);
+      xr -= ws[i] + sp;
+    });
+  }
+  ctx.restore();
+}
+
+// Each line rises out of a mask, like the reference reel.
+function shotLines(shot) {
+  return shot.lines || shot.text.map((text, i) => ({ text, at: shot.textIn + i * 0.14, y: 1470 + i * 118, size: 92 }));
+}
+function sportLabel(shot, t) {
+  if (!shot.label || t < shot.textIn - 0.3 || t > shot.textOut + 0.2) return;
+  const u = ease.outQuint(prog(t, shot.textIn - 0.3, shot.textIn + 0.5));
+  const o = ease.in(prog(t, shot.textOut - 0.5, shot.textOut));
+  ctx.save();
+  ctx.globalAlpha = u * (1 - o);
+  ctx.font = '800 46px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ACCENT_CSS;
+  ctx.shadowColor = 'rgba(70, 228, 134, 0.6)';
+  ctx.shadowBlur = 14 * SCALE;
+  const y = 1345 - (1 - u) * 20;
+  ctx.fillText(shot.label, W / 2, y);
+  ctx.shadowBlur = 0;
+  const w = ctx.measureText(shot.label).width / 2 + 22;
+  ctx.strokeStyle = 'rgba(62, 226, 127, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 + w, y - 15); ctx.lineTo(W / 2 + w + 60 * u, y - 15);
+  ctx.moveTo(W / 2 - w, y - 15); ctx.lineTo(W / 2 - w - 60 * u, y - 15);
+  ctx.stroke();
+  ctx.restore();
+}
+function phrase(shot, t) {
+  sportLabel(shot, t);
+  if (!(shot.text || shot.lines) || t < shot.textIn || t > shot.textOut + 0.2) return;
+  shotLines(shot).forEach(({ text, at, y, size, weight = 800 }, i) => {
+    const u = ease.outQuint(prog(t, at, at + 0.8));
+    const o = ease.in(prog(t, shot.textOut - 0.45 + i * 0.05, shot.textOut + i * 0.05));
+    if (u <= 0 || o >= 1) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.25, W, size * 1.7);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.3 - o * size * 1.3);
+    wordsLine(text, shot.accent, W / 2, y, size, weight, 1);
+    ctx.restore();
+  });
+}
+
+function chrome(t, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // small logo and name at the bottom, as a signature
+  const s = 92;
+  ctx.drawImage(logoImg, W / 2 - s / 2, 1700, s, s);
+  ctx.font = '700 30px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('بۆردی وەرزشی', W / 2, 1838);
+  // tiny top label
+  ctx.font = '400 26px Zain';
+  ctx.direction = 'ltr';
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.letterSpacing = '8px';
+  ctx.fillText('PUK SPORTS BOARD', W / 2, 96);
+  ctx.restore();
+}
+
+function endCard(t) {
+  if (t < WIPE + 0.4) return;
+  // warm glow rising from the bottom
+  const gu = ease.out(prog(t, WIPE + 0.6, WIPE + 2.5));
+  const g = ctx.createRadialGradient(W / 2, H + 60, 0, W / 2, H + 60, 1150);
+  g.addColorStop(0, `rgba(236, 229, 214, ${0.55 * gu})`);
+  g.addColorStop(0.3, `rgba(80, 210, 130, ${0.28 * gu})`);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // logo
+  const lu = prog(t, WIPE + 0.95, WIPE + 1.8);
+  if (lu > 0) {
+    const s = 470 * lerp(0.7, 1, ease.outBack(lu));
+    ctx.save();
+    ctx.globalAlpha = clamp(lu * 2);
+    ctx.filter = lu < 0.5 ? `blur(${((0.5 - lu) * 30 * SCALE).toFixed(1)}px)` : 'none';
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 50 * SCALE;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoImg, W / 2 - s / 2, 780 - s / 2, s, s);
+    ctx.restore();
+  }
+  const lines = [
+    [END_TEXT.title, 1235, 104, 900, '#ffffff', WIPE + 1.55],
+    [END_TEXT.sub, 1340, 66, 700, 'rgba(255,255,255,0.88)', WIPE + 1.75],
+    [END_TEXT.line, 1470, 56, 800, ACCENT_CSS, WIPE + 2.2],
+  ];
+  for (const [txt, y, size, weight, color, t0] of lines) {
+    const u = ease.outQuint(prog(t, t0, t0 + 0.9));
+    if (u <= 0) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.25, W, size * 1.7);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.3);
+    ctx.font = `${weight} ${size}px Zain`;
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = color;
+    ctx.shadowColor = 'rgba(0, 20, 10, 0.5)';
+    ctx.shadowBlur = 20 * SCALE;
+    ctx.fillText(txt, W / 2, y);
+    ctx.restore();
+  }
+  // thin divider between name and line
+  const du = ease.inOut(prog(t, WIPE + 2.0, WIPE + 2.7));
+  if (du > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 90 * du, 1398); ctx.lineTo(W / 2 + 90 * du, 1398);
+    ctx.stroke();
+  }
+}
+
+// cream circle wipe from the podium into the end card
+function wipe(t) {
+  const u1 = ease.inOut(prog(t, WIPE, WIPE + 0.55));
+  const u2 = ease.inOut(prog(t, WIPE + 0.45, WIPE + 1.05));
+  if (u1 <= 0 || u2 >= 1) return;
+  const R = Math.hypot(W, H) / 2 + 20;
+  ctx.save();
+  ctx.fillStyle = '#ece6d7';
+  ctx.beginPath();
+  ctx.arc(W / 2, 1000, R * u1, 0, Math.PI * 2);
+  if (u2 > 0) ctx.arc(W / 2, 1000, R * u2, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+  // a small dark sphere drops through the cream, echoing the ball
+  const du = prog(t, WIPE + 0.1, WIPE + 0.9);
+  if (du > 0 && du < 1) {
+    ctx.fillStyle = '#0d271b';
+    ctx.beginPath();
+    ctx.arc(W / 2, lerp(300, 1500, ease.inOut(du)), 26, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- frame
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.filter = 'none';
+  ctx.fillStyle = '#0d271b';
+  ctx.fillRect(0, 0, W, H);
+  // 3D shots, cross-fading where they overlap
+  const live = SHOTS.filter(s => t >= s.start && t < s.end);
+  live.forEach((s, i) => {
+    const a = i === 0 ? 1 : ease.inOut(prog(t, s.start, s.start + 0.4));
+    ctx.globalAlpha = a;
+    ctx.drawImage(render3D(s, t), 0, 0, W, H);
+  });
+  ctx.globalAlpha = 1;
+  // soft vignette
+  const v = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.25, W / 2, H * 0.5, H * 0.75);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,8,4,0.55)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+  SHOTS.forEach(s => phrase(s, t));
+  chrome(t, Math.min(prog(t, 0.4, 1.2), 1 - prog(t, WIPE - 0.2, WIPE + 0.2)));
+  endCard(t);
+  wipe(t);
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.5)), ease.inOut(prog(t, OUTRO, DURATION)));
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => {
+  // warm up shaders for every shot so frame times stay even
+  for (const s of SHOTS) render3D(s, s.start + 0.5);
+  return true;
+});
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION, bpm: 96,
+  punches: SP.hits,
+  spike: SVB.spike, spikeLand: +SVB.land.toFixed(3),
+  ppHits: STT.hits.map(x => +x.toFixed(3)), ppBounces: STT.bounces.map(x => +x.toFixed(3)),
+  pedestals: [0, 1, 2].map(i => +(20.0 + i * BEAT / 2 + 0.35).toFixed(3)),
+  cuts: [4.8, 9.8, 14.8, 19.8],
+  wipe: WIPE,
+  phrases: SHOTS.filter(s => s.text).map(s => s.textIn),
+  logo: WIPE + 1.1, outro: OUTRO,
+});
+
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>

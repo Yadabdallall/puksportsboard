@@ -4,6 +4,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
+| [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
 | [`output/puk-sports-board-kurdistan-3k.mp4`](output/puk-sports-board-kurdistan-3k.mp4): the same film in 3K (`--scale 1.5`) | 1620×2880, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
 | [`output/puk-sports-board-3d-cinematic.mp4`](output/puk-sports-board-3d-cinematic.mp4): soft 3D sports objects, vertical for Reels and Stories, with the cinematic score | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d.py` |
@@ -11,7 +12,25 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
 
-## Photo film (30 s, in progress)
+## Boxing, volleyball and table tennis (30 s, 3K)
+
+This film uses the 3D engine of the other films. The props are soft cream leather with deep
+green trim, and the phrases have a soft glow. Since the stock-photo sites are blocked in this
+environment, the photo film below was made in 3D instead, with the same text.
+
+| Time | Shot | Label and phrase |
+| --- | --- | --- |
+| 0 – 5 s | A pair of boxing gloves hangs from a peg, swaying | بۆکسێن · هێز لە دڵەوە دەست پێدەکات |
+| 5 – 10 s | A glove strikes a heavy bag on the beat, three times | ڕاهێنان · ئارەقەی ئەمڕۆ، سەرکەوتنی سبەینێیە |
+| 10 – 15 s | A volleyball is set and spiked over the net | بالە · هەر خاڵێک، بە یەکڕیزی دەبرێتەوە |
+| 15 – 20 s | A table-tennis rally down the length of the table, a hit on every beat | تێنسی سەر مێز · خێرایی و هێمنی، لە یەک کاتدا |
+| 20 – 25 s | A glove, a volleyball and a bat rise on pedestals | یەکڕیزی · وەرزش، شانازیی کوردستانە |
+| 25 – 30 s | A cream wipe, then the logo with the props drifting around it | بۆردی وەرزشی · یەکێتیی نیشتمانیی کوردستان · هەمیشە لە پاڵتانین |
+
+`audio/trio.py` is the elegant B minor score from `audio/photos.py`, with the props' sounds
+added: leather punches with the chain, the spike, and the table-tennis clicks.
+
+## Photo film (30 s, waiting for photos)
 
 `photos.html` is a vertical photo film with five stock photos from Unsplash or Pexels in
 `assets/photos/01.jpg` to `05.jpg`. Each photo gets a slow camera move, a dark-green
@@ -120,6 +139,8 @@ motion-video/
 ├── minimal.html        # minimal line-art video
 ├── sport3d.html        # 3D vertical video (three.js)
 ├── kurdistan3d.html    # 30 s sports-of-Kurdistan film (same 3D engine)
+├── trio3d.html         # 30 s boxing / volleyball / table tennis film (same 3D engine)
+├── photos.html         # 30 s photo film template (needs assets/photos/)
 ├── package.json        # three.js + Playwright (npm install)
 ├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
 ├── patch_video.py      # splices a re-rendered keyframe interval into a finished video
@@ -129,6 +150,8 @@ motion-video/
 │   ├── sport3d.py      # cinematic score for the 3D video
 │   ├── sport3d_warm.py # warm alternative music for the 3D video
 │   ├── kurdistan.py    # score for the sports-of-Kurdistan film
+│   ├── photos.py       # score for the photo film
+│   ├── trio.py         # score and prop sounds for the boxing / volleyball / table tennis film
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
