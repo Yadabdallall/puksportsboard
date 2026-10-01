@@ -492,9 +492,26 @@ function sceneTable(t) {
   ctx.restore();
 }
 
+// a round sport badge (0 glove, 1 volleyball, 2 bat), 170 units in radius
+const BADGE_COLORS = [C.red, C.brand, C.ink];
+function drawBadge(i, t) {
+  ctx.fillStyle = 'rgba(20,20,20,0.16)';
+  ctx.beginPath(); ctx.arc(12, 12, 170, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = BADGE_COLORS[i];
+  ctx.beginPath(); ctx.arc(0, 0, 170, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.white;
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath(); ctx.arc(0, 0, 148, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  if (i === 0) drawGlove(0, 10, 0.25, 0.6, C.white, '#ddd2bf', C.ink);
+  if (i === 1) drawVolleyball(0, 0, 80, t * 0.6);
+  if (i === 2) { drawPaddle(-10, -10, -0.5, C.red, 1); ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(70, -70, 16, 0, Math.PI * 2); ctx.fill(); }
+}
+
 // 5. three stamped badges: glove, volleyball, bat
 function sceneBadges(t) {
-  const spots = [{ x: 330, y: 560, c: C.red }, { x: 740, y: 760, c: C.brand }, { x: 360, y: 1000, c: C.ink }];
+  const spots = [{ x: 330, y: 560 }, { x: 740, y: 760 }, { x: 360, y: 1000 }];
   spots.forEach((s, i) => {
     const u = prog(t, STAMPS[i] - 0.25, STAMPS[i] + 0.35);
     if (u <= 0) return;
@@ -504,18 +521,7 @@ function sceneBadges(t) {
     ctx.rotate((i - 1) * 0.12 + (1 - u) * 0.3);
     ctx.scale(sc, sc);
     ctx.globalAlpha = clamp(u * 3);
-    ctx.fillStyle = 'rgba(20,20,20,0.16)';
-    ctx.beginPath(); ctx.arc(12, 12, 170, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = s.c;
-    ctx.beginPath(); ctx.arc(0, 0, 170, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = C.white;
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath(); ctx.arc(0, 0, 148, 0, Math.PI * 2); ctx.stroke();
-    ctx.setLineDash([]);
-    if (i === 0) drawGlove(0, 10, 0.25, 0.6, C.white, '#ddd2bf', C.ink);
-    if (i === 1) drawVolleyball(0, 0, 80, t * 0.6);
-    if (i === 2) { drawPaddle(-10, -10, -0.5, C.red, 1); ctx.fillStyle = C.white; ctx.beginPath(); ctx.arc(70, -70, 16, 0, Math.PI * 2); ctx.fill(); }
+    drawBadge(i, t);
     ctx.restore();
   });
 }
@@ -592,35 +598,73 @@ function wipe(t) {
 }
 
 // ---------------------------------------------------------------- end card
+const ORBIT_TEXT = 'PUK SPORTS BOARD  \u2022  BOXING  \u2022  VOLLEYBALL  \u2022  TABLE TENNIS  \u2022  ';
+// Latin capitals spaced evenly around a full circle, each letter upright to the curve
+function circleText(text, cx, cy, r, rot, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+  ctx.font = '700 28px Zain';
+  ctx.direction = 'ltr';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = C.ink;
+  ctx.globalAlpha = alpha;
+  const chars = [...text];
+  const widths = chars.map(ch => ctx.measureText(ch).width + 7);
+  const k = (Math.PI * 2 * r) / widths.reduce((a, b) => a + b, 0);
+  let a = 0;
+  chars.forEach((ch, i) => {
+    const w = widths[i] * k;
+    a += w / 2 / r;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.translate(0, -r);
+    ctx.fillText(ch, 0, 10);
+    ctx.restore();
+    a += w / 2 / r;
+  });
+  ctx.restore();
+}
+
 function endCard(t) {
   if (t < END_AT) return;
-  const u = prog(t, END_AT + 0.2, END_AT + 1.4);
-  // a 21-ray sun in the board's green, turning slowly behind the logo
+  const LY = 780;
+  // a thin ink ring and a ring of lettering that turns slowly around the logo
   ctx.save();
-  ctx.translate(CX, 780);
-  ctx.rotate(t * 0.12);
-  const rays = 21, R0 = 250, R1 = 250 + 330 * ease.expo(u);
-  ctx.fillStyle = C.brand;
-  for (let k = 0; k < rays; k++) {
-    const a = k / rays * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a - 0.07) * R0, Math.sin(a - 0.07) * R0);
-    ctx.lineTo(Math.cos(a) * R1, Math.sin(a) * R1);
-    ctx.lineTo(Math.cos(a + 0.07) * R0, Math.sin(a + 0.07) * R0);
-    ctx.closePath();
-    ctx.fill();
-  }
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(CX, LY, 292, Math.PI / 2, Math.PI / 2 + Math.PI * 2 * ease.expoInOut(prog(t, END_AT + 0.2, END_AT + 1.2)));
+  ctx.stroke();
   ctx.restore();
+  circleText(ORBIT_TEXT, CX, LY, 322, -t * 0.16, ease.out(prog(t, END_AT + 0.6, END_AT + 1.4)));
+  // the three sport badges stamp onto an elliptical orbit and circle the logo
+  for (let i = 0; i < 3; i++) {
+    const su = prog(t, END_AT + 0.85 + i * 0.2, END_AT + 1.45 + i * 0.2);
+    if (su <= 0) continue;
+    const a = -Math.PI / 2 + i * Math.PI * 2 / 3 + (t - END_AT) * 0.32;
+    const x = CX + Math.cos(a) * 430, y = LY + Math.sin(a) * 325;
+    const depth = 0.9 + 0.12 * Math.sin(a); // a touch larger at the front of the orbit
+    const sc = (su < 0.42 ? lerp(1.5, 0.94, ease.in(su / 0.42)) : lerp(0.94, 1, ease.out((su - 0.42) / 0.58))) * 0.45 * depth;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.sin(t * 0.8 + i) * 0.12);
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = clamp(su * 3);
+    drawBadge(i, t);
+    ctx.restore();
+  }
   ctx.save();
   ctx.strokeStyle = C.red;
   ctx.lineWidth = 10;
-  ctx.beginPath(); ctx.arc(CX, 780, 248, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ease.expoInOut(prog(t, END_AT + 0.4, END_AT + 1.5))); ctx.stroke();
+  ctx.beginPath(); ctx.arc(CX, LY, 248, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ease.expoInOut(prog(t, END_AT + 0.4, END_AT + 1.5))); ctx.stroke();
   const lu = prog(t, END_AT + 0.6, END_AT + 1.3);
   if (lu > 0) {
     const s = 470 * lerp(0.7, 1, ease.back(lu));
     ctx.globalAlpha = clamp(lu * 2);
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(logoImg, CX - s / 2, 780 - s / 2, s, s);
+    ctx.drawImage(logoImg, CX - s / 2, LY - s / 2, s, s);
   }
   ctx.restore();
   const lines = [[END.title, 1300, 120, 900, C.ink, END_AT + 1.0], [END.sub, 1410, 64, 800, C.ink, END_AT + 1.25], [END.line, 1560, 70, 900, C.red, END_AT + 1.7]];

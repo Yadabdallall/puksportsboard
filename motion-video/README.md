@@ -4,7 +4,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
-| [`output/puk-sports-board-editorial-3k.mp4`](output/puk-sports-board-editorial-3k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 1620×2880 (3K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
+| [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
 | [`output/puk-sports-board-kurdistan-3k.mp4`](output/puk-sports-board-kurdistan-3k.mp4): the same film in 3K (`--scale 1.5`) | 1620×2880, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -13,7 +13,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
 
-## Editorial poster film (30 s, 3K)
+## Editorial poster film (30 s, 4K)
 
 This film tells the boxing, volleyball and table tennis story in a completely different style
 from the others:
@@ -24,10 +24,11 @@ from the others:
   solid sport tags, and phrases that slide in word by word. The key word gets a green tag swept
   in behind it, turning it white with a soft glow.
 - **Transitions:** colour-block wipes (the next colour, ink, then green) on every bar line.
-- **End card:** the logo on a turning 21-ray sun in the board's green.
+- **End card:** the logo inside a ring of turning lettering (PUK SPORTS BOARD • BOXING • VOLLEYBALL •
+  TABLE TENNIS), with the three sport badges orbiting it.
 
 It runs on the same timeline as `trio3d.html`, so `audio/trio.py` (score, punches, spike and
-rally) fits it exactly. Because the film is 2D it renders fast: 3K takes about a minute.
+rally) fits it exactly. Because the film is 2D it renders fast: 4K (`--scale 2`) takes about two minutes.
 
 ## Boxing, volleyball and table tennis (30 s, 3K)
 
