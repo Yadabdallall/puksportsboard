@@ -39,7 +39,7 @@ const pageFile = args.page || 'index.html';
 const out = path.resolve(here, args.out || 'output/puk-sports-board-motion.mp4');
 const ffmpeg = process.env.FFMPEG || 'ffmpeg';
 
-const MIME = { '.html': 'text/html', '.png': 'image/png', '.ttf': 'font/ttf', '.js': 'text/javascript' };
+const MIME = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.js': 'text/javascript' };
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
 await page.route('http://motion.local/**', async route => {

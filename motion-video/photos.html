@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Photo Film</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script>
+/*
+ * Vertical (9:16) 30 s photo film for the PUK Sports Board: five stock photos
+ * with slow camera moves and a dark-green grade, glowing Kurdish phrases in
+ * Zain, and the logo at the end. Layout is in 1080x1920 units; ?scale=1.5
+ * renders 3K (1620x2880). renderFrame(t) is a pure function of time.
+ */
+const W = 1080, H = 1920, DURATION = 30;
+const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
+const BEAT = 60 / 96, BAR = 4 * BEAT; // 96 bpm: every photo is two bars (5 s)
+
+// focus: the point of the photo to keep in frame (0..1); move: zoom in or out
+// and the drift direction during the shot.
+const SHOTS = [
+  { photo: 'assets/photos/01.jpg', focus: [0.5, 0.5], zoom: [1.14, 1.0], drift: [0, -40], label: 'دەستپێک', text: ['هەر ڕۆژێک،', 'دەستپێکێکی نوێیە'], accent: ['نوێیە'] },
+  { photo: 'assets/photos/02.jpg', focus: [0.5, 0.5], zoom: [1.0, 1.12], drift: [30, 0], label: 'ڕاهێنان', text: ['ئارەقەی ئەمڕۆ،', 'سەرکەوتنی سبەینێیە'], accent: ['سەرکەوتنی'] },
+  { photo: 'assets/photos/03.jpg', focus: [0.5, 0.5], zoom: [1.14, 1.02], drift: [-30, 20], label: 'یاریگا', text: ['لە یاریگاوە،', 'بەرەو خەونەکان'], accent: ['خەونەکان'] },
+  { photo: 'assets/photos/04.jpg', focus: [0.5, 0.5], zoom: [1.02, 1.14], drift: [0, 30], label: 'یەکڕیزی', text: ['پێکەوە،', 'هیچ شتێک مەحاڵ نییە'], accent: ['پێکەوە'] },
+  { photo: 'assets/photos/05.jpg', focus: [0.5, 0.5], zoom: [1.12, 1.0], drift: [40, -10], label: 'شانازی', text: ['وەرزش،', 'شانازیی کوردستانە'], accent: ['کوردستانە'] },
+];
+const END = { title: 'بۆردی وەرزشی', sub: 'یەکێتیی نیشتمانیی کوردستان', line: 'هەمیشە لە پاڵتانین' };
+const XF = 0.6;              // cross-fade length between photos
+const END_AT = 5 * 2 * BAR;  // 25 s: the end card
+const OUTRO = 29.3;
+const ACCENT = '#46e486';
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  inOut: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  out: u => 1 - Math.pow(1 - u, 3),
+  outQuint: u => 1 - Math.pow(1 - u, 5),
+  in: u => u * u * u,
+  sine: u => 0.5 - 0.5 * Math.cos(Math.PI * u),
+};
+
+const stage = document.getElementById('stage');
+stage.width = W * SCALE;
+stage.height = H * SCALE;
+const ctx = stage.getContext('2d');
+
+// ---------------------------------------------------------------- assets
+const load = src => new Promise(res => {
+  const img = new Image();
+  img.onload = () => img.decode().then(() => res(img), () => res(img));
+  img.onerror = () => res(null); // missing photo: draw a placeholder
+  img.src = src;
+});
+const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.forEach(f => document.fonts.add(f));
+let logoImg, photos = [], grain = [];
+
+// fine film grain, a few precomputed tiles cycled per frame
+function makeGrain(seed) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const d = g.createImageData(256, 256);
+  let s = seed;
+  for (let i = 0; i < d.data.length; i += 4) {
+    s = (s * 16807) % 2147483647;
+    const v = (s / 2147483647) * 255;
+    d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+    d.data[i + 3] = 255;
+  }
+  g.putImageData(d, 0, 0);
+  return c;
+}
+
+// ---------------------------------------------------------------- photo layer
+const shotStart = i => i * 2 * BAR - (i ? XF / 2 : 0);
+const shotEnd = i => (i + 1) * 2 * BAR + XF / 2;
+
+function drawPhoto(i, t, alpha) {
+  const s = SHOTS[i], img = photos[i];
+  const u = ease.sine(prog(t, shotStart(i), shotEnd(i)));
+  const z = lerp(s.zoom[0], s.zoom[1], u);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(W / 2 + s.drift[0] * (u - 0.5), H / 2 + s.drift[1] * (u - 0.5));
+  ctx.scale(z, z);
+  if (img) {
+    // cover the frame, keeping the focus point as central as the crop allows
+    const k = Math.max(W / img.width, H / img.height);
+    const dw = img.width * k, dh = img.height * k;
+    const ox = clamp((0.5 - s.focus[0]) * dw, -(dw - W) / 2, (dw - W) / 2);
+    const oy = clamp((0.5 - s.focus[1]) * dh, -(dh - H) / 2, (dh - H) / 2);
+    ctx.filter = 'saturate(0.82) contrast(1.06) brightness(0.92)';
+    ctx.drawImage(img, -dw / 2 + ox, -dh / 2 + oy, dw, dh);
+    ctx.filter = 'none';
+  } else {
+    const g = ctx.createLinearGradient(-W / 2, -H / 2, W / 2, H / 2);
+    g.addColorStop(0, '#24503a');
+    g.addColorStop(1, '#0b1f15');
+    ctx.fillStyle = g;
+    ctx.fillRect(-W / 2, -H / 2, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.font = '700 60px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.direction = 'ltr';
+    ctx.fillText(`PHOTO ${i + 1}`, 0, -200);
+  }
+  ctx.restore();
+}
+
+// the grade: deep-green shadows, darker top and bottom for the type
+function grade(t) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = 'rgb(190, 222, 200)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, 'rgba(4, 22, 13, 0.55)');
+  g.addColorStop(0.18, 'rgba(4, 22, 13, 0.0)');
+  g.addColorStop(0.5, 'rgba(4, 22, 13, 0.08)');
+  g.addColorStop(0.72, 'rgba(4, 22, 13, 0.62)');
+  g.addColorStop(1, 'rgba(3, 16, 10, 0.92)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const v = ctx.createRadialGradient(W / 2, H * 0.42, H * 0.3, W / 2, H * 0.5, H * 0.78);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,6,3,0.5)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// a soft warm light that sweeps across each cut
+function lightLeak(t) {
+  for (let i = 1; i <= SHOTS.length; i++) {
+    const c = i * 2 * BAR;
+    const u = prog(t, c - 0.7, c + 0.7);
+    if (u <= 0 || u >= 1) continue;
+    const k = Math.sin(u * Math.PI);
+    const x = lerp(-200, W + 200, ease.inOut(u));
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    const g = ctx.createRadialGradient(x, H * 0.35, 0, x, H * 0.35, 900);
+    g.addColorStop(0, `rgba(255, 236, 200, ${0.28 * k})`);
+    g.addColorStop(0.4, `rgba(140, 230, 170, ${0.12 * k})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+}
+
+// ---------------------------------------------------------------- type
+// Words right to left, accent words in green, with a soft glow.
+function glowLine(text, accent, y, size, weight, alpha = 1) {
+  ctx.save();
+  ctx.font = `${weight} ${size}px Zain`;
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'right';
+  const words = text.split(' ');
+  const ws = words.map(w => ctx.measureText(w).width);
+  const sp = ctx.measureText(' ').width;
+  const total = ws.reduce((a, b) => a + b, 0) + sp * (words.length - 1);
+  const fit = Math.min(1, 940 / total);
+  ctx.translate(W / 2, y);
+  ctx.scale(fit, fit);
+  ctx.globalAlpha = alpha;
+  for (const pass of [0, 1, 2]) {
+    let xr = total / 2;
+    words.forEach((w, i) => {
+      const green = accent.includes(w.replace(/[،,.!؟?]/g, ''));
+      if (pass === 0) { // wide, faint halo
+        ctx.shadowColor = green ? 'rgba(70, 228, 134, 0.55)' : 'rgba(255, 255, 255, 0.35)';
+        ctx.shadowBlur = 34 * SCALE;
+      } else if (pass === 1) { // tight glow
+        ctx.shadowColor = green ? 'rgba(120, 255, 170, 0.6)' : 'rgba(255, 255, 255, 0.45)';
+        ctx.shadowBlur = 10 * SCALE;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillStyle = green ? ACCENT : '#ffffff';
+      ctx.fillText(w, xr, 0);
+      xr -= ws[i] + sp;
+    });
+  }
+  ctx.restore();
+}
+
+function shotText(i, t) {
+  const s = SHOTS[i];
+  const tin = i * 2 * BAR + 0.75, tout = (i + 1) * 2 * BAR - 0.35;
+  if (t < tin - 0.4 || t > tout + 0.1) return;
+  // the sport label: small green word between two hairlines
+  const lu = ease.outQuint(prog(t, tin - 0.3, tin + 0.5)), lo = ease.in(prog(t, tout - 0.5, tout));
+  ctx.save();
+  ctx.globalAlpha = lu * (1 - lo);
+  ctx.font = '800 44px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ACCENT;
+  ctx.shadowColor = 'rgba(70, 228, 134, 0.6)';
+  ctx.shadowBlur = 16 * SCALE;
+  const ly = 1388 - (1 - lu) * 18;
+  ctx.fillText(s.label, W / 2, ly);
+  const hw = ctx.measureText(s.label).width / 2 + 24;
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(70, 228, 134, 0.75)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 + hw, ly - 14); ctx.lineTo(W / 2 + hw + 70 * lu, ly - 14);
+  ctx.moveTo(W / 2 - hw, ly - 14); ctx.lineTo(W / 2 - hw - 70 * lu, ly - 14);
+  ctx.stroke();
+  ctx.restore();
+  // the phrase: each line rises out of a mask and sharpens
+  s.text.forEach((line, k) => {
+    const size = 96, y = 1512 + k * 122;
+    const u = ease.outQuint(prog(t, tin + k * 0.16, tin + 0.9 + k * 0.16));
+    const o = ease.in(prog(t, tout - 0.45 + k * 0.05, tout + k * 0.05));
+    if (u <= 0 || o >= 1) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.4, W, size * 1.9);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.2 - o * size * 1.2);
+    if (u < 0.6) ctx.filter = `blur(${((0.6 - u) * 14 * SCALE).toFixed(1)}px)`;
+    glowLine(line, s.accent, y, size, 800, 1 - o);
+    ctx.restore();
+  });
+}
+
+function signature(t) {
+  const a = Math.min(prog(t, 0.6, 1.4), 1 - prog(t, END_AT - 0.4, END_AT));
+  if (a <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = a * 0.95;
+  ctx.drawImage(logoImg, W / 2 - 42, 1726, 84, 84);
+  ctx.font = '700 28px Zain';
+  ctx.direction = 'rtl';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('بۆردی وەرزشی', W / 2, 1852);
+  ctx.font = '400 24px Zain';
+  ctx.direction = 'ltr';
+  ctx.letterSpacing = '9px';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText('PUK SPORTS BOARD', W / 2, 92);
+  ctx.restore();
+}
+
+function endCard(t) {
+  if (t < END_AT - XF / 2) return;
+  const a = ease.inOut(prog(t, END_AT - XF / 2, END_AT + XF / 2));
+  // backdrop: the last photo, blurred and darkened
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.filter = `blur(${(26 * SCALE).toFixed(0)}px) brightness(0.45) saturate(0.7)`;
+  ctx.drawImage(stage, 0, 0, stage.width, stage.height, 0, 0, W, H);
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(6, 30, 18, 0.55)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  // logo with a soft halo and a thin ring
+  const lu = prog(t, END_AT + 0.3, END_AT + 1.2);
+  if (lu > 0) {
+    const r = 210 * lerp(0.8, 1, ease.out(lu));
+    ctx.save();
+    ctx.globalAlpha = clamp(lu * 1.8);
+    const halo = ctx.createRadialGradient(W / 2, 760, r * 0.6, W / 2, 760, r * 2.2);
+    halo.addColorStop(0, 'rgba(90, 230, 140, 0.22)');
+    halo.addColorStop(1, 'rgba(90, 230, 140, 0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(200, 255, 220, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(W / 2, 760, r + 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ease.inOut(prog(t, END_AT + 0.5, END_AT + 1.8)));
+    ctx.stroke();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 40 * SCALE;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(logoImg, W / 2 - r, 760 - r, 2 * r, 2 * r);
+    ctx.restore();
+  }
+  const lines = [
+    [END.title, 1230, 108, 900, '#ffffff', END_AT + 1.0],
+    [END.sub, 1342, 66, 700, 'rgba(255,255,255,0.9)', END_AT + 1.2],
+    [END.line, 1480, 60, 800, ACCENT, END_AT + 1.7],
+  ];
+  for (const [txt, y, size, weight, color, t0] of lines) {
+    const u = ease.outQuint(prog(t, t0, t0 + 0.9));
+    if (u <= 0) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y - size * 1.4, W, size * 1.9);
+    ctx.clip();
+    ctx.translate(0, (1 - u) * size * 1.2);
+    glowLine(txt, color === ACCENT ? txt.split(' ') : [], y, size, weight);
+    ctx.restore();
+  }
+  const du = ease.inOut(prog(t, END_AT + 1.5, END_AT + 2.2));
+  if (du > 0) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 100 * du, 1400); ctx.lineTo(W / 2 + 100 * du, 1400);
+    ctx.stroke();
+  }
+}
+
+// ---------------------------------------------------------------- frame
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.filter = 'none';
+  ctx.fillStyle = '#06140d';
+  ctx.fillRect(0, 0, W, H);
+  // photos, cross-fading where they overlap (the end card reuses the last one)
+  SHOTS.forEach((s, i) => {
+    if (t < shotStart(i) || t > Math.max(shotEnd(i), i === SHOTS.length - 1 ? DURATION : 0)) return;
+    const a = i === 0 ? 1 : ease.inOut(prog(t, shotStart(i), shotStart(i) + XF));
+    drawPhoto(i, Math.min(t, shotEnd(i)), a);
+  });
+  grade(t);
+  lightLeak(t);
+  ctx.restore();
+  ctx.save();
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  endCard(t);
+  SHOTS.forEach((s, i) => shotText(i, t));
+  signature(t);
+  // grain, very fine
+  ctx.globalAlpha = 0.035;
+  ctx.globalCompositeOperation = 'overlay';
+  const tile = grain[Math.floor(t * 30) % grain.length];
+  ctx.fillStyle = ctx.createPattern(tile, 'repeat');
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.6)), ease.inOut(prog(t, OUTRO, DURATION)));
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+window.ready = Promise.all([
+  ...fontFaces.map(f => f.load()),
+  load('assets/logo.png').then(img => { logoImg = img; }),
+  Promise.all(SHOTS.map(s => load(s.photo))).then(list => { photos = list; }),
+]).then(() => {
+  grain = [11, 23, 37, 51].map(makeGrain);
+  return true;
+});
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION, bpm: 96,
+  cuts: SHOTS.map((_, i) => (i + 1) * 2 * BAR),
+  phrases: SHOTS.map((_, i) => +(i * 2 * BAR + 0.75).toFixed(3)),
+  endCard: END_AT, logo: END_AT + 0.3, outro: OUTRO,
+});
+
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>

@@ -11,6 +11,24 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
 
+## Photo film (30 s, in progress)
+
+`photos.html` is a vertical photo film with five stock photos from Unsplash or Pexels in
+`assets/photos/01.jpg` to `05.jpg`. Each photo gets a slow camera move, a dark-green
+grade, a light sweep at the cut and a glowing Kurdish phrase, and the film ends on the
+logo. It renders in 3K with `--scale 1.5`. `audio/photos.py` is its score (B minor to
+D major, from the same instrument recordings). Until the photos are added, it shows
+placeholders.
+
+| Photo | Label | Phrase |
+| --- | --- | --- |
+| 1 | دەستپێک | هەر ڕۆژێک، دەستپێکێکی نوێیە |
+| 2 | ڕاهێنان | ئارەقەی ئەمڕۆ، سەرکەوتنی سبەینێیە |
+| 3 | یاریگا | لە یاریگاوە، بەرەو خەونەکان |
+| 4 | یەکڕیزی | پێکەوە، هیچ شتێک مەحاڵ نییە |
+| 5 | شانازی | وەرزش، شانازیی کوردستانە |
+| end | | بۆردی وەرزشی · یەکێتیی نیشتمانیی کوردستان · هەمیشە لە پاڵتانین |
+
 ## Sports of Kurdistan (30 s)
 
 This film uses the same 3D style as the video below, sharp with a softer glow. Each sport
