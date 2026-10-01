@@ -7,17 +7,21 @@
 <style>
   @page { size: A4; margin: 0; }
   :root {
-    --green-900: #062e23;
-    --green-800: #0a3f30;
-    --green-700: #0e5240;
-    --green-600: #146b53;
-    --green-100: #e3efe9;
-    --green-50:  #f1f7f4;
+    --g-950: #05230a;
+    --g-900: #082f0f;
+    --g-800: #0c4515;
+    --g-700: #11601c;
+    --g-600: #178017;
+    --logo:  #1b9407;
+    --g-100: #e4f2e0;
+    --g-50:  #f1f8ef;
+    --line:  #d7e8d2;
     --gold:      #c9a23a;
-    --gold-soft: #e7cf8a;
-    --ink:       #1b2a24;
-    --muted:     #5b6b64;
-    --paper:     #fbfaf6;
+    --gold-soft: #f1d88e;
+    --red:       #d3202f;
+    --ink:   #16231a;
+    --muted: #59695d;
+    --paper: #fbfbf7;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: var(--paper); }
@@ -36,97 +40,123 @@
     flex-direction: column;
     background: var(--paper);
   }
+  .runner-mark { position: absolute; pointer-events: none; }
 
   /* ---------- Header ---------- */
   .hero {
     flex: none;
     position: relative;
-    height: 334px;
-    background:
-      radial-gradient(120% 90% at 50% 0%, var(--green-600) 0%, var(--green-800) 55%, var(--green-900) 100%);
+    height: 340px;
     color: #fff;
-    text-align: center;
-    padding-top: 26px;
     overflow: hidden;
+    background:
+      radial-gradient(70% 110% at 88% 18%, #1f7f22 0%, #0e4c17 42%, #072a0d 100%);
   }
   .hero svg.deco { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .hero > *:not(svg) { position: relative; }
-
+  .hero .runner-mark {
+    left: -54px; bottom: 6px;
+    width: 330px;
+    opacity: .07;
+  }
+  .hero-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 34px 46px 0;
+  }
   .logo {
-    width: 104px; height: 104px;
-    margin: 0 auto 10px;
+    flex: none;
+    width: 192px; height: 192px;
     border-radius: 50%;
     background: #fff;
-    display: grid; place-items: center;
-    box-shadow: 0 0 0 5px rgba(201,162,58,.55), 0 10px 26px rgba(0,0,0,.28);
-    overflow: hidden;
+    padding: 6px;
+    box-shadow:
+      0 0 0 4px var(--gold),
+      0 0 0 13px rgba(255,255,255,.07),
+      0 16px 36px rgba(0,0,0,.38);
   }
-  .logo img { width: 86%; height: 86%; object-fit: contain; }
-  .logo .ph {
-    width: 82px; height: 82px; border-radius: 50%;
-    border: 2px dashed var(--gold);
-    display: grid; place-items: center;
-    color: var(--green-700); font-size: 19px; font-weight: 700;
-  }
+  .logo img { width: 100%; height: 100%; display: block; }
 
-  .org {
-    display: inline-flex; align-items: center; gap: 12px;
-    font-size: 20px; font-weight: 700; color: var(--gold-soft);
-    letter-spacing: 0;
+  .hero-text { flex: 1; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 17px; font-weight: 700; color: var(--gold-soft);
+    padding: 3px 15px 4px;
+    border: 1px solid rgba(241,216,142,.38);
+    background: rgba(255,255,255,.06);
+    border-radius: 999px;
   }
-  .org::before, .org::after {
-    content: ""; width: 34px; height: 2px; background: var(--gold); border-radius: 2px;
+  .eyebrow::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 0 3px rgba(211,32,47,.25);
   }
   .title {
-    font-size: 48px; font-weight: 900; line-height: 1.15;
-    margin-top: 4px;
-    text-shadow: 0 3px 14px rgba(0,0,0,.25);
+    font-size: 64px; font-weight: 900; line-height: 1.04;
+    margin-top: 10px;
+    text-shadow: 0 4px 18px rgba(0,0,0,.25);
   }
+  .title span { display: block; }
+  .title span + span { color: var(--gold-soft); }
   .subtitle {
-    font-size: 18px; font-weight: 400; line-height: 1.5;
-    color: #dfece6;
-    margin-top: 6px;
+    font-size: 17.5px; font-weight: 400; line-height: 1.55;
+    color: #d3e6cf;
+    margin-top: 12px;
+    max-width: 440px;
   }
 
   /* ---------- Stats ---------- */
   .stats {
-    position: relative;
-    margin: -46px 40px 0;
     flex: none;
+    position: relative;
+    z-index: 2;
+    margin: -50px 40px 0;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     background: #fff;
     border-radius: 18px;
-    box-shadow: 0 12px 30px rgba(6,46,35,.14), 0 2px 6px rgba(6,46,35,.06);
-    padding: 13px 8px 12px;
-    z-index: 2;
+    box-shadow: 0 14px 32px rgba(5,35,10,.15), 0 2px 6px rgba(5,35,10,.06);
+    padding: 14px 6px 12px;
   }
-  .stat { text-align: center; padding: 2px 6px; }
-  .stat + .stat { border-right: 1px solid #e4ebe7; }
-  .stat .num {
-    font-size: 40px; font-weight: 900; line-height: 1;
-    color: var(--green-700);
+  .stats::after {
+    content: ""; position: absolute; bottom: 0; right: 22%; left: 22%; height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: linear-gradient(to left, transparent, var(--gold), transparent);
   }
-  .stat .lbl { font-size: 16px; font-weight: 400; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+  .stat { text-align: center; padding: 0 6px; }
+  .stat + .stat { border-right: 1px solid #e6eee4; }
+  .stat .top { display: flex; align-items: center; justify-content: center; gap: 9px; }
+  .stat .ic {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: var(--g-50);
+    border: 1px solid var(--line);
+    display: grid; place-items: center;
+  }
+  .stat .num { font-size: 40px; font-weight: 900; line-height: 1; color: var(--g-700); }
+  .stat .lbl { font-size: 16px; color: var(--muted); margin-top: 5px; white-space: nowrap; }
 
   /* ---------- Body ---------- */
-  .content { padding: 20px 46px 0; flex: 1; }
-
-  .section { margin-bottom: 14px; }
+  .content { position: relative; padding: 22px 46px 0; flex: 1; }
+  .section { position: relative; margin-bottom: 15px; }
   .h {
     display: flex; align-items: center; gap: 10px;
-    font-size: 22px; font-weight: 800; color: var(--green-800);
-    margin-bottom: 4px;
+    font-size: 22px; font-weight: 800; color: var(--g-800);
+    margin-bottom: 5px;
   }
   .h::before {
-    content: ""; width: 5px; height: 20px; border-radius: 3px;
+    content: ""; flex: none; width: 5px; height: 20px; border-radius: 3px;
     background: linear-gradient(var(--gold), #a8801f);
+  }
+  .h::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(to left, var(--line), transparent);
   }
   p {
     font-size: 16px; line-height: 1.75; font-weight: 400;
     text-align: justify;
   }
-  p strong { font-weight: 800; color: var(--green-700); }
+  p strong { font-weight: 800; color: var(--g-700); }
 
   .centers {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -135,67 +165,72 @@
   .center {
     position: relative;
     background: #fff;
-    border: 1px solid #dfe9e3;
+    border: 1px solid var(--line);
     border-radius: 16px;
     padding: 14px 16px 14px;
     overflow: hidden;
+    box-shadow: 0 6px 16px rgba(5,35,10,.05);
   }
   .center::before {
     content: ""; position: absolute; top: 0; right: 0; left: 0; height: 5px;
-    background: linear-gradient(to left, var(--green-600), var(--gold));
+    background: linear-gradient(to left, var(--logo), var(--gold));
   }
-  .center .city {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 4px;
+  .center .idx {
+    position: absolute; left: 14px; top: 2px;
+    font-size: 70px; font-weight: 900; line-height: 1;
+    color: var(--logo); opacity: .08;
   }
+  .center .city { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
   .pin {
     flex: none;
-    width: 34px; height: 34px; border-radius: 10px;
-    background: var(--green-50);
+    width: 36px; height: 36px; border-radius: 11px;
+    background: linear-gradient(145deg, var(--logo), var(--g-700));
     display: grid; place-items: center;
+    box-shadow: 0 4px 10px rgba(27,148,7,.25);
   }
-  .center .tag { font-size: 13.5px; color: var(--muted); font-weight: 500; line-height: 1.2; }
-  .center .name { font-size: 22px; font-weight: 900; color: var(--green-800); line-height: 1.15; }
+  .center .tag { font-size: 13.5px; color: var(--muted); line-height: 1.2; }
+  .center .name { font-size: 22px; font-weight: 900; color: var(--g-800); line-height: 1.15; }
   .center .desc { font-size: 14.5px; color: var(--muted); margin: 4px 0 8px; line-height: 1.5; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     font-size: 15px; font-weight: 700;
     padding: 1px 11px 2px;
     border-radius: 999px;
-    background: var(--green-50);
-    color: var(--green-700);
-    border: 1px solid #d3e5db;
+    background: var(--g-50);
+    color: var(--g-700);
+    border: 1px solid var(--line);
   }
-  .chip.more { background: transparent; color: var(--muted); border-style: dashed; font-weight: 500; }
+  .chip.more { background: transparent; color: var(--muted); border-style: dashed; font-weight: 400; }
 
   .goal {
     position: relative;
-    background: linear-gradient(135deg, var(--green-50), #fff 70%);
-    border: 1px solid #d9e7df;
+    background: linear-gradient(135deg, var(--g-50), #fff 75%);
+    border: 1px solid var(--line);
     border-right: 5px solid var(--gold);
     border-radius: 14px;
     padding: 12px 20px;
+    overflow: hidden;
   }
-  .goal .q {
-    position: absolute; left: 16px; top: -6px;
-    font-size: 92px; line-height: 1; color: rgba(201,162,58,.25); font-weight: 900;
-  }
-  .goal p { font-size: 16.5px; font-weight: 700; line-height: 1.75; color: var(--green-900); }
+  .goal p { font-size: 16.5px; font-weight: 700; line-height: 1.75; color: var(--g-900); position: relative; }
 
   /* ---------- Footer ---------- */
   .footer {
     flex: none;
     margin-top: auto;
-    background: var(--green-900);
-    color: #cfe0d8;
-    display: flex; align-items: center; justify-content: center; gap: 14px;
-    height: 48px;
-    font-size: 16px; font-weight: 500;
     position: relative;
+    height: 52px;
+    background: var(--g-950);
+    color: #c9dcc5;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    font-size: 15.5px;
   }
   .footer::before {
     content: ""; position: absolute; top: 0; right: 0; left: 0; height: 3px;
-    background: linear-gradient(to left, transparent, var(--gold), transparent);
+    background: linear-gradient(to left, var(--logo), var(--gold), var(--logo));
+  }
+  .footer img {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #fff; padding: 1.5px;
   }
   .footer b { color: #fff; font-weight: 800; }
   .footer .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
@@ -205,41 +240,64 @@
 <div class="page">
 
   <header class="hero">
-    <svg class="deco" viewBox="0 0 794 352" preserveAspectRatio="none" aria-hidden="true">
+    <svg class="deco" viewBox="0 0 794 340" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1.2" fill="#ffffff" opacity=".07"/>
+          <circle cx="2" cy="2" r="1.2" fill="#ffffff" opacity=".06"/>
         </pattern>
       </defs>
-      <rect width="794" height="352" fill="url(#dots)"/>
-      <!-- running-track arcs -->
-      <g fill="none" stroke="#ffffff" stroke-width="1.4" opacity=".09">
-        <ellipse cx="397" cy="420" rx="520" ry="250"/>
-        <ellipse cx="397" cy="420" rx="480" ry="220"/>
-        <ellipse cx="397" cy="420" rx="440" ry="190"/>
-        <ellipse cx="397" cy="420" rx="400" ry="160"/>
+      <rect width="794" height="340" fill="url(#dots)"/>
+      <!-- running-track lanes -->
+      <g fill="none" stroke="#ffffff" stroke-width="1.3" opacity=".08">
+        <ellipse cx="110" cy="390" rx="470" ry="250"/>
+        <ellipse cx="110" cy="390" rx="430" ry="220"/>
+        <ellipse cx="110" cy="390" rx="390" ry="190"/>
+        <ellipse cx="110" cy="390" rx="350" ry="160"/>
       </g>
-      <g fill="none" stroke="#c9a23a" stroke-width="2" opacity=".35">
-        <ellipse cx="397" cy="420" rx="560" ry="280"/>
-      </g>
-      <!-- corner accents -->
-      <path d="M0 0 L150 0 L0 150 Z" fill="#ffffff" opacity=".035"/>
-      <path d="M794 352 L644 352 L794 202 Z" fill="#c9a23a" opacity=".10"/>
+      <ellipse cx="110" cy="390" rx="510" ry="280" fill="none" stroke="#c9a23a" stroke-width="2" opacity=".35"/>
+      <path d="M794 0 L794 120 L674 0 Z" fill="#ffffff" opacity=".035"/>
     </svg>
+    <img class="runner-mark" src="runner-white.png" alt="">
 
-    <div class="logo">
-      <!--LOGO-->
+    <div class="hero-inner">
+      <div class="logo"><img src="logo-clean.png" alt="بۆردی وەرزشی"></div>
+      <div class="hero-text">
+        <div class="eyebrow">بۆردی وەرزشی</div>
+        <h1 class="title"><span>خولی پێگەیاندنی</span><span>کادری وەرزشی</span></h1>
+        <div class="subtitle">خولێکی ئەکادیمی، گشتگیر و ستراتیژی بۆ سەرجەم کادرانی وەرزشی لە هەموو کوردستان</div>
+      </div>
     </div>
-    <div class="org">بۆردی وەرزشی</div>
-    <h1 class="title">خولی پێگەیاندنی کادری وەرزشی</h1>
-    <div class="subtitle">خولێکی ئەکادیمی، گشتگیر و ستراتیژی بۆ سەرجەم کادرانی وەرزشی لە هەموو کوردستان</div>
   </header>
 
   <section class="stats">
-    <div class="stat"><div class="num">71</div><div class="lbl">کادری وەرزشی</div></div>
-    <div class="stat"><div class="num">2</div><div class="lbl">مانگی تەواو</div></div>
-    <div class="stat"><div class="num">2</div><div class="lbl">ڕۆژ لە هەفتەیەکدا</div></div>
-    <div class="stat"><div class="num">2</div><div class="lbl">ناوەندی سەرەکی</div></div>
+    <div class="stat">
+      <div class="top">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#11601c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <span class="num">71</span>
+      </div>
+      <div class="lbl">کادری وەرزشی</div>
+    </div>
+    <div class="stat">
+      <div class="top">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#11601c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+        <span class="num">2</span>
+      </div>
+      <div class="lbl">مانگی تەواو</div>
+    </div>
+    <div class="stat">
+      <div class="top">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#11601c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+        <span class="num">2</span>
+      </div>
+      <div class="lbl">ڕۆژ لە هەفتەیەکدا</div>
+    </div>
+    <div class="stat">
+      <div class="top">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#11601c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+        <span class="num">2</span>
+      </div>
+      <div class="lbl">ناوەندی سەرەکی</div>
+    </div>
   </section>
 
   <main class="content">
@@ -263,9 +321,10 @@
 
       <div class="centers">
         <div class="center">
+          <span class="idx">1</span>
           <div class="city">
             <span class="pin">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
             </span>
             <div>
               <div class="tag">ناوەندی یەکەم</div>
@@ -285,9 +344,10 @@
         </div>
 
         <div class="center">
+          <span class="idx">2</span>
           <div class="city">
             <span class="pin">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0e5240" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
             </span>
             <div>
               <div class="tag">ناوەندی دووەم</div>
@@ -315,13 +375,15 @@
         </p>
       </div>
     </section>
-
   </main>
 
   <footer class="footer">
-    <b>بۆردی وەرزشی</b>
+    <img src="logo-clean.png" alt="">
+    <span>یەکێتیی نیشتمانیی کوردستان</span>
     <span class="dot"></span>
-    <span>بۆ داهاتوویەکی وەرزشیی پتەوتر لە کوردستان</span>
+    <span>مەکتەبی سکرتاریەتی سەرۆک مام جەلال</span>
+    <span class="dot"></span>
+    <b>بۆردی وەرزشی</b>
   </footer>
 
 </div>
