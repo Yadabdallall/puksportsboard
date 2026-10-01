@@ -21,15 +21,15 @@
   "sports": [
     {"id": "football", "ku": "تۆپی پێ", "en": "FOOTBALL", "cat": "ball", "kurdistan": true, "field": "pitch", "play": "pass", "gear": "football", "sfx": "ball", "mood": "energetic", "scoreWord": "گۆڵ!", "start": "whistle",
       "tagline": "یاریی یەکەمی جیهان",
-      "about": ["دوو تیمی ١١ کەسی، یەک تۆپ،", "و یەک ئامانج: گۆڵ"],
-      "facts": [[11, "یاریزان لە هەر تیمێکدا"], [90, "خولەک، دوو نیوەی ٤٥ خولەکی"], [1863, "ساڵی دانانی یەکەم یاسا فەرمییەکان"]],
+      "about": ["دوو تیمی 11 کەسی، یەک تۆپ،", "و یەک ئامانج: گۆڵ"],
+      "facts": [[11, "یاریزان لە هەر تیمێکدا"], [90, "خولەک، دوو نیوەی 45 خولەکی"], [1863, "ساڵی دانانی یەکەم یاسا فەرمییەکان"]],
       "phrase": ["تۆپێک،", "هەزاران خەون"],
       "accent": "خەون"
     },
     {"id": "futsal", "ku": "فوتساڵ", "en": "FUTSAL", "cat": "ball", "kurdistan": true, "field": "pitch/futsal", "play": "pass", "gear": "football", "sfx": "ball", "mood": "energetic", "scoreWord": "گۆڵ!", "start": "whistle",
       "tagline": "تۆپی پێی خێرا لە هۆڵدا",
       "about": ["پێنج یاریزان، یاریگایەکی بچووک،", "خێرایی و هونەری تۆپ"],
-      "facts": [[5, "یاریزان لە هەر تیمێکدا"], [40, "خولەک، دوو نیوەی ٢٠ خولەکی"], [1930, "ساڵی لەدایکبوونی لە ئوروگوای"]],
+      "facts": [[5, "یاریزان لە هەر تیمێکدا"], [40, "خولەک، دوو نیوەی 20 خولەکی"], [1930, "ساڵی لەدایکبوونی لە ئوروگوای"]],
       "phrase": ["یاریگا بچووکە،", "بەڵام خەونەکان گەورەن"],
       "accent": "گەورەن"
     },
@@ -52,13 +52,13 @@
     {"id": "handball", "ku": "تۆپی دەست", "en": "HANDBALL", "cat": "ball", "kurdistan": true, "field": "pitch/handball", "play": "pass", "gear": "handball", "sfx": "hand", "mood": "energetic", "scoreWord": "گۆڵ!", "start": "whistle",
       "tagline": "خێرایی، هێز و تیمێکی یەکگرتوو",
       "about": ["حەوت یاریزان لە هەر تیمێکدا،", "تۆپ بە دەست دەگوازرێتەوە"],
-      "facts": [[7, "یاریزان لە هەر تیمێکدا"], [60, "خولەک، دوو نیوەی ٣٠ خولەکی"], [3, "هەنگاو، زۆرترین ڕێگەپێدراو بە تۆپەوە"]],
+      "facts": [[7, "یاریزان لە هەر تیمێکدا"], [60, "خولەک، دوو نیوەی 30 خولەکی"], [3, "هەنگاو، زۆرترین ڕێگەپێدراو بە تۆپەوە"]],
       "phrase": ["بە یەک دەست،", "بە یەک دڵ"],
       "accent": "دڵ"
     },
     {"id": "baseball", "ku": "بەیسبۆڵ", "en": "BASEBALL", "cat": "ball", "kurdistan": false, "field": "diamond", "play": "diamond", "gear": "baseball", "sfx": "bat", "mood": "adventure", "scoreWord": "هۆم ڕەن!",
       "tagline": "یارییەکی پڕ لە پلان و خێرایی",
-      "about": ["دوو تیمی ٩ کەسی،", "لێدان، ڕاکردن و گەڕانەوە بۆ ماڵ"],
+      "about": ["دوو تیمی 9 کەسی،", "لێدان، ڕاکردن و گەڕانەوە بۆ ماڵ"],
       "facts": [[9, "یاریزان لە هەر تیمێکدا"], [9, "خول (ئینینگ) لە هەر یارییەکدا"], [4, "بنکە لەسەر یاریگاکە"]],
       "phrase": ["لێی بدە،", "و ڕابکە بۆ ماڵەوە"],
       "accent": "ماڵەوە"
@@ -66,7 +66,7 @@
     {"id": "softball", "ku": "سۆفتبۆڵ", "en": "SOFTBALL", "cat": "ball", "kurdistan": false, "field": "diamond", "play": "diamond", "gear": "baseball", "sfx": "bat", "mood": "adventure", "scoreWord": "هۆم ڕەن!"},
     {"id": "cricket", "ku": "کریکێت", "en": "CRICKET", "cat": "ball", "kurdistan": false, "field": "oval", "play": "arc/cricket", "gear": "bat", "sfx": "bat", "mood": "elegant",
       "tagline": "یارییەکی کۆن و پڕ لە ئارامی",
-      "about": ["دوو تیمی ١١ کەسی،", "تۆپهاوێژ، لێدەر و سێ داری بچووک"],
+      "about": ["دوو تیمی 11 کەسی،", "تۆپهاوێژ، لێدەر و سێ داری بچووک"],
       "facts": [[11, "یاریزان لە هەر تیمێکدا"], [22, "یارد، درێژیی ناوەڕاستی یاریگا"], [1877, "ساڵی یەکەم یاریی تێست"]],
       "phrase": ["ئارامی،", "کلیلی بردنەوەیە"],
       "accent": "ئارامی"
@@ -74,7 +74,7 @@
     {"id": "rugby", "ku": "ڕەگبی", "en": "RUGBY", "cat": "ball", "kurdistan": false, "field": "pitch/rugby", "play": "pass/try", "gear": "rugby", "sfx": "ball", "mood": "heroic", "start": "whistle",
       "tagline": "هێز، ئازایەتی و ڕێز",
       "about": ["تۆپێکی هێلکەیی،", "تەنها بۆ دواوە دەگوازرێتەوە"],
-      "facts": [[15, "یاریزان لە هەر تیمێکدا"], [80, "خولەک، دوو نیوەی ٤٠ خولەکی"], [1871, "ساڵی دامەزراندنی یەکەم یەکێتیی ڕەگبی"]],
+      "facts": [[15, "یاریزان لە هەر تیمێکدا"], [80, "خولەک، دوو نیوەی 40 خولەکی"], [1871, "ساڵی دامەزراندنی یەکەم یەکێتیی ڕەگبی"]],
       "phrase": ["پێکەوە،", "هەموو ڕێگرێک دەبەزێنین"],
       "accent": "پێکەوە"
     },
@@ -122,7 +122,7 @@
     {"id": "wrestling", "ku": "زۆرانبازیی ئازاد", "en": "FREESTYLE WRESTLING", "cat": "combat", "kurdistan": true, "field": "mat/wrestling", "play": "duel/throw", "gear": "laurel", "sfx": "body", "mood": "heroic", "start": "whistle",
       "tagline": "یەکێک لە کۆنترین وەرزشەکانی جیهان",
       "about": ["هێز و تەکنیک لەسەر بازنەیەک،", "بەرامبەرەکەت بخە سەر پشت"],
-      "facts": [[9, "مەتر، تیرەی بازنەی ڕکابەری"], [6, "خولەک، دوو خولی ٣ خولەکی"], [1896, "یەکەم جار لە ئۆڵۆمپیادی نوێدا"]],
+      "facts": [[9, "مەتر، تیرەی بازنەی ڕکابەری"], [6, "خولەک، دوو خولی 3 خولەکی"], [1896, "یەکەم جار لە ئۆڵۆمپیادی نوێدا"]],
       "phrase": ["پاڵەوان،", "لە ڕکابەریدا دروست دەبێت"],
       "accent": "پاڵەوان"
     },
@@ -200,7 +200,7 @@
     {"id": "trampoline", "ku": "ترامپۆلین", "en": "TRAMPOLINE", "cat": "gymnastics", "kurdistan": false, "field": "mat/gym", "play": "flip", "gear": "rings", "sfx": "mat", "mood": "energetic"},
     {"id": "swimming", "ku": "مەلەوانی", "en": "SWIMMING", "cat": "water", "kurdistan": true, "field": "pool", "play": "race", "gear": "swim", "sfx": "water", "mood": "elegant", "start": "beep",
       "tagline": "هێز و هێمنی لە ناو ئاودا",
-      "about": ["چوار شێوازی مەلەکردن،", "لە حەوزێکی ٥٠ مەتریدا"],
+      "about": ["چوار شێوازی مەلەکردن،", "لە حەوزێکی 50 مەتریدا"],
       "facts": [[4, "شێوازی سەرەکیی مەلەکردن"], [50, "مەتر، درێژیی حەوزی ئۆڵۆمپی"], [1896, "یەکەم جار لە ئۆڵۆمپیادی نوێدا"]],
       "phrase": ["لەگەڵ هەر شەپۆلێک،", "بەهێزتر دەبیت"],
       "accent": "بەهێزتر"
@@ -228,7 +228,7 @@
     {"id": "mountaineering", "ku": "شاخەوانی", "en": "MOUNTAINEERING", "cat": "outdoor", "kurdistan": true, "field": "mountain", "play": "climb", "gear": "mountain", "sfx": "rock", "mood": "adventure",
       "tagline": "کوردستان، وڵاتی چیاکان",
       "about": ["هەنگاو بە هەنگاو،", "بەرەو لووتکە"],
-      "facts": [[8849, "مەتر، بەرزیی ئێڤرێست"], [14, "لووتکەی سەرووی ٨٠٠٠ مەتر لە جیهاندا"], [1953, "یەکەم گەیشتن بە لووتکەی ئێڤرێست"]],
+      "facts": [[8849, "مەتر، بەرزیی ئێڤرێست"], [14, "لووتکەی سەرووی 8000 مەتر لە جیهاندا"], [1953, "یەکەم گەیشتن بە لووتکەی ئێڤرێست"]],
       "phrase": ["لووتکە،", "بۆ ئەوانەیە کە ناوەستن"],
       "accent": "لووتکە"
     },
@@ -238,7 +238,7 @@
     {"id": "orienteering", "ku": "ئاڕاستەدۆزی", "en": "ORIENTEERING", "cat": "outdoor", "kurdistan": false, "field": "road/map", "play": "race", "gear": "compass", "sfx": "foot", "mood": "adventure"},
     {"id": "archery", "ku": "تیروکەوان", "en": "ARCHERY", "cat": "precision", "kurdistan": false, "field": "target/archery", "play": "shoot", "gear": "target", "sfx": "arrow", "mood": "elegant",
       "tagline": "هەناسەیەک، تیرێک، ئامانجێک",
-      "about": ["لە دووریی ٧٠ مەترەوە،", "بۆ ناوەڕاستی ئامانج"],
+      "about": ["لە دووریی 70 مەترەوە،", "بۆ ناوەڕاستی ئامانج"],
       "facts": [[70, "مەتر، دووریی ئۆڵۆمپی"], [10, "خاڵ بۆ ناوەڕاستی ئامانج"], [122, "سانتیمەتر، تیرەی ئامانج"]],
       "phrase": ["سەیری ئامانج بکە،", "نەک دووری"],
       "accent": "ئامانج"
@@ -253,7 +253,7 @@
     {"id": "darts", "ku": "دارت", "en": "DARTS", "cat": "precision", "kurdistan": false, "field": "target/darts", "play": "shoot", "gear": "target", "sfx": "arrow", "mood": "elegant"},
     {"id": "golf", "ku": "گۆڵف", "en": "GOLF", "cat": "precision", "kurdistan": false, "field": "golf", "play": "arc/golf", "gear": "golf", "sfx": "golf", "mood": "elegant",
       "tagline": "ئارامی و وردی لە سروشتدا",
-      "about": ["تۆپێکی بچووک و ١٨ کون،", "بە کەمترین ژمارەی لێدان"],
+      "about": ["تۆپێکی بچووک و 18 کون،", "بە کەمترین ژمارەی لێدان"],
       "facts": [[18, "کون لە یاریگایەکی تەواودا"], [14, "دار، زۆرترین ڕێگەپێدراو لە جانتادا"], [1860, "ساڵی یەکەم پاڵەوانێتیی ئۆپن"]],
       "phrase": ["هێمن بە،", "و لە ئامانج بدە"],
       "accent": "ئامانج"
@@ -281,7 +281,7 @@
     {"id": "polo", "ku": "پۆلۆ", "en": "POLO", "cat": "equestrian", "kurdistan": false, "field": "pitch/polo", "play": "pass", "gear": "horseshoe", "sfx": "stick", "mood": "heroic", "scoreWord": "گۆڵ!"},
     {"id": "chess", "ku": "شەترەنج", "en": "CHESS", "cat": "mind", "kurdistan": true, "field": "board", "play": "board", "gear": "knight", "sfx": "wood", "mood": "elegant", "scoreWord": "کشت و مات!",
       "tagline": "یاریی بیرکردنەوە و پلان",
-      "about": ["٦٤ خانە و ٣٢ پارچە،", "هەر جووڵەیەک بڕیارێکە"],
+      "about": ["64 خانە و 32 پارچە،", "هەر جووڵەیەک بڕیارێکە"],
       "facts": [[64, "خانە لەسەر تەختەکە"], [32, "پارچە لە سەرەتای یارییەکەدا"], [1886, "یەکەم پاڵەوانێتیی فەرمیی جیهان"]],
       "phrase": ["بیر بکەرەوە،", "پاشان جووڵە بکە"],
       "accent": "بیر"

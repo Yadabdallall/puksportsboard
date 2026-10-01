@@ -10,8 +10,6 @@ import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-KD = '٠١٢٣٤٥٦٧٨٩'
-kd = lambda n: ''.join(KD[int(c)] for c in str(n))
 
 
 def main():
@@ -21,8 +19,8 @@ def main():
     out = [
         '# هەموو وەرزشەکانی جیهان',
         '',
-        f'{kd(len(sports))} وەرزش لە {kd(len(data["categories"]))} بەشدا. '
-        f'✅ لە کوردستان هەیە ({kd(here)}) · 🔜 لە داهاتوودا دێت ({kd(len(sports) - here)})',
+        f'{len(sports)} وەرزش لە {len(data["categories"])} بەشدا. '
+        f'✅ لە کوردستان هەیە ({here}) · 🔜 لە داهاتوودا دێت ({len(sports) - here})',
         '',
         'ئەم نیشانانە نزیکەیین؛ بۆ گۆڕینیان `"kurdistan"` لە `sports.json` بگۆڕە و '
         '`python3 sports/make_list.py` لێبدەرەوە. کۆدی هەر وەرزشێک (وەک `football`) '
@@ -31,7 +29,7 @@ def main():
     ]
     for i, cat in enumerate(data['categories'], start=1):
         items = [s for s in sports if s['cat'] == cat['id']]
-        out += [f'## {kd(i)}. {cat["ku"]} ({cat["en"]})', '']
+        out += [f'## {i}. {cat["ku"]} ({cat["en"]})', '']
         for s in sorted(items, key=lambda s: not s['kurdistan']):
             mark = '✅' if s['kurdistan'] else '🔜'
             out.append(f'- {mark} {s["ku"]} · {s["en"].title()} · `{s["id"]}`')

@@ -7,7 +7,8 @@ description: Make the PUK Sports Board's 45-second 2D motion film, with its own 
 
 Each film is 45 s, vertical 9:16, 4K at 60 fps, in the board's colours (logo
 green #129901, beige, petrol blue, a little ink), with music arranged for the
-sport and sounds timed to the play. One template makes them all:
+sport and sounds timed to the play. Titles, numbers and the phrase have a soft
+neon glow; numbers are in Latin digits. One template makes them all:
 `motion-video/sportfilm.html` draws the picture, `motion-video/audio/sportfilm.py`
 writes the music, and `motion-video/make_sport.sh` does both and the encode.
 
@@ -39,8 +40,9 @@ Draft quickly with `SCALE=0.5 FPS=30 ./make_sport.sh <id>` when trying changes.
 ## Writing the texts
 
 Kurdish Sorani in Arabic script, with Kurdish letters (ی ک ە ۆ ێ ڵ ڕ ڤ), never
-Arabic ي ك ى. Digits inside texts in Kurdish digits (٠١٢٣٤٥٦٧٨٩). Dignified and
-warm, the voice of an official sports body; no politics, no people's names.
+Arabic ي ك ى. Numbers always in Latin digits (0-9), never ٠١٢٣: the board wants
+Latin digits in its films. Dignified and warm, the voice of an official sports
+body; no politics, no people's names.
 
 - `tagline`: 2–5 words that say what the sport is about («یاریی یەکەمی جیهان»).
 - `about`: two short lines (up to ~32 letters each) on how it is played; the

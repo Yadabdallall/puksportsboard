@@ -423,7 +423,7 @@ const PLAYS = {
             const pu = ease.back(prog(t, e, e + 0.35)) * (1 - prog(t, e + 1.0, e + 1.3));
             if (pu > 0) {
               ctx.save(); ctx.translate(p[0] + 26 / s, p[1] - 40 / s); ctx.scale(pu / s, pu / s);
-              pill(kd(score(p)), 0, 0, 1, { size: 34, weight: 900, bg: C.ink, color: C.white, padX: 16 });
+              pill(num(score(p)), 0, 0, 1, { size: 34, weight: 900, bg: C.ink, color: C.white, padX: 16 });
               ctx.restore();
             }
           }

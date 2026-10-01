@@ -591,7 +591,7 @@ function roadField(kind) {
         centre.forEach((p, i) => {
           ctx.save(); ctx.strokeStyle = C.blue; ctx.lineWidth = 5 / s;
           if (i === 0) { gpoly([[p[0], p[1] - 4], [p[0] + 3.5, p[1] + 2.5], [p[0] - 3.5, p[1] + 2.5]]); ctx.stroke(); }
-          else { FL.arc(p[0], p[1], 3.2); if (i < centre.length - 1) FL.label(s, kd(i), p[0] + 6, p[1] - 4, 30, C.blue); else FL.arc(p[0], p[1], 2.2); }
+          else { FL.arc(p[0], p[1], 3.2); if (i < centre.length - 1) FL.label(s, num(i), p[0] + 6, p[1] - 4, 30, C.blue); else FL.arc(p[0], p[1], 2.2); }
           ctx.restore();
         });
         return;
@@ -873,7 +873,7 @@ function targetField(kind) {
         ctx.save(); ctx.lineWidth = 2 / s;
         for (let k = 1; k <= 10; k++) { ctx.strokeStyle = k * 3 < 18 ? C.white : C.ink; FL.arc(...c, k * 3); }
         ctx.restore();
-        for (let k = 1; k <= 8; k++) { const r = (10.5 - k) * 3; FL.label(s, kd(k), c[0], c[1] - r, 18, r < 18 ? C.white : C.ink, 0.7); }
+        for (let k = 1; k <= 8; k++) { const r = (10.5 - k) * 3; FL.label(s, num(k), c[0], c[1] - r, 18, r < 18 ? C.white : C.ink, 0.7); }
         return;
       }
       // archery stand and face
@@ -1015,7 +1015,7 @@ function sectorField(kind) {
       ctx.save(); ctx.lineWidth = 2 / s; ctx.globalAlpha = 0.7;
       for (let r = 20; r <= 90; r += 10) {
         FL.arc(...o, r, -Math.PI / 2 - A, -Math.PI / 2 + A);
-        FL.label(s, kd(r), o[0] + Math.sin(A) * r + 4.5, o[1] - Math.cos(A) * r, 24, C.beige, 0.85);
+        FL.label(s, num(r), o[0] + Math.sin(A) * r + 4.5, o[1] - Math.cos(A) * r, 24, C.beige, 0.85);
       }
       ctx.restore();
       FL.circle(...o, 1.6, C.beige2);
@@ -1061,7 +1061,7 @@ function bracketField() {
         FL.line(p[0], p[1] + 8, p[0], p[1] + 4);
       });
       ctx.restore();
-      slots.forEach(([x, y], i) => { ctx.save(); ctx.fillStyle = C.blueDark; ctx.beginPath(); ctx.roundRect(x - 5, y - 4, 10, 8, 2); ctx.fill(); ctx.restore(); FL.label(s, kd(i + 1), x, y, 30, C.beige, 0.8); });
+      slots.forEach(([x, y], i) => { ctx.save(); ctx.fillStyle = C.blueDark; ctx.beginPath(); ctx.roundRect(x - 5, y - 4, 10, 8, 2); ctx.fill(); ctx.restore(); FL.label(s, num(i + 1), x, y, 30, C.beige, 0.8); });
       lvl.slice(1, 3).flat().forEach(([x, y]) => { ctx.save(); ctx.fillStyle = C.blueDark; ctx.beginPath(); ctx.roundRect(x - 5, y - 4, 10, 8, 2); ctx.fill(); ctx.restore(); });
     },
   };

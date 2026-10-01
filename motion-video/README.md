@@ -25,7 +25,8 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
 
 - **Look:** flat 2D motion graphics in the logo's green (#129901), beige, petrol blue and a
   little ink, with a fine paper grain, quiet shapes drifting behind, and a blue sheet with a
-  green edge sweeping across on every cut.
+  green edge sweeping across on every cut. The sport's name, the numbers, the phrase and the
+  closing titles have a soft neon glow; every number is in Latin digits.
 - **Story, on the bars of the music (96 bpm):**
   - 0–5 s: the sport's icon drops into a green disc; its Kurdish and English names, a tagline
     and its category.
@@ -33,7 +34,7 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
     passes and a goal, a rally over the net, a run round the bases, a duel, a race, arrows on a
     target, a lift, a climb, a chess game... with the score word («گۆڵ!») at the big moment and
     two lines on how it is played.
-  - 15–25 s: «بە ژمارە», three facts counted up in Kurdish digits, and the sport's names
+  - 15–25 s: «بە ژمارە», three facts counted up in Latin digits, and the sport's names
     running along a blue band.
   - 25–32.5 s: a two-line phrase on the green, word by word, the key word in a blue tag.
   - 32.5–37.5 s: «لە کوردستان» with a tick, or «بەم زووانە لە کوردستان / لە داهاتوودا دێت»
@@ -222,7 +223,7 @@ motion-video/
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
-│   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for Kurdish digits and chess pieces
+│   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits and chess pieces
 └── output/
     ├── sports/         # one film per sport, e.g. football.mp4
     ├── puk-sports-board-kurdistan.mp4
@@ -299,7 +300,7 @@ Other options:
 ## Credits
 
 - Font: [Zain](https://fonts.google.com/specimen/Zain), SIL Open Font License 1.1 (`assets/fonts/OFL.txt`)
-- Kurdish digits ١ ٢ ٣ and the chess pieces: DejaVu Sans Bold, Bitstream Vera licence (`assets/fonts/DejaVu-LICENSE.txt`). Zain draws Arabic-Indic digits in Western shapes.
+- The chess pieces and the podium digits ١ ٢ ٣ of the 3D video: DejaVu Sans Bold, Bitstream Vera licence (`assets/fonts/DejaVu-LICENSE.txt`). Zain draws Arabic-Indic digits in Western shapes.
 - Piano (3D, Kurdistan, trio and sport films): Salamander Grand Piano V3 by Alexander Holm, CC-BY 3.0, via the `@audio-samples/piano-mp3-*` npm packages
 - Strings, horn and harp (the same films): [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus Brosowsky, CC-BY 3.0, via the `tonejs-instrument-*-mp3` npm packages
 - Everything else (the player, ball, 3D objects, effects and the other videos' sounds) is drawn or generated in code for this project.

@@ -19,7 +19,7 @@
  *
  *    0 –  5 s  the sport's icon, name and tagline
  *    5 – 15 s  how it is played: the field, drawn line by line, and a play
- *   15 – 25 s  three facts, counted up in Kurdish digits
+ *   15 – 25 s  three facts, counted up (Latin digits, soft neon glow)
  *   25 – 32.5  a short phrase on the board's green
  *   32.5–37.5  in Kurdistan today, or coming in the future
  *   37.5–45 s  the board's logo and name
@@ -71,19 +71,19 @@ const lerp2 = (p, q, u) => [lerp(p[0], q[0], u), lerp(p[1], q[1], u)];
 const rand = seed => { let s = seed % 2147483647 || 1; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646; };
 const hash = str => [...str].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 2147483647, 7);
 
-// numbers in Kurdish digits (٠١٢٣٤٥٦٧٨٩) with the Arabic decimal separator
-const KD = '٠١٢٣٤٥٦٧٨٩';
+// numbers in Latin digits, as the board writes them in its films
 const decimals = n => (String(n).split('.')[1] || '').length;
-const kd = (n, dec = decimals(n)) => n.toFixed(dec).replace(/\d/g, d => KD[d]).replace('.', '٫');
+const num = (n, dec = decimals(n)) => n.toFixed(dec);
 
 const stage = document.getElementById('stage');
 stage.width = W * SCALE;
 stage.height = H * SCALE;
 const ctx = stage.getContext('2d');
 
-// text: Zain for the letters; DejaVu Sans Bold only for Kurdish digits and the chess pieces
+// text: Zain; DejaVu Sans Bold for the chess pieces, and for Kurdish digits if a text uses them
 const font = (weight, size) => `${weight} ${size}px Zain`;
-function text(str, x, y, { size = 40, weight = 800, color = C.ink, align = 'center', dir = 'rtl', ls = 0, alpha = 1 } = {}) {
+// glow gives the text a soft neon halo in that colour (blur in layout pixels)
+function text(str, x, y, { size = 40, weight = 800, color = C.ink, align = 'center', dir = 'rtl', ls = 0, alpha = 1, glow = null, blur = 18 } = {}) {
   ctx.save();
   ctx.font = font(weight, size);
   ctx.direction = dir;
@@ -91,6 +91,15 @@ function text(str, x, y, { size = 40, weight = 800, color = C.ink, align = 'cent
   ctx.fillStyle = color;
   ctx.globalAlpha *= alpha;
   if (ls) ctx.letterSpacing = `${ls}px`;
+  if (glow) {
+    // a wide halo, a tight one, then the crisp letters on top
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = blur * SCALE;
+    ctx.fillText(str, x, y);
+    ctx.shadowBlur = blur * 0.35 * SCALE;
+    ctx.fillText(str, x, y);
+    ctx.shadowColor = 'transparent';
+  }
   ctx.fillText(str, x, y);
   ctx.restore();
 }
@@ -119,12 +128,12 @@ function riseText(str, x, y, u, opts) {
   const size = opts.size || 40;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, y - size * 1.15, W, size * 1.55);
+  ctx.rect(0, y - size * 1.3, W, size * 1.95); // room for descenders and the glow
   ctx.clip();
-  text(str, x, y + (1 - ease.expo(u)) * size * 1.3, opts);
+  text(str, x, y + (1 - ease.expo(u)) * size * 1.8, opts);
   ctx.restore();
 }
-function pill(str, cx, y, u, { size = 40, weight = 800, bg = C.blue, color = C.beige, padX = 34 } = {}) {
+function pill(str, cx, y, u, { size = 40, weight = 800, bg = C.blue, color = C.beige, padX = 34, glow = null, blur = 14 } = {}) {
   if (u <= 0) return;
   const w = measure(str, size, weight) + padX * 2, h = size * 1.55;
   const k = ease.expoInOut(clamp(u * 1.4));
@@ -134,7 +143,7 @@ function pill(str, cx, y, u, { size = 40, weight = 800, bg = C.blue, color = C.b
   ctx.roundRect(cx - w * k / 2, y - h * 0.68, w * k, h, h / 2);
   ctx.fill();
   ctx.clip();
-  text(str, cx, y, { size, weight, color, alpha: clamp(u * 3 - 1.2) });
+  text(str, cx, y, { size, weight, color, alpha: clamp(u * 3 - 1.2), glow, blur });
   ctx.restore();
 }
 function disc(x, y, r, color) {
@@ -336,7 +345,7 @@ function introScene(t) {
   }
   // name, English name, tagline, category
   const size = fitSize(S.ku, 900, 190, 940, 84);
-  riseText(S.ku, 540, 1170, prog(t, 1.3, 2.0), { size, weight: 900, color: C.green });
+  riseText(S.ku, 540, 1170, prog(t, 1.3, 2.0), { size, weight: 900, color: C.green, glow: 'rgba(18,153,1,0.55)', blur: 26 });
   const eu = prog(t, 1.7, 2.4);
   if (eu > 0) text(S.en, 540 + (1 - ease.expo(eu)) * 60, 1330, { size: 42, weight: 700, color: C.blue, dir: 'ltr', ls: 12, alpha: ease.expo(eu) });
   riseText(S.tagline, 540, 1440, prog(t, 2.05, 2.75), { size: fitSize(S.tagline, 700, 60, 900), weight: 700, color: C.ink });
@@ -348,7 +357,7 @@ function introScene(t) {
 // ---------------------------------------------------------------- 2. the field and the play
 const CARD = { x: 90, y: 296, w: 900, h: 1060 };
 function fieldScene(t) {
-  header(t, 5, kd(1), 'چۆن یاری دەکرێت؟');
+  header(t, 5, '01', 'چۆن یاری دەکرێت؟');
   const u = ease.expo(prog(t, 5.05, 5.85));
   if (u <= 0) return;
   ctx.save();
@@ -394,7 +403,7 @@ function fieldScene(t) {
       ctx.save();
       ctx.translate(540, CARD.y + 120);
       ctx.scale(k, k);
-      pill(S.scoreWord, 0, 0, 1, { size: 64, weight: 900, bg: C.beige, color: C.green, padX: 44 });
+      pill(S.scoreWord, 0, 0, 1, { size: 64, weight: 900, bg: C.beige, color: C.green, padX: 44, glow: 'rgba(18,153,1,0.5)', blur: 16 });
       ctx.restore();
     }
   }
@@ -405,7 +414,7 @@ function fieldScene(t) {
 
 // ---------------------------------------------------------------- 3. facts
 function factsScene(t) {
-  header(t, 15, kd(2), 'بە ژمارە');
+  header(t, 15, '02', 'بە ژمارە');
   S.facts.forEach(([n, label], i) => {
     const t0 = FACT_IN[i];
     const u = ease.expo(prog(t, t0 - 0.1, t0 + 0.7));
@@ -428,9 +437,9 @@ function factsScene(t) {
     ring(x + w - bw / 2, y + h / 2, 150 + 8 * Math.sin(t * 2 + i), 'rgba(241,232,213,0.18)', 3);
     ctx.restore();
     const cu = ease.expo(prog(t, t0 + 0.15, t0 + 1.55));
-    const str = kd(n * cu, decimals(n));
-    const size = fitSize(kd(n), 900, 150, bw - 56, 60);
-    text(str, x + w - bw / 2, y + h / 2 + size * 0.36, { size, weight: 900, color: C.beige });
+    const str = num(n * cu, decimals(n));
+    const size = fitSize(num(n), 900, 150, bw - 56, 60);
+    text(str, x + w - bw / 2, y + h / 2 + size * 0.36, { size, weight: 900, color: C.white, dir: 'ltr', glow: 'rgba(255,255,255,0.8)', blur: 22 });
     // the label, wrapped
     const lsz = 46, lines = wrap(label, lsz, 800, 470);
     const ly = y + h / 2 - ((lines.length - 1) * lsz * 1.3) / 2 + lsz * 0.35;
@@ -458,7 +467,7 @@ function factsScene(t) {
     let x = -W + ((t * 90) % period) - period;
     while (x < W) {
       items.forEach(([s, dir, sz, wt, ls], k) => {
-        text(s, x + widths[k] / 2, 18, { size: sz, weight: wt, color: C.beige, dir, ls, alpha: k % 2 ? 0.6 : 1 });
+        text(s, x + widths[k] / 2, 18, { size: sz, weight: wt, color: C.beige, dir, ls, alpha: k % 2 ? 0.6 : 1, glow: k === 2 ? 'rgba(255,255,255,0.5)' : null, blur: 14 });
         x += widths[k];
       });
     }
@@ -510,7 +519,7 @@ function phraseScene(t) {
         ctx.roundRect(xr + 22 - bw, y - size * 0.86, bw, size * 1.16, 18);
         ctx.fill();
       }
-      riseText(w, cx, y, u, { size, weight: 900, color: C.beige });
+      riseText(w, cx, y, u, { size, weight: 900, color: C.white, glow: 'rgba(225,255,210,0.85)', blur: 24 });
       xr -= ws[j] + sp;
     });
   });
@@ -585,13 +594,13 @@ function statusScene(t) {
   ctx.restore();
   const p = (a, b) => prog(t, a, b);
   if (here) {
-    riseText('لە کوردستان', 540, 1100, p(33.3, 34.0), { size: 150, weight: 900, color: C.green });
-    pill('یاریزانانمان دەدرەوشێنەوە', 540, 1250, p(33.75, 34.6), { size: 50, weight: 900, bg: C.green, color: C.beige });
+    riseText('لە کوردستان', 540, 1100, p(33.3, 34.0), { size: 150, weight: 900, color: C.green, glow: 'rgba(18,153,1,0.55)', blur: 26 });
+    pill('یاریزانانمان دەدرەوشێنەوە', 540, 1250, p(33.75, 34.6), { size: 50, weight: 900, bg: C.green, color: C.white, glow: 'rgba(255,255,255,0.65)' });
     riseText('بۆردی وەرزشی هەمیشە پشتیوانیانە', 540, 1400, p(34.2, 34.9), { size: 50, weight: 700, color: C.ink });
   } else {
-    riseText('بەم زووانە', 540, 1060, p(33.3, 34.0), { size: 140, weight: 900, color: C.blue });
-    riseText('لە کوردستان', 540, 1190, p(33.55, 34.25), { size: 104, weight: 900, color: C.green });
-    pill('لە داهاتوودا دێت', 540, 1330, p(33.9, 34.7), { size: 52, weight: 900, bg: C.blue, color: C.beige });
+    riseText('بەم زووانە', 540, 1060, p(33.3, 34.0), { size: 140, weight: 900, color: C.blue, glow: 'rgba(31,95,125,0.5)', blur: 26 });
+    riseText('لە کوردستان', 540, 1190, p(33.55, 34.25), { size: 104, weight: 900, color: C.green, glow: 'rgba(18,153,1,0.5)', blur: 22 });
+    pill('لە داهاتوودا دێت', 540, 1330, p(33.9, 34.7), { size: 52, weight: 900, bg: C.blue, color: C.white, glow: 'rgba(255,255,255,0.65)' });
     riseText('داهاتووی ئەم وەرزشە لێرەوە دەست پێدەکات', 540, 1470, p(34.3, 35.0), { size: 46, weight: 700, color: C.ink });
   }
 }
@@ -638,9 +647,9 @@ function endScene(t) {
     ctx.drawImage(logoImg, LX - s / 2, LY - s / 2, s, s);
     ctx.restore();
   }
-  riseText('بۆردی وەرزشی', 540, 1270, prog(t, LOGO_AT + 0.45, LOGO_AT + 1.2), { size: 132, weight: 900, color: C.green });
+  riseText('بۆردی وەرزشی', 540, 1270, prog(t, LOGO_AT + 0.45, LOGO_AT + 1.2), { size: 132, weight: 900, color: C.green, glow: 'rgba(18,153,1,0.55)', blur: 26 });
   riseText('یەکێتیی نیشتمانیی کوردستان', 540, 1376, prog(t, LOGO_AT + 0.7, LOGO_AT + 1.4), { size: 62, weight: 800, color: C.ink });
-  pill('هەمیشە لە پاڵتانین', 540, 1530, prog(t, LOGO_AT + 1.1, LOGO_AT + 1.9), { size: 64, weight: 900, bg: C.green, color: C.beige, padX: 48 });
+  pill('هەمیشە لە پاڵتانین', 540, 1530, prog(t, LOGO_AT + 1.1, LOGO_AT + 1.9), { size: 64, weight: 900, bg: C.green, color: C.white, padX: 48, glow: 'rgba(255,255,255,0.7)', blur: 16 });
   const ru = ease.expoInOut(prog(t, LOGO_AT + 0.9, LOGO_AT + 1.6));
   if (ru > 0) { ctx.fillStyle = C.blue; ctx.fillRect(540 - 90 * ru, 1420, 180 * ru, 5); }
 }
