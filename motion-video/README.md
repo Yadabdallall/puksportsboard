@@ -4,6 +4,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
+| [`output/puk-sports-board-editorial-3k.mp4`](output/puk-sports-board-editorial-3k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink and the Kurdish flag's colours) | 1620×2880 (3K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
 | [`output/puk-sports-board-kurdistan-3k.mp4`](output/puk-sports-board-kurdistan-3k.mp4): the same film in 3K (`--scale 1.5`) | 1620×2880, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -11,6 +12,22 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | [`output/puk-sports-board-3d-warm.mp4`](output/puk-sports-board-3d-warm.mp4): the same picture with the warm, lighter music | 1080×1920, 30 fps | 20 s | `sport3d.html`, `audio/sport3d_warm.py` |
 | [`output/puk-sports-board-motion.mp4`](output/puk-sports-board-motion.mp4): footballer kicks the ball into the logo | 1920×1080, 60 fps | 14 s | `index.html`, `audio/audio.py` |
 | [`output/puk-sports-board-minimal.mp4`](output/puk-sports-board-minimal.mp4): minimal line art, no people | 1920×1080, 60 fps | 20 s | `minimal.html`, `audio/minimal.py` |
+
+## Editorial poster film (30 s, 3K)
+
+This film tells the boxing, volleyball and table tennis story in a completely different style
+from the others:
+- **Look:** warm paper with a fine grain, ink black and the colours of the Kurdish flag (red, sun
+  yellow and green) on a quiet six-column grid.
+- **Pictures:** flat graphic illustrations with print-style offset shadows.
+- **Type:** giant outlined chapter words drifting behind, outlined chapter numbers 01–05 with
+  solid sport tags, and phrases that slide in word by word. The key word gets a sun-yellow
+  highlighter and a soft red glow.
+- **Transitions:** colour-block wipes (the next colour, ink, then sun) on every bar line.
+- **End card:** the logo on a turning 21-ray Kurdish sun.
+
+It runs on the same timeline as `trio3d.html`, so `audio/trio.py` (score, punches, spike and
+rally) fits it exactly. Because the film is 2D it renders fast: 3K takes about a minute.
 
 ## Boxing, volleyball and table tennis (30 s, 3K)
 
@@ -140,6 +157,7 @@ motion-video/
 ├── sport3d.html        # 3D vertical video (three.js)
 ├── kurdistan3d.html    # 30 s sports-of-Kurdistan film (same 3D engine)
 ├── trio3d.html         # 30 s boxing / volleyball / table tennis film (same 3D engine)
+├── editorial.html      # the same story as an editorial poster (2D)
 ├── photos.html         # 30 s photo film template (needs assets/photos/)
 ├── package.json        # three.js + Playwright (npm install)
 ├── render.mjs          # renders a page frame by frame and encodes it with ffmpeg
