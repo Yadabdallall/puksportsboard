@@ -4,7 +4,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
-| [`output/puk-sports-board-editorial-3k.mp4`](output/puk-sports-board-editorial-3k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink and the Kurdish flag's colours) | 1620×2880 (3K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
+| [`output/puk-sports-board-editorial-3k.mp4`](output/puk-sports-board-editorial-3k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 1620×2880 (3K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
 | [`output/puk-sports-board-kurdistan-3k.mp4`](output/puk-sports-board-kurdistan-3k.mp4): the same film in 3K (`--scale 1.5`) | 1620×2880, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -17,14 +17,14 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 This film tells the boxing, volleyball and table tennis story in a completely different style
 from the others:
-- **Look:** warm paper with a fine grain, ink black and the colours of the Kurdish flag (red, sun
-  yellow and green) on a quiet six-column grid.
+- **Look:** warm paper with a fine grain, ink black, red and the board's own green (#129901) on a
+  quiet six-column grid.
 - **Pictures:** flat graphic illustrations with print-style offset shadows.
 - **Type:** giant outlined chapter words drifting behind, outlined chapter numbers 01–05 with
-  solid sport tags, and phrases that slide in word by word. The key word gets a sun-yellow
-  highlighter and a soft red glow.
-- **Transitions:** colour-block wipes (the next colour, ink, then sun) on every bar line.
-- **End card:** the logo on a turning 21-ray Kurdish sun.
+  solid sport tags, and phrases that slide in word by word. The key word gets a green tag swept
+  in behind it, turning it white with a soft glow.
+- **Transitions:** colour-block wipes (the next colour, ink, then green) on every bar line.
+- **End card:** the logo on a turning 21-ray sun in the board's green.
 
 It runs on the same timeline as `trio3d.html`, so `audio/trio.py` (score, punches, spike and
 rally) fits it exactly. Because the film is 2D it renders fast: 3K takes about a minute.

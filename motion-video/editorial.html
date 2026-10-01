@@ -14,8 +14,7 @@
 <script>
 /*
  * Vertical (9:16) 30 s film for the PUK Sports Board in an editorial poster
- * style: warm paper, ink black and the colours of the Kurdish flag (red, sun
- * yellow, green). Flat graphic illustrations of boxing, volleyball and table
+ * style: warm paper, ink black, red and the board's own green (#129901). Flat graphic illustrations of boxing, volleyball and table
  * tennis, giant outlined words and chapter numbers, and colour-block wipes on
  * the bar lines. It shares its timeline with trio3d.html, so audio/trio.py fits.
  * Layout is in 1080x1920 units; ?scale=1.5 renders 3K. renderFrame(t) is a
@@ -27,13 +26,13 @@ const BEAT = 60 / 96, BAR = 4 * BEAT; // 96 bpm, every chapter is two bars (5 s)
 
 const C = {
   paper: '#efe9dd', paper2: '#e6dfd0', ink: '#141414', red: '#e2402c', redDark: '#b72f20',
-  sun: '#f2b42f', green: '#1d8a4c', greenDark: '#16653a', white: '#fbf8f2',
+  brand: '#129901', green: '#1d8a4c', greenDark: '#16653a', white: '#fbf8f2',
 };
 
 const CHAPTERS = [
   { word: 'بۆکسێن', label: 'بۆکسێن', text: ['هێز لە دڵەوە', 'دەست پێدەکات'], accent: 'دڵەوە', color: C.red },
   { word: 'ڕاهێنان', label: 'ڕاهێنان', text: ['ئارەقەی ئەمڕۆ،', 'سەرکەوتنی سبەینێیە'], accent: 'سەرکەوتنی', color: C.ink },
-  { word: 'بالە', label: 'بالە', text: ['هەر خاڵێک،', 'بە یەکڕیزی دەبرێتەوە'], accent: 'یەکڕیزی', color: C.sun },
+  { word: 'بالە', label: 'بالە', text: ['هەر خاڵێک،', 'بە یەکڕیزی دەبرێتەوە'], accent: 'یەکڕیزی', color: C.brand },
   { word: 'تێنس', label: 'تێنسی سەر مێز', text: ['خێرایی و هێمنی،', 'لە یەک کاتدا'], accent: 'هێمنی', color: C.green },
   { word: 'یەکڕیزی', label: 'یەکڕیزی', text: ['وەرزش،', 'شانازیی کوردستانە'], accent: 'کوردستانە', color: C.red },
 ];
@@ -183,7 +182,7 @@ function chapterNumber(t) {
   ctx.beginPath();
   ctx.rect(x1 - (tw + 56) * lu, y, (tw + 56) * lu, h);
   ctx.clip();
-  ctx.fillStyle = ch.color === C.sun ? C.ink : C.white;
+  ctx.fillStyle = C.white;
   ctx.textAlign = 'right';
   ctx.fillText(ch.label, x1 - 28, y + 60);
   ctx.restore();
@@ -309,12 +308,12 @@ function sceneBag(t) {
     }
     ctx.restore();
   }
-  // impact burst in sun yellow
+  // impact burst in the board's green
   const bu = prog(t, h, h + 0.35);
   if (bu > 0 && bu < 1) {
     const cx = pivot.x - 120, cy = gy - 10;
     ctx.save();
-    ctx.strokeStyle = C.sun;
+    ctx.strokeStyle = C.brand;
     ctx.lineWidth = 12 * (1 - bu) + 2;
     ctx.lineCap = 'round';
     for (let j = 0; j < 10; j++) {
@@ -335,14 +334,14 @@ function drawVolleyball(x, y, r, rot) {
   ctx.fillStyle = 'rgba(20,20,20,0.16)';
   ctx.beginPath(); ctx.arc(10, 10, r, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = C.sun;
+  ctx.fillStyle = C.brand;
   ctx.fill();
   ctx.save();
   ctx.clip();
   ctx.rotate(rot);
   ctx.fillStyle = C.white;
   ctx.beginPath(); ctx.ellipse(-r * 0.2, -r * 0.95, r * 1.1, r * 0.55, 0.3, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = C.green;
+  ctx.fillStyle = C.red;
   ctx.beginPath(); ctx.ellipse(r * 0.75, r * 0.65, r * 0.75, r * 0.5, -0.9, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = C.ink;
   ctx.lineWidth = r * 0.06;
@@ -495,7 +494,7 @@ function sceneTable(t) {
 
 // 5. three stamped badges: glove, volleyball, bat
 function sceneBadges(t) {
-  const spots = [{ x: 330, y: 560, c: C.red }, { x: 740, y: 760, c: C.sun }, { x: 360, y: 1000, c: C.green }];
+  const spots = [{ x: 330, y: 560, c: C.red }, { x: 740, y: 760, c: C.brand }, { x: 360, y: 1000, c: C.ink }];
   spots.forEach((s, i) => {
     const u = prog(t, STAMPS[i] - 0.25, STAMPS[i] + 0.35);
     if (u <= 0) return;
@@ -509,7 +508,7 @@ function sceneBadges(t) {
     ctx.beginPath(); ctx.arc(12, 12, 170, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = s.c;
     ctx.beginPath(); ctx.arc(0, 0, 170, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = s.c === C.sun ? C.ink : C.white;
+    ctx.strokeStyle = C.white;
     ctx.lineWidth = 3;
     ctx.setLineDash([10, 10]);
     ctx.beginPath(); ctx.arc(0, 0, 148, 0, Math.PI * 2); ctx.stroke();
@@ -522,8 +521,8 @@ function sceneBadges(t) {
 }
 
 // ---------------------------------------------------------------- type
-// Words slide in from the right (reading order); the accent word gets a sun
-// highlighter swept behind it and a soft glow.
+// Words slide in from the right (reading order); the accent word gets a
+// green tag swept in behind it, turning it white with a soft glow.
 function phrase(t, i) {
   const ch = CHAPTERS[i], t0 = TEXT_IN[i], t1 = (i + 1) * 2 * BAR - 0.3;
   if (t < t0 || t > t1 + 0.1) return;
@@ -550,15 +549,21 @@ function phrase(t, i) {
         ctx.save();
         ctx.globalAlpha = u * (1 - out);
         ctx.translate((1 - u) * 60 + out * -40, 0);
-        if (isAccent) {
-          const hu = ease.expoInOut(prog(t, d + 0.25, d + 0.85));
-          ctx.fillStyle = C.sun;
-          ctx.fillRect(xr - ws[j] * hu - 10, -size * 0.38, ws[j] * hu + 20, size * 0.42);
-          ctx.shadowColor = 'rgba(226, 64, 44, 0.45)';
-          ctx.shadowBlur = 18 * SCALE;
-        }
         ctx.fillStyle = isAccent ? C.red : C.ink;
         ctx.fillText(w, xr, 0);
+        if (isAccent) {
+          const hu = ease.expoInOut(prog(t, d + 0.25, d + 0.85));
+          const bx = xr + 14 - (ws[j] + 28) * hu, bw = (ws[j] + 28) * hu;
+          ctx.fillStyle = C.brand;
+          ctx.fillRect(bx, -size * 0.8, bw, size * 1.06);
+          ctx.beginPath();
+          ctx.rect(bx, -size * 0.8, bw, size * 1.06);
+          ctx.clip();
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.45)';
+          ctx.shadowBlur = 14 * SCALE;
+          ctx.fillStyle = C.white;
+          ctx.fillText(w, xr, 0);
+        }
         ctx.restore();
       }
       xr -= ws[j] + sp;
@@ -576,7 +581,7 @@ function wipe(t) {
     const u = prog(t, c - 0.45, c + 0.45);
     if (u <= 0 || u >= 1) continue;
     const col = i < 5 ? CHAPTERS[i].color : C.red;
-    const bands = [[col, 0], [C.ink, 0.12], [C.sun, 0.22]];
+    const bands = [[col, 0], [C.ink, 0.12], [C.brand, 0.22]];
     for (const [cl, off] of bands) {
       const v = clamp((u - off) / (1 - 0.22));
       const a = ease.expoInOut(clamp(v * 2)), b = ease.expoInOut(clamp(v * 2 - 1));
@@ -590,12 +595,12 @@ function wipe(t) {
 function endCard(t) {
   if (t < END_AT) return;
   const u = prog(t, END_AT + 0.2, END_AT + 1.4);
-  // the Kurdish sun: 21 rays turning slowly behind the logo
+  // a 21-ray sun in the board's green, turning slowly behind the logo
   ctx.save();
   ctx.translate(CX, 780);
   ctx.rotate(t * 0.12);
   const rays = 21, R0 = 250, R1 = 250 + 330 * ease.expo(u);
-  ctx.fillStyle = C.sun;
+  ctx.fillStyle = C.brand;
   for (let k = 0; k < rays; k++) {
     const a = k / rays * Math.PI * 2;
     ctx.beginPath();
@@ -628,16 +633,21 @@ function endCard(t) {
     ctx.textAlign = 'center';
     ctx.globalAlpha = v;
     ctx.fillStyle = color;
+    ctx.fillText(txt, CX + (1 - v) * 50, y);
     if (color === C.red) {
       const tw = ctx.measureText(txt).width;
-      const hw = (tw + 40) * ease.expoInOut(prog(t, t0 + 0.2, t0 + 0.9));
-      ctx.fillStyle = C.sun;
-      ctx.fillRect(CX + tw / 2 + 20 - hw, y - size * 0.4, hw, size * 0.46);
-      ctx.fillStyle = color;
-      ctx.shadowColor = 'rgba(226, 64, 44, 0.4)';
-      ctx.shadowBlur = 16 * SCALE;
+      const hw = (tw + 56) * ease.expoInOut(prog(t, t0 + 0.2, t0 + 0.9));
+      const bx = CX + tw / 2 + 28 - hw;
+      ctx.fillStyle = C.brand;
+      ctx.fillRect(bx, y - size * 0.82, hw, size * 1.1);
+      ctx.beginPath();
+      ctx.rect(bx, y - size * 0.82, hw, size * 1.1);
+      ctx.clip();
+      ctx.fillStyle = C.white;
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.45)';
+      ctx.shadowBlur = 14 * SCALE;
+      ctx.fillText(txt, CX + (1 - v) * 50, y);
     }
-    ctx.fillText(txt, CX + (1 - v) * 50, y);
     ctx.restore();
   }
   const ru = ease.expoInOut(prog(t, END_AT + 1.4, END_AT + 2.1));
