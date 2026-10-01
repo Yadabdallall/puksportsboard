@@ -25,11 +25,11 @@ const BEAT = 60 / 96, BAR = 4 * BEAT; // 96 bpm: every photo is two bars (5 s)
 // focus: the point of the photo to keep in frame (0..1); move: zoom in or out
 // and the drift direction during the shot.
 const SHOTS = [
-  { photo: 'assets/photos/01.jpg', focus: [0.5, 0.5], zoom: [1.14, 1.0], drift: [0, -40], label: 'دەستپێک', text: ['هەر ڕۆژێک،', 'دەستپێکێکی نوێیە'], accent: ['نوێیە'] },
-  { photo: 'assets/photos/02.jpg', focus: [0.5, 0.5], zoom: [1.0, 1.12], drift: [30, 0], label: 'ڕاهێنان', text: ['ئارەقەی ئەمڕۆ،', 'سەرکەوتنی سبەینێیە'], accent: ['سەرکەوتنی'] },
-  { photo: 'assets/photos/03.jpg', focus: [0.5, 0.5], zoom: [1.14, 1.02], drift: [-30, 20], label: 'یاریگا', text: ['لە یاریگاوە،', 'بەرەو خەونەکان'], accent: ['خەونەکان'] },
-  { photo: 'assets/photos/04.jpg', focus: [0.5, 0.5], zoom: [1.02, 1.14], drift: [0, 30], label: 'یەکڕیزی', text: ['پێکەوە،', 'هیچ شتێک مەحاڵ نییە'], accent: ['پێکەوە'] },
-  { photo: 'assets/photos/05.jpg', focus: [0.5, 0.5], zoom: [1.12, 1.0], drift: [40, -10], label: 'شانازی', text: ['وەرزش،', 'شانازیی کوردستانە'], accent: ['کوردستانە'] },
+  { photo: 'assets/photos/01.jpg', focus: [0.5, 0.5], zoom: [1.14, 1.0], drift: [0, -40], label: 'بۆکسێن', text: ['هێز لە دڵەوە', 'دەست پێدەکات'], accent: ['دڵەوە'] },
+  { photo: 'assets/photos/02.jpg', focus: [0.5, 0.5], zoom: [1.0, 1.12], drift: [30, 0], label: 'بالە', text: ['هەر خاڵێک،', 'بە یەکڕیزی دەبرێتەوە'], accent: ['یەکڕیزی'] },
+  { photo: 'assets/photos/03.jpg', focus: [0.5, 0.5], zoom: [1.14, 1.02], drift: [-30, 20], label: 'تێنسی سەر مێز', text: ['خێرایی و هێمنی،', 'لە یەک کاتدا'], accent: ['هێمنی'] },
+  { photo: 'assets/photos/04.jpg', focus: [0.5, 0.5], zoom: [1.02, 1.14], drift: [0, 30], label: 'ڕاهێنان', text: ['ئارەقەی ئەمڕۆ،', 'سەرکەوتنی سبەینێیە'], accent: ['سەرکەوتنی'] },
+  { photo: 'assets/photos/05.jpg', focus: [0.5, 0.5], zoom: [1.12, 1.0], drift: [40, -10], label: 'یەکڕیزی', text: ['وەرزش،', 'شانازیی کوردستانە'], accent: ['کوردستانە'] },
 ];
 const END = { title: 'بۆردی وەرزشی', sub: 'یەکێتیی نیشتمانیی کوردستان', line: 'هەمیشە لە پاڵتانین' };
 const XF = 0.6;              // cross-fade length between photos
