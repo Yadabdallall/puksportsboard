@@ -2,8 +2,8 @@
 window.I18N = window.I18N || {};
 (function (L) {
   L.ui = {
-    brand: 'Ingenieurpedia', brandSub: 'Die Enzyklopädie des Ingenieurwesens', lang: 'Sprache',
-    nav: { depts: 'Fachrichtungen', colors: 'Helmfarben', safety: 'Sicherheit', software: 'Software', legends: 'Ingenieure', quiz: 'Welches Fach passt zu mir?' },
+    brand: 'Ingenieurpedia', brandSub: 'Ingenieur-Enzyklopädie', lang: 'Sprache',
+    nav: { depts: 'Fachrichtungen', colors: 'Helmfarben', safety: 'Sicherheit', software: 'Software', legends: 'Ingenieure', quiz: 'Fach-Quiz' },
     loader: 'Dein Helm wird vorbereitet…',
     heroKicker: 'INGENIEURWESEN · ENZYKLOPÄDIE',
     heroTitle: ['Alle', 'Ingenieurfächer', 'an einem Ort'],

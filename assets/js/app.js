@@ -103,6 +103,7 @@
     }).join(' ');
   }
   function splitHTML(s) { wordIdx = 0; return words(s); }
+  function longWord(s) { return Math.max.apply(null, String(s).split(/[\s\-–—/]+/).map(function (w) { return w.length; })); }
   function h2(s, tag) {
     var i = String(s).indexOf('|'); wordIdx = 0;
     var a = i < 0 ? s : s.slice(0, i), b = i < 0 ? '' : s.slice(i + 1);
@@ -112,7 +113,7 @@
     return '<p class="scrub ' + (cls || '') + '">' + String(s).trim().split(/\s+/).map(function (w) { return '<span class="sw">' + esc(w) + '</span>'; }).join(' ') + '</p>';
   }
   function eyebrow(n, label, extra) {
-    return '<span class="eyebrow"><span class="num">/' + pad(n) + '</span><span class="bar"></span><span>' + esc(label) + '</span>' + (extra ? '<bdi class="num" dir="ltr">' + esc(extra) + '</bdi>' : '') + '</span>';
+    return '<span class="eyebrow">' + (n == null ? '' : '<span class="num">/' + pad(n) + '</span><span class="bar"></span>') + '<span>' + esc(label) + '</span>' + (extra ? '<bdi class="num" dir="ltr">' + esc(extra) + '</bdi>' : '') + '</span>';
   }
   function secHead(n, key, extra) {
     var s = ui('sec.' + key) || {};
@@ -677,8 +678,8 @@
     h += '<section class="d-hero"><div class="d-cover" id="dCover"><div class="layer bp"></div><div class="layer col"></div><span class="scan"></span><div class="gridfx"></div></div>' +
       '<div class="d-hero-in"><div>' +
       '<a class="back" href="#/departments">' + icon('back', 'flip') + esc(U.back) + '</a>' +
-      eyebrow(d.idx + 1, U.label, pad(d.idx + 1) + ' / ' + D.length) +
-      '<h1 class="split">' + splitHTML(dName(d)) + '</h1>' +
+      eyebrow(null, U.label, pad(d.idx + 1) + ' / ' + D.length) +
+      '<h1 class="split" style="--lw:' + longWord(dName(d)) + '">' + splitHTML(dName(d)) + '</h1>' +
       (isEn() ? '' : '<p class="d-en" data-px="0.12">' + esc(d.en) + '</p>') +
       '<p class="d-tag rv">' + esc(t.tag) + '</p>' +
       '<div class="d-chips rv" style="--d:200ms">' +
