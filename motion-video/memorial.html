@@ -20,9 +20,10 @@
  * blooming into colour, a warm light passing between them, and the words
  * rising in one by one.
  *
- *    0 –  4.75 s  a candle is lit: «بە یادی سەرۆک مام جەلال», 1933 – 2017
+ *    0 –  4.75 s  «سەرۆک مام جەلال», 1933 – 2017, the ninth anniversary of his death
  *  4.75 – 42.75 s  eight photos, 4.75 s each, with a line of text under each
- * 42.75 – 50 s   the candle again, «یادت هەمیشە لە دڵماندایە», the board's logo
+ * 42.75 – 50 s   «یادت هەمیشە لە دڵماندایە», the board's logo, the office of the
+ *                 secretariat of President Mam Jalal and the board's name
  *
  * The music (audio/memorial.py) is in 3/4 at about 76 bpm: one photo every two
  * bars. Layout is in 1080x1920 units; ?scale=2 renders 4K. renderFrame(t) is
@@ -33,7 +34,7 @@ const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
 const BAR = 2.375;
 const P0 = 2 * BAR, PLEN = 2 * BAR;     // the photos: from 4.75 s, two bars each
 const OUTRO = P0 + 8 * PLEN;            // 42.75 s
-const A0 = OUTRO + 0.4;                 // the candle is lit again
+const A0 = OUTRO + 0.4;                 // the closing words begin
 const LOGO_AT = A0 + 2.0, FADE_AT = 48.9;
 
 const C = {
@@ -167,48 +168,6 @@ function logo(x, y, size, alpha = 1) {
   ctx.restore();
 }
 
-// ---------------------------------------------------------------- the candle
-function candle(x, y, t, alpha) {
-  if (alpha <= 0) return;
-  const flick = 1 + 0.05 * Math.sin(t * 13.1) + 0.035 * Math.sin(t * 23.7 + 1) + 0.02 * Math.sin(t * 41.3);
-  const sway = 3.2 * Math.sin(t * 2.9) + 1.6 * Math.sin(t * 7.7 + 2);
-  ctx.save();
-  ctx.globalAlpha *= alpha;
-  // the warm light around it
-  const glow = ctx.createRadialGradient(x, y - 70, 0, x, y - 70, 420 * flick);
-  glow.addColorStop(0, 'rgba(255,190,110,0.30)'); glow.addColorStop(0.35, 'rgba(255,160,80,0.10)'); glow.addColorStop(1, 'rgba(255,150,70,0)');
-  ctx.globalCompositeOperation = 'screen';
-  ctx.fillStyle = glow;
-  ctx.fillRect(x - 450, y - 520, 900, 900);
-  ctx.globalCompositeOperation = 'source-over';
-  // the candle: a slim cream column, lit from the flame
-  const cw = 46, ch = 150;
-  const body = ctx.createLinearGradient(x - cw / 2, 0, x + cw / 2, 0);
-  body.addColorStop(0, '#6d6150'); body.addColorStop(0.45, '#efe4d0'); body.addColorStop(1, '#5d5243');
-  ctx.fillStyle = body;
-  ctx.beginPath(); ctx.roundRect(x - cw / 2, y, cw, ch, [6, 6, 2, 2]); ctx.fill();
-  const top = ctx.createLinearGradient(0, y, 0, y + 40);
-  top.addColorStop(0, 'rgba(255,214,150,0.55)'); top.addColorStop(1, 'rgba(255,214,150,0)');
-  ctx.fillStyle = top; ctx.fillRect(x - cw / 2, y, cw, 40);
-  ctx.strokeStyle = '#2a2018'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x + 1, y - 12); ctx.stroke();
-  // the flame
-  const fh = 92 * flick, fw = 19;
-  const fy = y - 14;
-  const fl = ctx.createRadialGradient(x, fy - 22, 2, x, fy - 30, fh * 0.75);
-  fl.addColorStop(0, 'rgba(255,253,240,1)'); fl.addColorStop(0.3, 'rgba(255,226,150,0.95)');
-  fl.addColorStop(0.7, 'rgba(255,150,50,0.75)'); fl.addColorStop(1, 'rgba(255,100,30,0)');
-  ctx.fillStyle = fl;
-  ctx.beginPath();
-  ctx.moveTo(x + sway, fy - fh);
-  ctx.bezierCurveTo(x + fw * 0.9 + sway * 0.4, fy - fh * 0.55, x + fw * 1.1, fy - fh * 0.12, x, fy);
-  ctx.bezierCurveTo(x - fw * 1.1, fy - fh * 0.12, x - fw * 0.9 + sway * 0.4, fy - fh * 0.55, x + sway, fy - fh);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(110,150,255,0.35)';
-  ctx.beginPath(); ctx.ellipse(x, fy - 8, 7, 11, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-}
-
 // ---------------------------------------------------------------- the photos
 function photoRect(i, t) {
   const im = photoImgs[i], iw = im.naturalWidth, ih = im.naturalHeight, p = PHOTOS[i];
@@ -305,12 +264,10 @@ function dust(t) {
 function intro(t) {
   const out = 1 - prog(t, P0 - 0.9, P0 - 0.15);
   if (out <= 0) return;
-  candle(540, 730, t, ease.out(prog(t, 0.3, 1.3)) * out);
-  text('بە یادی', 540, 1000, { size: 48, weight: 700, color: C.gold, alpha: ease.out(prog(t, 0.9, 1.7)) * out });
-  wordsIn('سەرۆک مام جەلال', 540, 1130, 1.3, t, { size: 120, weight: 800, color: C.cream, alpha: out, step: 0.2, dur: 1.0 });
-  rule(540, 1185, 420 * ease.inOut(prog(t, 2.0, 2.9)), out);
-  text('1933 – 2017', 540, 1270, { size: 54, weight: 700, color: C.goldLight, ls: 10, alpha: ease.out(prog(t, 2.4, 3.1)) * out });
-  text('نۆیەمین ساڵیادی کۆچی دوایی', 540, 1350, { size: 46, weight: 700, color: C.creamDim, alpha: ease.out(prog(t, 2.8, 3.5)) * out });
+  wordsIn('سەرۆک مام جەلال', 540, 920, 1.0, t, { size: 120, weight: 800, color: C.cream, alpha: out, step: 0.2, dur: 1.0 });
+  rule(540, 975, 420 * ease.inOut(prog(t, 1.8, 2.7)), out);
+  text('1933 – 2017', 540, 1060, { size: 54, weight: 700, color: C.goldLight, ls: 10, alpha: ease.out(prog(t, 2.2, 2.9)) * out });
+  text('نۆیەمین ساڵیادی کۆچی دوایی', 540, 1140, { size: 46, weight: 700, color: C.creamDim, alpha: ease.out(prog(t, 2.6, 3.3)) * out });
 }
 function header(t) {
   const a = ease.out(prog(t, P0 + 0.2, P0 + 1.2)) * (1 - prog(t, OUTRO - 0.5, OUTRO + 0.3));
@@ -352,23 +309,23 @@ function caption(t) {
 function outro(t) {
   if (t < A0) return;
   const fin = 1 - prog(t, FADE_AT, FADE_AT + 1.0);
-  candle(540, 470, t, ease.out(prog(t, A0, A0 + 1.0)) * fin);
-  wordsIn('یادت هەمیشە لە دڵماندایە', 540, 780, A0 + 0.6, t, { size: 80, weight: 800, color: C.cream, alpha: fin, step: 0.18, dur: 1.0 });
-  text('سەرۆک مام جەلال', 540, 870, { size: 48, weight: 700, color: C.gold, alpha: ease.out(prog(t, A0 + 1.4, A0 + 2.1)) * fin });
+  wordsIn('یادت هەمیشە لە دڵماندایە', 540, 620, A0 + 0.6, t, { size: 80, weight: 800, color: C.cream, alpha: fin, step: 0.18, dur: 1.0 });
+  text('سەرۆک مام جەلال', 540, 710, { size: 48, weight: 700, color: C.gold, alpha: ease.out(prog(t, A0 + 1.4, A0 + 2.1)) * fin });
   // the board's logo inside a gold ring that draws itself
   const lu = ease.out(prog(t, LOGO_AT, LOGO_AT + 1.0));
-  logo(540, 1170, 300 * lerp(0.94, 1, lu), lu * fin);
+  logo(540, 990, 300 * lerp(0.94, 1, lu), lu * fin);
   const ru = ease.inOut(prog(t, LOGO_AT + 0.2, LOGO_AT + 1.6));
   if (ru > 0) {
     ctx.save();
     ctx.globalAlpha = fin;
     ctx.strokeStyle = C.gold;
     ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(540, 1170, 182, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ru); ctx.stroke();
+    ctx.beginPath(); ctx.arc(540, 990, 182, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ru); ctx.stroke();
     ctx.restore();
   }
-  text('بۆردی وەرزشی', 540, 1420, { size: 50, weight: 800, color: C.cream, alpha: ease.out(prog(t, LOGO_AT + 1.0, LOGO_AT + 1.7)) * fin });
-  text('یەکێتیی نیشتمانیی کوردستان', 540, 1485, { size: 40, weight: 700, color: C.creamDim, alpha: ease.out(prog(t, LOGO_AT + 1.3, LOGO_AT + 2.0)) * fin });
+  text('مەکتەبی سکرتارییەتی سەرۆک مام جەلال', 540, 1290, { size: 46, weight: 800, color: C.goldLight, alpha: ease.out(prog(t, LOGO_AT + 0.9, LOGO_AT + 1.6)) * fin });
+  text('بۆردی وەرزشی', 540, 1380, { size: 50, weight: 800, color: C.cream, alpha: ease.out(prog(t, LOGO_AT + 1.2, LOGO_AT + 1.9)) * fin });
+  text('یەکێتیی نیشتمانیی کوردستان', 540, 1445, { size: 40, weight: 700, color: C.creamDim, alpha: ease.out(prog(t, LOGO_AT + 1.5, LOGO_AT + 2.2)) * fin });
 }
 
 function renderFrame(t) {

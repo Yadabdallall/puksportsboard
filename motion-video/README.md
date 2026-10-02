@@ -65,10 +65,10 @@ For the anniversary of the death of President Mam Jalal (Jalal Talabani, 1933 �
   `assets/memorial/make_photos.py`. Each one sits in a wide frame with soft edges over a blurred,
   darkened copy of itself, drifts slowly, and starts in black and white before blooming into
   colour. A warm light passes over the frame between photos.
-- **Words:** a candle is lit for «بە یادی سەرۆک مام جەلال», 1933 – 2017 and «نۆیەمین ساڵیادی کۆچی دوایی».
+- **Words:** it opens with «سەرۆک مام جەلال», 1933 – 2017 and «نۆیەمین ساڵیادی کۆچی دوایی».
   Then each photo has a gold kicker (پێشمەرگە, ساڵانی شاخ, 1975, 2005 – 2014...) and a line whose
-  words rise in one by one, from the right. It ends with the candle, «یادت هەمیشە لە دڵماندایە» and
-  the logo inside a gold ring. Numbers are in Latin digits.
+  words rise in one by one, from the right. It ends with «یادت هەمیشە لە دڵماندایە», the logo inside a
+  gold ring, «مەکتەبی سکرتارییەتی سەرۆک مام جەلال» and the board's name. Numbers are in Latin digits.
 - **Music:** `audio/memorial.py` is an elegy in 3/4 in maqam Kurd on D (piano, cello, violins,
   double bass, horn, harp), one photo every two bars, ending in D major with a harp glissando
   on the logo.
