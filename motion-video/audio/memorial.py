@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Music for memorial.html: 50 s, an elegy in 3/4 at about 76 bpm.
+"""Music for memorial.html: about 72 s, an elegy in 3/4 at about 76 bpm.
 
 Real instruments only (Salamander grand piano and tonejs-instruments, both
 CC-BY 3.0): piano, cello, violins, double bass, a soft horn and a harp. The
@@ -9,25 +9,31 @@ with a raised C sharp on the dominant, and the last chord turns to D major.
 The film shows one photo every two bars (4.75 s), so the music follows it
 bar by bar:
 
-    bars 1-2    the candle and the title: piano alone
+    bars 1-2    the title: piano alone
     bars 3-6    the first photos: flowing piano, the strings come in
     bars 7-10   the cello sings the melody
     bars 11-18  the violins take it, the bass and horn fill out, the
                 climax on the presidency (bars 13-16)
-    bars 19-21  the candle again and the logo: the piano's first motif, a
+    bars 19-21  the closing words and the logo: the piano's first motif, a
                 harp glissando on the logo, D major
+
+The two clips of Mam Jalal speaking keep their own sound. The bars stop
+for them (the cues give their place: after bar 12 and after bar 16), the
+music under them drops to a quiet bowed fifth on the last chord, and goes
+on where it stopped once he has finished.
 
     node render.mjs --page memorial.html --cues audio/memorial-cues.json
     python3 audio/memorial.py audio/memorial-cues.json output/memorial.wav
 """
 import json
+import os
 import sys
 import wave
 
 import numpy as np
 from scipy import signal
 
-from sport3d import SR, boom, cello, hall_ir, harp, highpass, horn, lowpass, midi, piano, secs, swell, violin
+from sport3d import SR, boom, cello, hall_ir, harp, highpass, horn, load, lowpass, midi, piano, secs, swell, violin
 from sport3d import bass as dbass
 
 CHORDS = {'Dm': (2, [2, 5, 9]), 'Eb/D': (2, [3, 7, 10]), 'Bb': (10, [10, 2, 5]), 'Gm': (7, [7, 10, 2]),
@@ -73,7 +79,14 @@ def main(cue_path, out_path):
         m = min(len(x), n - i)
         stems[stem][i:i + m] += x[:m] * gain
 
-    bar_t = lambda b, bt=0.0: (b - 1) * bar + bt * beat
+    # where each bar starts: two for the title, two for every photo, three for the end; none during the clips
+    starts = [0.0, bar]
+    for sg in cues['segments']:
+        if 'photo' in sg:
+            starts += [sg['start'], sg['start'] + bar]
+    starts += [cues['outro'] + k * bar for k in range(3)]
+    assert len(starts) == len(PROG)
+    bar_t = lambda b, bt=0.0: starts[b - 1] + bt * beat
     # the overall swell: quiet at the start and the end, fullest on bars 13-16
     level = lambda b: np.interp(b, [1, 4, 9, 13, 16, 18, 21], [0.55, 0.7, 0.85, 1.0, 1.0, 0.8, 0.6])
 
@@ -133,10 +146,25 @@ def main(cue_path, out_path):
             put('brass', horn.play(near(pcs[0], 53), dur=hold, attack=0.6, release=1.0), bar_t(b), 0.1 * lv, -0.1)
             put('brass', horn.play(near(pcs[2], 57), dur=hold, attack=0.6, release=1.0), bar_t(b), 0.08 * lv, 0.1)
 
+    # ---------------------------------------------------------------- under the clips
+    # a quiet bowed fifth on the chord the music stopped on, bowed again every bar
+    clips = [sg for sg in cues['segments'] if 'clip' in sg]
+    for sg in clips:
+        a0, d = sg['audio']
+        before = max(b for b in range(1, len(PROG) + 1) if starts[b - 1] < sg['start'])
+        root, pcs = CHORDS[PROG[before - 1]]
+        t = a0 + 0.3
+        while t < a0 + d - 0.8:
+            put('strings', cello.play(near(root, 43), dur=bar + 0.4, attack=0.9, release=1.2), t, 0.07, -0.3)
+            put('strings', cello.play(near(pcs[2], 50), dur=bar + 0.4, attack=0.9, release=1.2), t + 0.15, 0.05, 0.1)
+            put('bass', dbass.play(near(root, 31), dur=bar + 0.4, attack=0.9, release=1.2), t, 0.08)
+            t += bar
+
     # ---------------------------------------------------------------- the film's moments
-    put('fx', swell(1.2, 300, 5000), cues['flame'] - 0.9, 0.05)
+    put('fx', swell(1.2, 300, 5000), cues['title'] - 1.2, 0.05)
     put('fx', boom(1.3), cues['title'], 0.14)
-    for k, t in enumerate(cues['photos']):  # a single harp note as each photo arrives
+    photos = [sg['start'] for sg in cues['segments'] if 'photo' in sg]
+    for k, t in enumerate(photos):  # a single harp note as each photo arrives
         m = [62, 65, 69, 74, 72, 74, 77, 74][k]
         put('harp', harp.play(m, dur=1.6, release=1.5), t, 0.16, (-0.3, 0.3)[k % 2])
     put('fx', swell(2.0, 200, 4000), cues['outro'] - 1.6, 0.07)
@@ -159,13 +187,28 @@ def main(cue_path, out_path):
         send += x * levels[k] * sends[k]
     wet = np.stack([signal.fftconvolve(send[:, c], ir[:, c])[:n] for c in range(2)], axis=1)
     out = highpass(dry + wet * 1.15, 30)
+    t = secs(dur + 0.5)[:n]
+    # his voice: the music dips under each clip, and the clip's own sound comes in at about the music's level
+    ref = np.percentile(np.sqrt(lowpass(np.mean(out ** 2, axis=1), 5, 2).clip(1e-12)), 90)
+    here = os.path.dirname(os.path.abspath(__file__))
+    for sg in clips:
+        a0, d = sg['audio']
+        duck = np.clip(np.minimum((t - a0) / 0.6, (a0 + d - t) / 0.6), 0, 1)
+        out *= (1 - 0.55 * duck)[:, None]
+        voice = highpass(load(os.path.join(here, '..', 'assets', 'memorial', 'clips', 'src', f'{sg["clip"]}.mov')), 70)
+        voice = voice[:int(SR * d)]
+        lvl = np.sqrt(lowpass(np.mean(voice ** 2, axis=1), 5, 2).clip(1e-12))
+        active = np.sqrt(np.mean(np.mean(voice ** 2, axis=1)[lvl > np.percentile(lvl, 30)]))
+        tv = np.arange(len(voice)) / SR
+        voice *= (np.clip(tv / 0.25, 0, 1) * np.clip((d - tv) / 0.4, 0, 1))[:, None] * (ref * 1.1 / active)
+        i = int(round(a0 * SR))
+        out[i:i + len(voice)] += voice[:n - i]
     env = np.sqrt(lowpass(np.mean(out ** 2, axis=1), 5, 2).clip(1e-12))
     ref = np.percentile(env, 90)
     out *= np.where(env > ref * 0.5, (env / (ref * 0.5)) ** (-0.4), 1.0)[:, None]
-    t = secs(dur + 0.5)[:n]
     out *= (np.clip(t / 0.05, 0, 1) * np.clip((dur - t) / (dur - cues['fade']), 0, 1) ** 1.5)[:, None]
     out = out[:int(SR * dur)]
-    out = np.tanh(1.05 * out / np.max(np.abs(out))) / np.tanh(1.05) * 10 ** (-1 / 20)
+    out = np.tanh(1.6 * out / np.max(np.abs(out))) / np.tanh(1.6) * 10 ** (-1 / 20)
     with wave.open(out_path, 'wb') as w:
         w.setnchannels(2)
         w.setsampwidth(2)

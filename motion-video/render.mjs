@@ -16,6 +16,7 @@
 //   node render.mjs --query sport=judo    -> extra URL parameters for the page
 //   node render.mjs --jpeg 0.95           -> grab JPEG frames instead of PNG (much faster at 4K)
 //   node render.mjs --cpu-canvas          -> software 2D canvas, faster to read back than the GPU one
+//   (a page may define window.prepareFrame(t), awaited before each frame, e.g. to load video frames)
 //   node render.mjs --preset medium --maxrate 4600k --bufsize 9200k --x264 aq-mode=3
 //                                         -> final-encode settings, e.g. for parts joined by stream copy
 //
@@ -63,7 +64,9 @@ const duration = await page.evaluate(() => window.DURATION);
 
 // Reading the canvas directly is ~3x faster than a page screenshot.
 const grab = async t => {
-  const url = await page.evaluate(([t, fmt]) => {
+  const url = await page.evaluate(async ([t, fmt]) => {
+    // a page that shows video loads that frame's pictures first
+    if (window.prepareFrame) await window.prepareFrame(t);
     window.renderFrame(t);
     return document.getElementById('stage').toDataURL(...fmt);
   }, [t, args.jpeg ? ['image/jpeg', Number(args.jpeg)] : ['image/png']]);

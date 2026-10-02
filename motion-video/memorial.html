@@ -20,22 +20,22 @@
  * blooming into colour, a warm light passing between them, and the words
  * rising in one by one.
  *
- *    0 –  4.75 s  «سەرۆک مام جەلال», 1933 – 2017, the ninth anniversary of his death
- *  4.75 – 42.75 s  eight photos, 4.75 s each, with a line of text under each
- * 42.75 – 50 s   «یادت هەمیشە لە دڵماندایە», the board's logo, the office of the
- *                 secretariat of President Mam Jalal and the board's name
+ *     0 –  4.75 s  «سەرۆک مام جەلال», 1933 – 2017, the ninth anniversary of his death
+ *  4.75 – 64.4 s   eight photos (4.75 s each) and two clips of Mam Jalal speaking,
+ *                  in their own sound: the 1992 speech after «سەرکردە», and his
+ *                  talk to the camera before the last photo
+ *  64.4 – 71.6 s   «یادت هەمیشە لە دڵماندایە», the board's logo, the office of the
+ *                  secretariat of President Mam Jalal and the board's name
  *
  * The music (audio/memorial.py) is in 3/4 at about 76 bpm: one photo every two
- * bars. Layout is in 1080x1920 units; ?scale=2 renders 4K. renderFrame(t) is
- * a pure function of time.
+ * bars; it holds still under the clips. Layout is in 1080x1920 units;
+ * ?scale=2 renders 4K. renderFrame(t) is a pure function of time; the clips'
+ * frames are loaded by prepareFrame(t) first (assets/memorial/make_clips.py).
  */
-const W = 1080, H = 1920, DURATION = 50;
+const W = 1080, H = 1920;
 const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
 const BAR = 2.375;
 const P0 = 2 * BAR, PLEN = 2 * BAR;     // the photos: from 4.75 s, two bars each
-const OUTRO = P0 + 8 * PLEN;            // 42.75 s
-const A0 = OUTRO + 0.4;                 // the closing words begin
-const LOGO_AT = A0 + 2.0, FADE_AT = 48.9;
 
 const C = {
   black: '#050403', cream: '#f4ede1', creamDim: 'rgba(244,237,225,0.74)', gold: '#c9a35b', goldLight: '#e9cf95',
@@ -52,7 +52,27 @@ const PHOTOS = [
   { src: '07.jpg', fx: 0.5, fy: 0.4, kicker: 'دەنگی کورد', lines: ['لە سەکۆکانی جیهاندا'] },
   { src: '08.jpg', fx: 0.45, fy: 0.4, kicker: 'مام جەلال', lines: ['زەردەخەنەیەک کە', 'هەرگیز لەبیر ناچێتەوە'] },
 ];
-const startOf = i => P0 + i * PLEN;
+// the clips, unpacked into 30 fps frames of 2160x1640 by assets/memorial/make_clips.py
+const CLIP_FPS = 30;
+const CLIPS = {
+  A: { frames: 330, kicker: '1992', lines: ['لە نێو خەڵکەکەیدا'] },
+  B: { frames: 379, kicker: 'سەرۆک مام جەلال', lines: ['وتەکانی هەمیشە', 'لە یادماندا دەمێننەوە'] },
+};
+// what the frame shows, in order: photos by number, clips by letter. A clip
+// starts playing (picture and sound) as it begins to fade in, half a second
+// before its start, and plays to the end of the next cross-fade.
+const ORDER = [0, 1, 2, 3, 4, 'A', 5, 6, 'B', 7];
+const SEG = [];
+for (let o = 0, s = P0; o < ORDER.length; o++) {
+  const id = ORDER[o], clip = typeof id === 'string';
+  const len = clip ? CLIPS[id].frames / CLIP_FPS - 1 : PLEN;
+  SEG.push({ ...(clip ? CLIPS[id] : PHOTOS[id]), clip: clip ? id : null, photo: clip ? null : id, start: s, len });
+  s += len;
+}
+const LAST = SEG.length - 1;
+const OUTRO = SEG[LAST].start + SEG[LAST].len;   // 64.38 s
+const A0 = OUTRO + 0.4;                         // the closing words begin
+const LOGO_AT = A0 + 2.0, FADE_AT = OUTRO + 6.15, DURATION = OUTRO + 7.25;
 
 // ---------------------------------------------------------------- helpers
 const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
@@ -129,6 +149,25 @@ const logoImg = new Image();
 logoImg.src = 'assets/logo.png';
 const photoImgs = PHOTOS.map(p => { const im = new Image(); im.src = `assets/memorial/${p.src}`; return im; });
 let bwImgs = [], bgImgs = [], vignette, dot;
+const clipSrc = (id, f) => `assets/memorial/clips/${id}/${String(f).padStart(4, '0')}.jpg`;
+const clipMid = Object.fromEntries(Object.keys(CLIPS).map(id => { const im = new Image(); im.src = clipSrc(id, 150); return [id, im]; }));
+// decoded clip frames, by "A/0123"; only the last few are kept
+const clipCache = new Map();
+const clipFrame = (k, t) => clamp(Math.floor((t - (SEG[k].start - 0.5)) * CLIP_FPS), 0, SEG[k].frames - 1);
+function loadClipFrame(id, f) {
+  const key = `${id}/${f}`;
+  if (!clipCache.has(key)) {
+    const im = new Image();
+    im.src = clipSrc(id, f);
+    clipCache.set(key, { im, ready: false, p: im.decode().then(() => { clipCache.get(key) && (clipCache.get(key).ready = true); }) });
+    while (clipCache.size > 12) clipCache.delete(clipCache.keys().next().value);
+  }
+  return clipCache.get(key);
+}
+// the frames of the clips on screen at t, loaded before renderFrame(t) draws them
+async function prepareFrame(t) {
+  await Promise.all(visible(t).filter(k => SEG[k].clip).map(k => loadClipFrame(SEG[k].clip, clipFrame(k, t)).p));
+}
 
 function prepare() {
   // a black-and-white copy of every photo, for the bloom into colour
@@ -138,13 +177,14 @@ function prepare() {
     g.drawImage(im, 0, 0);
     return c;
   });
-  // a small, blurred, dark copy to fill the screen behind the frame
-  bgImgs = photoImgs.map((im, i) => {
+  // a small, blurred, dark copy to fill the screen behind the frame (for a clip, of its middle frame)
+  bgImgs = SEG.map(sg => {
+    const im = sg.clip ? clipMid[sg.clip] : photoImgs[sg.photo];
     const w = 135, h = 240, c = new OffscreenCanvas(w, h), g = c.getContext('2d');
     const s = Math.max(w / im.naturalWidth, h / im.naturalHeight) * 1.2;
     const dw = im.naturalWidth * s, dh = im.naturalHeight * s;
     g.filter = 'blur(7px) brightness(0.34) saturate(0.55)';
-    g.drawImage(im, (w - dw) * PHOTOS[i].fx, (h - dh) / 2, dw, dh);
+    g.drawImage(im, (w - dw) * (sg.fx || 0.5), (h - dh) / 2, dw, dh);
     return c;
   });
   vignette = new OffscreenCanvas(W / 4, H / 4);
@@ -168,43 +208,43 @@ function logo(x, y, size, alpha = 1) {
   ctx.restore();
 }
 
-// ---------------------------------------------------------------- the photos
-function photoRect(i, t) {
-  const im = photoImgs[i], iw = im.naturalWidth, ih = im.naturalHeight, p = PHOTOS[i];
-  const s0 = startOf(i);
-  const u = prog(t, s0 - 0.6, s0 + PLEN + 0.6);
-  const [z0, z1] = p.z || [1.03, 1.13];
+// ---------------------------------------------------------------- the photos and clips
+function photoRect(k, t) {
+  const sg = SEG[k], i = sg.photo, im = photoImgs[i], iw = im.naturalWidth, ih = im.naturalHeight;
+  const u = prog(t, sg.start - 0.6, sg.start + sg.len + 0.6);
+  const [z0, z1] = sg.z || [1.03, 1.13];
   const s = Math.max(W / iw, FH / ih) * lerp(z0, z1, ease.sine(u) * 0.3 + u * 0.7);
   const vw = W / s, vh = FH / s;
   const dir = i % 2 ? 1 : -1;
-  const cx = clamp(p.fx * iw + dir * (u - 0.5) * 0.05 * iw, vw / 2, iw - vw / 2);
-  const cy = clamp(p.fy * ih + (0.5 - u) * 0.02 * ih, vh / 2, ih - vh / 2);
+  const cx = clamp(sg.fx * iw + dir * (u - 0.5) * 0.05 * iw, vw / 2, iw - vw / 2);
+  const cy = clamp(sg.fy * ih + (0.5 - u) * 0.02 * ih, vh / 2, ih - vh / 2);
   return [cx - vw / 2, cy - vh / 2, vw, vh];
 }
-// how far the photo has bloomed from black and white into (slightly muted) colour
-const colourOf = (i, t) => 0.9 * ease.inOut(prog(t, startOf(i) + 0.2, startOf(i) + 2.2));
-// photo i is fully in from startOf(i) + 0.5; the first comes out of the intro, the last fades away into the end
-const alphaOf = (i, t) => prog(t, startOf(i) - 0.5, startOf(i) + 0.5) * (i === 7 ? 1 - prog(t, OUTRO - 0.2, OUTRO + 0.9) : 1);
+// how far a photo has bloomed from black and white into (slightly muted) colour
+const colourOf = (k, t) => 0.9 * ease.inOut(prog(t, SEG[k].start + 0.2, SEG[k].start + 2.2));
+// segment k is fully in from its start + 0.5; the first comes out of the intro, the last fades away into the end
+const alphaOf = (k, t) => prog(t, SEG[k].start - 0.5, SEG[k].start + 0.5) * (k === LAST ? 1 - prog(t, OUTRO - 0.2, OUTRO + 0.9) : 1);
 function visible(t) {
-  const k = clamp(Math.floor((t - P0 + 0.5) / PLEN), 0, 7);
-  return k > 0 && t < startOf(k) + 0.5 ? [k - 1, k] : [k];
+  let k = 0;
+  for (let i = 1; i < SEG.length; i++) if (t >= SEG[i].start - 0.5) k = i;
+  return k > 0 && t < SEG[k].start + 0.5 ? [k - 1, k] : [k];
 }
 
 function background(t) {
-  for (const i of visible(t)) {
-    const a = alphaOf(i, t);
+  for (const k of visible(t)) {
+    const a = alphaOf(k, t);
     if (a <= 0) continue;
     ctx.save();
     ctx.globalAlpha = a;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(bgImgs[i], -20, -20, W + 40, H + 40);
+    ctx.drawImage(bgImgs[k], -20, -20, W + 40, H + 40);
     ctx.restore();
   }
 }
 // the warm light that passes over the frame as one photo gives way to the next
 function lightPass(g, t) {
-  for (let i = 0; i < 8; i++) {
-    const s0 = startOf(i), u = prog(t, s0 - 0.8, s0 + 1.1);
+  for (const sg of SEG) {
+    const u = prog(t, sg.start - 0.8, sg.start + 1.1);
     if (u <= 0 || u >= 1) continue;
     const a = Math.sin(Math.PI * u) * 0.34;
     const x = lerp(-600, W + 600, ease.inOut(u));
@@ -217,20 +257,31 @@ function lightPass(g, t) {
   }
 }
 function photos(t) {
-  const shown = visible(t).filter(i => alphaOf(i, t) > 0);
+  const shown = visible(t).filter(k => alphaOf(k, t) > 0);
   if (!shown.length) return;
   lg.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   lg.globalCompositeOperation = 'source-over';
   lg.globalAlpha = 1;
   lg.clearRect(0, 0, W, FH);
   lg.imageSmoothingQuality = 'high';
-  for (const i of shown) {
-    const [sx, sy, sw, sh] = photoRect(i, t), a = alphaOf(i, t), col = colourOf(i, t);
+  for (const k of shown) {
+    const sg = SEG[k], a = alphaOf(k, t);
+    if (sg.clip) {
+      // the clip's own frame, with a very slow push in
+      const fr = loadClipFrame(sg.clip, clipFrame(k, t));
+      if (!fr.ready) continue;
+      const iw = fr.im.naturalWidth, ih = fr.im.naturalHeight;
+      const z = lerp(1.0, 1.05, prog(t, sg.start - 0.5, sg.start + sg.len + 0.5));
+      lg.globalAlpha = a;
+      lg.drawImage(fr.im, iw * (1 - 1 / z) / 2, ih * (1 - 1 / z) / 2, iw / z, ih / z, 0, 0, W, FH);
+      continue;
+    }
+    const [sx, sy, sw, sh] = photoRect(k, t), col = colourOf(k, t);
     lg.globalAlpha = a;
-    lg.drawImage(bwImgs[i], sx, sy, sw, sh, 0, 0, W, FH);
+    lg.drawImage(bwImgs[sg.photo], sx, sy, sw, sh, 0, 0, W, FH);
     if (col > 0) {
       lg.globalAlpha = a * col;
-      lg.drawImage(photoImgs[i], sx, sy, sw, sh, 0, 0, W, FH);
+      lg.drawImage(photoImgs[sg.photo], sx, sy, sw, sh, 0, 0, W, FH);
     }
   }
   lg.globalAlpha = 1;
@@ -277,10 +328,10 @@ function header(t) {
   text('1933 – 2017', 540, 372, { size: 28, weight: 700, color: C.creamDim, ls: 6, alpha: a });
 }
 function caption(t) {
-  for (let i = 0; i < 8; i++) {
-    const s0 = startOf(i), p = PHOTOS[i];
-    if (t < s0 + 0.4 || t > s0 + PLEN) continue;
-    const end = i === 7 ? OUTRO - 0.2 : s0 + PLEN - 0.3;
+  for (let k = 0; k < SEG.length; k++) {
+    const p = SEG[k], s0 = p.start;
+    if (t < s0 + 0.4 || t > s0 + p.len) continue;
+    const end = k === LAST ? OUTRO - 0.2 : s0 + p.len - 0.3;
     const out = 1 - ease.inOut(prog(t, end - 0.45, end));
     const lift = (1 - out) * -14;
     ctx.save();
@@ -347,19 +398,22 @@ function renderFrame(t) {
   if (fade > 0) { ctx.fillStyle = `rgba(0,0,0,${fade})`; ctx.fillRect(0, 0, W, H); }
 }
 
-window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode(), ...photoImgs.map(im => im.decode())])
-  .then(() => { prepare(); return true; });
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode(), ...photoImgs.map(im => im.decode()),
+  ...Object.values(clipMid).map(im => im.decode())]).then(() => { prepare(); return true; });
+window.prepareFrame = prepareFrame;
 window.renderFrame = renderFrame;
 window.DURATION = DURATION;
 window.soundCues = () => ({
-  duration: DURATION, bar: BAR, beats: 3,
-  flame: 0.3, title: 1.3, photos: PHOTOS.map((_, i) => startOf(i)), outro: OUTRO, flame2: A0, logo: LOGO_AT, fade: FADE_AT,
+  duration: DURATION, bar: BAR, beats: 3, title: 1.0,
+  segments: SEG.map(sg => (sg.clip ? { clip: sg.clip, start: sg.start, len: sg.len, audio: [sg.start - 0.5, sg.frames / CLIP_FPS] }
+    : { photo: sg.photo, start: sg.start, len: sg.len })),
+  outro: OUTRO, logo: LOGO_AT, fade: FADE_AT,
 });
 
 if (!location.search.includes('capture')) {
   window.ready.then(() => {
     const start = performance.now();
-    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    const loop = now => { const t = ((now - start) / 1000) % (DURATION + 0.5); prepareFrame(t); renderFrame(t); requestAnimationFrame(loop); };
     requestAnimationFrame(loop);
   });
 }

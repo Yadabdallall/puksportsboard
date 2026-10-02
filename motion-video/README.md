@@ -5,7 +5,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
 | `output/sports/<sport>.mp4` (not in git; sent in the chat): one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
-| [`output/puk-sports-board-mam-jalal-4k.mp4`](output/puk-sports-board-mam-jalal-4k.mp4): for the anniversary of the death of President Mam Jalal (3 October), eight archive photos with words in motion, black, cream and gold | 2160×3840 (4K), 60 fps | 50 s | `memorial.html`, `audio/memorial.py` |
+| [`output/puk-sports-board-mam-jalal-4k.mp4`](output/puk-sports-board-mam-jalal-4k.mp4): for the anniversary of the death of President Mam Jalal (3 October), eight archive photos and two clips of him speaking, with words in motion, black, cream and gold | 2160×3840 (4K), 60 fps | 72 s | `memorial.html`, `audio/memorial.py` |
 | [`output/puk-sports-board-social-4k.mp4`](output/puk-sports-board-social-4k.mp4): follow us on Facebook, Instagram, TikTok and Telegram (dark green, light green and black on a neon grid) | 2160×3840 (4K), 60 fps | 30 s | `social.html`, `audio/social.py` |
 | [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
@@ -57,7 +57,7 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
   chat and kept out of git. `./make_sport.sh <sport> stills` renders check stills only, and
   `sportfilm.html?sport=<id>&draft` previews a sport whose texts aren't written yet.
 
-## Mam Jalal memorial film (50 s, 4K)
+## Mam Jalal memorial film (72 s, 4K)
 
 For the anniversary of the death of President Mam Jalal (Jalal Talabani, 1933 – 2017) on 3 October:
 - **Look:** black, cream and gold, restrained. The board's logo heads every photo and closes the film.
@@ -65,6 +65,11 @@ For the anniversary of the death of President Mam Jalal (Jalal Talabani, 1933 �
   `assets/memorial/make_photos.py`. Each one sits in a wide frame with soft edges over a blurred,
   darkened copy of itself, drifts slowly, and starts in black and white before blooming into
   colour. A warm light passes over the frame between photos.
+- **Clips:** two clips of Mam Jalal speaking (`assets/memorial/clips/src/`): his 1992 speech after
+  the «سەرکردە» photo, and a talk to the camera before the last photo. `assets/memorial/make_clips.py`
+  unpacks them into cropped 4K frames (clear of the marks burned into the first one's corners);
+  the page loads each frame in `window.prepareFrame(t)`, which `render.mjs` awaits before drawing.
+  They keep their own sound: the music stops for them and goes on afterwards.
 - **Words:** it opens with «سەرۆک مام جەلال», 1933 – 2017 and «نۆیەمین ساڵیادی کۆچی دوایی».
   Then each photo has a gold kicker (پێشمەرگە, ساڵانی شاخ, 1975, 2005 – 2014...) and a line whose
   words rise in one by one, from the right. It ends with «یادت هەمیشە لە دڵماندایە», the logo inside a
@@ -74,6 +79,7 @@ For the anniversary of the death of President Mam Jalal (Jalal Talabani, 1933 �
   on the logo.
 
 ```bash
+python3 assets/memorial/make_clips.py   # once: the clips' frames (not in git)
 node render.mjs --page memorial.html --cues audio/memorial-cues.json
 python3 audio/memorial.py audio/memorial-cues.json output/memorial.wav
 ```
@@ -276,7 +282,7 @@ motion-video/
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   ├── icons/          # platform marks: src/ originals, make_icons.py, the white masks
-│   ├── memorial/       # the archive photos (src/) and their 4K enlargements
+│   ├── memorial/       # the archive photos (src/), their 4K enlargements, and the two clips (clips/src/)
 │   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits and chess pieces
 └── output/
     ├── sports/         # one film per sport, e.g. football.mp4 (not in git)
