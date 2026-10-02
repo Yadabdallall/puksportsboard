@@ -108,82 +108,36 @@ const logoImg = new Image();
 logoImg.src = 'assets/logo.png';
 
 // ---------------------------------------------------------------- platform icons
-// Monochrome marks, drawn around (0, 0) at radius r: fg is the mark, bg the cut-outs.
-function icon(id, x, y, r, fg = C.light, bg = C.deep) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.fillStyle = fg;
-  ctx.strokeStyle = fg;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  if (id === 'facebook') {
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.save();
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
-    ctx.fillStyle = bg;
-    ctx.beginPath();
-    ctx.moveTo(-0.06 * r, 1.05 * r);
-    ctx.lineTo(-0.06 * r, 0.16 * r);
-    ctx.lineTo(-0.3 * r, 0.16 * r);
-    ctx.lineTo(-0.3 * r, -0.12 * r);
-    ctx.lineTo(-0.06 * r, -0.12 * r);
-    ctx.lineTo(-0.06 * r, -0.3 * r);
-    ctx.bezierCurveTo(-0.06 * r, -0.62 * r, 0.12 * r, -0.74 * r, 0.42 * r, -0.72 * r);
-    ctx.lineTo(0.42 * r, -0.46 * r);
-    ctx.lineTo(0.3 * r, -0.46 * r);
-    ctx.bezierCurveTo(0.22 * r, -0.46 * r, 0.22 * r, -0.4 * r, 0.22 * r, -0.32 * r);
-    ctx.lineTo(0.22 * r, -0.12 * r);
-    ctx.lineTo(0.42 * r, -0.12 * r);
-    ctx.lineTo(0.38 * r, 0.16 * r);
-    ctx.lineTo(0.22 * r, 0.16 * r);
-    ctx.lineTo(0.22 * r, 1.05 * r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  } else if (id === 'instagram') {
-    const s = 0.86 * r;
-    ctx.lineWidth = 0.15 * r;
-    ctx.beginPath(); ctx.roundRect(-s, -s, 2 * s, 2 * s, 0.5 * r); ctx.stroke();
-    ctx.beginPath(); ctx.arc(0, 0, 0.38 * r, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(0.5 * r, -0.5 * r, 0.1 * r, 0, Math.PI * 2); ctx.fill();
-  } else if (id === 'tiktok') {
-    // the note, twice offset for the familiar two-tone edge, then the mark itself
-    const note = (dx, dy, col) => {
-      ctx.save();
-      ctx.translate(dx, dy);
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.moveTo(0.02 * r, -0.86 * r);
-      ctx.lineTo(0.3 * r, -0.86 * r);
-      ctx.bezierCurveTo(0.34 * r, -0.62 * r, 0.52 * r, -0.46 * r, 0.76 * r, -0.44 * r);
-      ctx.lineTo(0.76 * r, -0.16 * r);
-      ctx.bezierCurveTo(0.6 * r, -0.16 * r, 0.44 * r, -0.22 * r, 0.3 * r, -0.32 * r);
-      ctx.lineTo(0.3 * r, 0.3 * r);
-      ctx.arc(-0.12 * r, 0.3 * r, 0.42 * r, 0, Math.PI * 2 * 0.999);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath(); ctx.arc(-0.12 * r, 0.3 * r, 0.18 * r, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
-      ctx.restore();
-    };
-    note(-0.06 * r, -0.05 * r, C.mid);
-    note(0.06 * r, 0.05 * r, C.mint);
-    note(0, 0, fg);
-  } else if (id === 'telegram') {
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = bg;
-    ctx.beginPath();
-    ctx.moveTo(-0.56 * r, 0.0);
-    ctx.lineTo(0.5 * r, -0.44 * r);
-    ctx.lineTo(0.32 * r, 0.46 * r);
-    ctx.lineTo(0.06 * r, 0.26 * r);
-    ctx.lineTo(-0.08 * r, 0.42 * r);
-    ctx.lineTo(-0.12 * r, 0.14 * r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = fg;
-    ctx.lineWidth = 0.06 * r;
-    ctx.beginPath(); ctx.moveTo(-0.12 * r, 0.14 * r); ctx.lineTo(0.36 * r, -0.26 * r); ctx.stroke();
+// The official marks as white masks (assets/icons/make_icons.py), tinted in the film's greens.
+const ICON_IDS = ['facebook', 'instagram', 'tiktok', 'telegram'];
+const iconImgs = Object.fromEntries(ICON_IDS.map(id => { const im = new Image(); im.src = `assets/icons/${id}.png`; return [id, im]; }));
+// the drawn size, as a multiple of r, so the four marks look equally large
+const ICON_SIZE = { facebook: 1.8, instagram: 1.86, tiktok: 1.9, telegram: 2.0 };
+const tinted = new Map();
+function tintedIcon(id, fg) {
+  const key = `${id}|${fg}`;
+  if (!tinted.has(key)) {
+    const im = iconImgs[id], n = im.naturalWidth;
+    const c = new OffscreenCanvas(n, n), g = c.getContext('2d');
+    g.drawImage(im, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    if (id === 'instagram') {  // Instagram keeps its gradient, in greens
+      const gr = g.createLinearGradient(0, n, n, 0);
+      gr.addColorStop(0, C.mint); gr.addColorStop(0.5, fg); gr.addColorStop(1, C.neon);
+      g.fillStyle = gr;
+    } else {
+      g.fillStyle = fg;
+    }
+    g.fillRect(0, 0, n, n);
+    tinted.set(key, c);
   }
+  return tinted.get(key);
+}
+function icon(id, x, y, r, fg = C.light) {
+  const s = ICON_SIZE[id] * r;
+  ctx.save();
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(tintedIcon(id, fg), x - s / 2, y - s / 2, s, s);
   ctx.restore();
 }
 
@@ -518,7 +472,7 @@ function renderFrame(t) {
   ctx.restore();
 }
 
-window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => true);
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode(), ...ICON_IDS.map(id => iconImgs[id].decode())]).then(() => true);
 window.renderFrame = renderFrame;
 window.DURATION = DURATION;
 window.soundCues = () => ({

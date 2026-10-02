@@ -65,6 +65,9 @@ A 30 s call to follow PUK SPORTS BOARD on Facebook, Instagram, TikTok and Telegr
   four icons popping in on the drop (4–8 s); one platform every 4 s with its name, a line about
   what is posted there, the account and a finger tapping the follow button on the beat (8–24 s);
   the logo with the icons orbiting it and «هەمیشە پشتیوانتانین» (24–30 s).
+- **Icons:** the official Facebook, Instagram, TikTok and Telegram marks (`assets/icons/src/`),
+  turned into clean masks by `assets/icons/make_icons.py` and tinted light green (Instagram keeps
+  its gradient, in greens).
 - **Music:** `audio/social.py` is bright electronic pop at 120 bpm in E major, different from the
   orchestral scores: a supersaw that pumps against the kick, a plucked arpeggio with a ping-pong
   delay, a sub bass, a piano hook and synthesised drums, with the clicks, pops, whooshes, taps
@@ -248,6 +251,7 @@ motion-video/
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
+│   ├── icons/          # platform marks: src/ originals, make_icons.py, the white masks
 │   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits and chess pieces
 └── output/
     ├── sports/         # one film per sport, e.g. football.mp4 (not in git)
