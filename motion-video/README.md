@@ -6,7 +6,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | --- | --- | --- | --- |
 | `output/sports/<sport>.mp4` (not in git; sent in the chat): one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
 | [`output/puk-sports-board-mam-jalal-4k.mp4`](output/puk-sports-board-mam-jalal-4k.mp4): for the anniversary of the death of President Mam Jalal (3 October), eight archive photos and two clips of him speaking, with words in motion, black, cream and gold | 2160×3840 (4K), 60 fps | 72 s | `memorial.html`, `audio/memorial.py` |
-| [`output/puk-sports-board-social-4k.mp4`](output/puk-sports-board-social-4k.mp4): follow us on Facebook, Instagram, TikTok and Telegram (dark green, light green and black on a neon grid) | 2160×3840 (4K), 60 fps | 30 s | `social.html`, `audio/social.py` |
+| [`output/puk-sports-board-social-4k.mp4`](output/puk-sports-board-social-4k.mp4): follow us on Facebook, Instagram and TikTok (black, dark and light green; a neon aurora, silk lines and glass) | 2160×3840 (4K), 60 fps | 30 s | `social.html`, `audio/social.py` |
 | [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -86,20 +86,20 @@ python3 audio/memorial.py audio/memorial-cues.json output/memorial.wav
 
 ## Follow-us film (30 s, 4K)
 
-A 30 s call to follow PUK SPORTS BOARD on Facebook, Instagram, TikTok and Telegram:
-- **Look:** black, dark green and light green, with a neon background: a perspective grid,
-  rings that pulse on the beat, light streaks and sparks, all with a soft bloom.
-- **Story:** the logo in a neon ring and the name typed out (0–4 s); «فۆڵۆمان بکەن» with the
-  four icons popping in on the drop (4–8 s); one platform every 4 s with its name, a line about
-  what is posted there, the account and a finger tapping the follow button on the beat (8–24 s);
-  the logo with the icons orbiting it and «هەمیشە پشتیوانتانین» (24–30 s).
-- **Icons:** the official Facebook, Instagram, TikTok and Telegram marks (`assets/icons/src/`),
-  turned into clean masks by `assets/icons/make_icons.py` and tinted light green (Instagram keeps
-  its gradient, in greens).
-- **Music:** `audio/social.py` is bright electronic pop at 120 bpm in E major, different from the
-  orchestral scores: a supersaw that pumps against the kick, a plucked arpeggio with a ping-pong
-  delay, a sub bass, a piano hook and synthesised drums, with the clicks, pops, whooshes, taps
-  and chimes placed from the film's cues.
+A 30 s call to follow PUK SPORTS BOARD on Facebook, Instagram and TikTok:
+- **Look:** black, dark green and light green. The background is calm and luminous: a slow green
+  aurora, two bundles of thin neon lines flowing like silk (with a soft glow), bokeh lights and a
+  few sparks. The cards are frosted glass lit from the top left, and a light passes over them.
+- **Story:** the logo in a neon halo and the name appearing letter by letter (0–5 s); «فۆڵۆمان بکەن»
+  with the three icons (5–10 s); one platform every 5 s with its name, a line about what is posted
+  there, the account and a follow button tapped on the bar line (10–25 s); the logo with the icons
+  around it and «هەمیشە پشتیوانتانین» (25–30 s).
+- **Icons:** the official Facebook, Instagram and TikTok marks (`assets/icons/src/`), turned into
+  clean masks by `assets/icons/make_icons.py` and tinted light green.
+- **Music:** `audio/social.py` is refined and warm, at 96 bpm in D major: a grand piano playing
+  seventh and ninth chords with a light swung rhythm and a simple melody, violins and cellos, a
+  round bass, a soft kick, finger snaps and a shaker, and a harp; quiet bells and air on the
+  icons, the taps and the finale.
 
 ```bash
 node render.mjs --page social.html --cues audio/social-cues.json
@@ -254,7 +254,7 @@ motion-video/
 ├── kurdistan3d.html    # 30 s sports-of-Kurdistan film (same 3D engine)
 ├── trio3d.html         # 30 s boxing / volleyball / table tennis film (same 3D engine)
 ├── editorial.html      # the same story as an editorial poster (2D)
-├── social.html         # 30 s follow-us film for the four social accounts (2D, neon)
+├── social.html         # 30 s follow-us film for the three social accounts (2D, neon)
 ├── memorial.html       # 50 s film for the anniversary of Mam Jalal's death (archive photos)
 ├── photos.html         # 30 s photo film template (needs assets/photos/)
 ├── sportfilm.html      # 45 s 2D film for any sport (?sport=<id>)
@@ -276,7 +276,7 @@ motion-video/
 │   ├── photos.py       # score for the photo film
 │   ├── trio.py         # score and prop sounds for the boxing / volleyball / table tennis film
 │   ├── sportfilm.py    # music and play sounds for the sport films, arranged per sport
-│   ├── social.py       # electronic pop track and UI sounds for the follow-us film
+│   ├── social.py       # the piano lounge track and soft sounds for the follow-us film
 │   ├── memorial.py     # the elegy for the Mam Jalal film
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
