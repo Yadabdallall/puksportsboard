@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ckb" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PUK Sports Board · Follow us</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  #stage { height: 100vh; width: 56.25vh; max-width: 100vw; display: block; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script>
+/*
+ * A 30 s vertical (9:16) "follow us" film for the PUK Sports Board's
+ * accounts on Facebook, Instagram, TikTok and Telegram, all named
+ * PUK SPORTS BOARD. Dark green, light green and black, with neon only in
+ * the background: a moving perspective grid, rings that pulse on the beat,
+ * light streaks and drifting sparks. The text stays clean.
+ *
+ *    0 –  4 s  the logo inside a neon ring, the account name typed out
+ *    4 –  8 s  «فۆڵۆمان بکەن» and the four platforms popping in
+ *    8 – 24 s  one platform every 4 s: its icon, name, the account, and a
+ *              follow (or join) button that gets tapped on the beat
+ *   24 – 30 s  the logo with the four icons orbiting, «هەمیشە پشتیوانتانین»
+ *
+ * 120 bpm (a bar is 2 s); audio/social.py writes the music to the same bars
+ * and the cues from window.soundCues(). Layout is in 1080x1920 units;
+ * ?scale=2 renders 4K. renderFrame(t) is a pure function of time.
+ */
+const W = 1080, H = 1920, DURATION = 30;
+const SCALE = Number(new URLSearchParams(location.search).get('scale') || 1);
+const BEAT = 0.5, BAR = 2;
+
+const C = {
+  black: '#030604', deep: '#05190c', dark: '#0b3d1c', mid: '#137a36',
+  light: '#9ef58a', neon: '#5dff73', mint: '#e8fbe3', ink: '#020302',
+};
+const PLATFORMS = [
+  { id: 'facebook', en: 'FACEBOOK', ku: 'فەیسبووک', line: 'هەواڵ و چالاکییەکانی بۆرد', btn: 'فۆڵۆ بکە', done: 'فۆڵۆکرا' },
+  { id: 'instagram', en: 'INSTAGRAM', ku: 'ئینستاگرام', line: 'وێنە و ساتە جوانەکانی وەرزش', btn: 'فۆڵۆ بکە', done: 'فۆڵۆکرا' },
+  { id: 'tiktok', en: 'TIKTOK', ku: 'تیکتۆک', line: 'ڤیدیۆی کورت و خێرا', btn: 'فۆڵۆ بکە', done: 'فۆڵۆکرا' },
+  { id: 'telegram', en: 'TELEGRAM', ku: 'تێلێگرام', line: 'یەکەم کەس بە بۆ هەواڵەکان', btn: 'جۆین بکە', done: 'جۆینکرا' },
+];
+const NAME = 'PUK SPORTS BOARD';
+const P0 = 8, PLEN = 4;                 // platforms from 8 s, 4 s each
+const TAP = PLATFORMS.map((_, i) => P0 + i * PLEN + 2.0);
+const POPS = [4.5, 5.0, 5.5, 6.0];      // the four icons in the title
+const END_AT = 24, OUTRO = 29.2;
+
+// ---------------------------------------------------------------- helpers
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  out: u => 1 - Math.pow(1 - u, 3),
+  in: u => u * u * u,
+  inOut: u => (u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2),
+  expo: u => (u >= 1 ? 1 : 1 - Math.pow(2, -10 * u)),
+  back: u => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+};
+const rand = seed => { let s = seed % 2147483647 || 1; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646; };
+// how strongly the current beat is hitting (1 on the beat, decaying)
+const beatPulse = (t, from = 4) => (t < from ? 0 : Math.exp(-((t - from) % BEAT) * 7));
+
+const stage = document.getElementById('stage');
+stage.width = W * SCALE;
+stage.height = H * SCALE;
+const ctx = stage.getContext('2d');
+// the neon is drawn small, blurred, and laid over the frame: cheap bloom
+const GW = Math.round((W * SCALE) / 4), GH = Math.round((H * SCALE) / 4);
+const glowA = new OffscreenCanvas(GW, GH), glowB = new OffscreenCanvas(GW, GH);
+const ga = glowA.getContext('2d'), gb = glowB.getContext('2d');
+
+const font = (weight, size) => `${weight} ${size}px Zain`;
+function text(str, x, y, { size = 40, weight = 800, color = C.mint, align = 'center', dir = 'rtl', ls = 0, alpha = 1 } = {}) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.font = font(weight, size);
+  ctx.direction = dir;
+  ctx.textAlign = align;
+  ctx.fillStyle = color;
+  ctx.globalAlpha *= alpha;
+  if (ls) ctx.letterSpacing = `${ls}px`;
+  ctx.fillText(str, x, y);
+  ctx.restore();
+}
+function measure(str, size, weight = 800, ls = 0) {
+  ctx.save(); ctx.font = font(weight, size); ctx.letterSpacing = `${ls}px`;
+  const w = ctx.measureText(str).width; ctx.restore(); return w;
+}
+function riseText(str, x, y, u, opts) {
+  if (u <= 0) return;
+  const size = opts.size || 40;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x - W, y - size * 1.3, W * 2, size * 1.95); ctx.clip();
+  text(str, x, y + (1 - ease.expo(u)) * size * 1.8, opts);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- assets
+const fontFaces = [['400', 'Zain-Regular.ttf'], ['700', 'Zain-Bold.ttf'], ['800', 'Zain-ExtraBold.ttf'], ['900', 'Zain-Black.ttf']]
+  .map(([w, f]) => new FontFace('Zain', `url(assets/fonts/${f})`, { weight: w }));
+fontFaces.push(new FontFace('Mark', 'url(assets/fonts/DejaVuSans-Bold.ttf)', { weight: '700' }));
+fontFaces.forEach(f => document.fonts.add(f));
+const logoImg = new Image();
+logoImg.src = 'assets/logo.png';
+
+// ---------------------------------------------------------------- platform icons
+// Monochrome marks, drawn around (0, 0) at radius r: fg is the mark, bg the cut-outs.
+function icon(id, x, y, r, fg = C.light, bg = C.deep) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = fg;
+  ctx.strokeStyle = fg;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (id === 'facebook') {
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(-0.06 * r, 1.05 * r);
+    ctx.lineTo(-0.06 * r, 0.16 * r);
+    ctx.lineTo(-0.3 * r, 0.16 * r);
+    ctx.lineTo(-0.3 * r, -0.12 * r);
+    ctx.lineTo(-0.06 * r, -0.12 * r);
+    ctx.lineTo(-0.06 * r, -0.3 * r);
+    ctx.bezierCurveTo(-0.06 * r, -0.62 * r, 0.12 * r, -0.74 * r, 0.42 * r, -0.72 * r);
+    ctx.lineTo(0.42 * r, -0.46 * r);
+    ctx.lineTo(0.3 * r, -0.46 * r);
+    ctx.bezierCurveTo(0.22 * r, -0.46 * r, 0.22 * r, -0.4 * r, 0.22 * r, -0.32 * r);
+    ctx.lineTo(0.22 * r, -0.12 * r);
+    ctx.lineTo(0.42 * r, -0.12 * r);
+    ctx.lineTo(0.38 * r, 0.16 * r);
+    ctx.lineTo(0.22 * r, 0.16 * r);
+    ctx.lineTo(0.22 * r, 1.05 * r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  } else if (id === 'instagram') {
+    const s = 0.86 * r;
+    ctx.lineWidth = 0.15 * r;
+    ctx.beginPath(); ctx.roundRect(-s, -s, 2 * s, 2 * s, 0.5 * r); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 0.38 * r, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0.5 * r, -0.5 * r, 0.1 * r, 0, Math.PI * 2); ctx.fill();
+  } else if (id === 'tiktok') {
+    // the note, twice offset for the familiar two-tone edge, then the mark itself
+    const note = (dx, dy, col) => {
+      ctx.save();
+      ctx.translate(dx, dy);
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.moveTo(0.02 * r, -0.86 * r);
+      ctx.lineTo(0.3 * r, -0.86 * r);
+      ctx.bezierCurveTo(0.34 * r, -0.62 * r, 0.52 * r, -0.46 * r, 0.76 * r, -0.44 * r);
+      ctx.lineTo(0.76 * r, -0.16 * r);
+      ctx.bezierCurveTo(0.6 * r, -0.16 * r, 0.44 * r, -0.22 * r, 0.3 * r, -0.32 * r);
+      ctx.lineTo(0.3 * r, 0.3 * r);
+      ctx.arc(-0.12 * r, 0.3 * r, 0.42 * r, 0, Math.PI * 2 * 0.999);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath(); ctx.arc(-0.12 * r, 0.3 * r, 0.18 * r, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
+      ctx.restore();
+    };
+    note(-0.06 * r, -0.05 * r, C.mid);
+    note(0.06 * r, 0.05 * r, C.mint);
+    note(0, 0, fg);
+  } else if (id === 'telegram') {
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(-0.56 * r, 0.0);
+    ctx.lineTo(0.5 * r, -0.44 * r);
+    ctx.lineTo(0.32 * r, 0.46 * r);
+    ctx.lineTo(0.06 * r, 0.26 * r);
+    ctx.lineTo(-0.08 * r, 0.42 * r);
+    ctx.lineTo(-0.12 * r, 0.14 * r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = fg;
+    ctx.lineWidth = 0.06 * r;
+    ctx.beginPath(); ctx.moveTo(-0.12 * r, 0.14 * r); ctx.lineTo(0.36 * r, -0.26 * r); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- background
+const SPARKS = (() => { const r = rand(7); return Array.from({ length: 70 }, () => ({ x: r() * W, y: r() * H, s: 1 + r() * 3, v: 10 + r() * 40, ph: r() * 6.28 })); })();
+const STREAKS = (() => { const r = rand(11); return Array.from({ length: 7 }, (_, i) => ({ t0: 1 + i * 4.1 + r() * 2, y: 150 + r() * 900, len: 300 + r() * 400, dir: r() > 0.5 ? 1 : -1 })); })();
+// the neon: drawn once into the bloom layer (thick, soft) and once sharp
+function neon(g, t, sharp) {
+  const lw = k => (sharp ? k : k * 3);
+  const pulse = beatPulse(t);
+  // perspective grid on the floor
+  const hz = 1330, vx = 540;
+  g.save();
+  g.strokeStyle = C.neon;
+  g.lineWidth = lw(2.2);
+  for (let i = 0; i < 14; i++) {
+    const z = ((i + (t * 1.6) % 1) / 14) ** 2.2;
+    const y = hz + (H - hz) * z;
+    g.globalAlpha = (sharp ? 0.55 : 0.45) * clamp(z * 3) * (0.75 + 0.25 * pulse);
+    g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+  }
+  for (let i = -10; i <= 10; i++) {
+    g.globalAlpha = (sharp ? 0.4 : 0.35) * (1 - Math.abs(i) / 12);
+    g.beginPath(); g.moveTo(vx + i * 14, hz); g.lineTo(vx + i * 260, H + 40); g.stroke();
+  }
+  // the horizon line
+  g.globalAlpha = sharp ? 0.8 : 0.9;
+  g.lineWidth = lw(3);
+  g.beginPath(); g.moveTo(0, hz); g.lineTo(W, hz); g.stroke();
+  // light streaks crossing the upper half
+  for (const s of STREAKS) {
+    const u = prog(t, s.t0, s.t0 + 1.2);
+    if (u <= 0 || u >= 1) continue;
+    const x = s.dir > 0 ? lerp(-s.len, W + s.len, u) : lerp(W + s.len, -s.len, u);
+    const grad = g.createLinearGradient(x - s.dir * s.len, 0, x, 0);
+    grad.addColorStop(0, 'rgba(93,255,115,0)'); grad.addColorStop(1, C.neon);
+    g.strokeStyle = grad;
+    g.globalAlpha = sharp ? 0.7 : 0.8;
+    g.lineWidth = lw(3);
+    g.beginPath(); g.moveTo(x - s.dir * s.len, s.y); g.lineTo(x, s.y - s.dir * s.len * 0.12); g.stroke();
+  }
+  g.restore();
+  // sparks drifting up
+  g.save();
+  g.fillStyle = C.light;
+  for (const p of SPARKS) {
+    const y = (p.y - t * p.v + H * 4) % H, x = p.x + Math.sin(t * 0.8 + p.ph) * 14;
+    g.globalAlpha = (sharp ? 0.55 : 0.6) * (0.5 + 0.5 * Math.sin(t * 2 + p.ph));
+    g.beginPath(); g.arc(x, y, sharp ? p.s : p.s * 2.5, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+}
+// neon rings behind the main element, pulsing on the beat
+function rings(g, t, cx, cy, r0, alpha, sharp) {
+  if (alpha <= 0) return;
+  const pulse = beatPulse(t);
+  g.save();
+  g.strokeStyle = C.neon;
+  g.lineCap = 'round';
+  g.globalAlpha = alpha;
+  g.lineWidth = sharp ? 4 : 14;
+  const r = r0 * (1 + 0.025 * pulse);
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = sharp ? 3 : 10;
+  for (let k = 0; k < 3; k++) {
+    const a = t * (0.6 + k * 0.25) * (k % 2 ? -1 : 1) + k * 2;
+    g.beginPath(); g.arc(cx, cy, r + 40 + k * 28, a, a + 1.1 + k * 0.3); g.stroke();
+  }
+  // a ring sent out on every beat
+  const k = ((t - 4) % BEAT) / BEAT;
+  if (t > 4) {
+    g.globalAlpha = alpha * 0.6 * (1 - k);
+    g.lineWidth = sharp ? 2 : 8;
+    g.beginPath(); g.arc(cx, cy, r + 30 + k * 220, 0, Math.PI * 2); g.stroke();
+  }
+  g.restore();
+}
+function background(t, ringAt) {
+  const grad = ctx.createRadialGradient(540, 820, 60, 540, 900, 1250);
+  grad.addColorStop(0, C.dark);
+  grad.addColorStop(0.55, C.deep);
+  grad.addColorStop(1, C.black);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  // bloom layer: draw small, blur, lay on with 'lighter'
+  ga.setTransform(GW / W, 0, 0, GH / H, 0, 0);
+  ga.clearRect(0, 0, W, H);
+  neon(ga, t, false);
+  if (ringAt) rings(ga, t, ...ringAt, false);
+  gb.clearRect(0, 0, GW, GH);
+  gb.filter = `blur(${Math.max(2, Math.round(3 * SCALE))}px)`;
+  gb.drawImage(glowA, 0, 0);
+  gb.filter = 'none';
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.85;
+  ctx.drawImage(glowB, 0, 0, W, H);
+  ctx.restore();
+  neon(ctx, t, true);
+  if (ringAt) rings(ctx, t, ...ringAt, true);
+}
+
+// ---------------------------------------------------------------- pieces
+function logo(x, y, size, alpha = 1) {
+  if (alpha <= 0 || size <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(logoImg, x - size / 2, y - size / 2, size, size);
+  ctx.restore();
+}
+function card(x, y, w, h, r, fill = 'rgba(5,25,12,0.82)', stroke = 'rgba(158,245,138,0.35)') {
+  ctx.save();
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+}
+// the account row: avatar, the name and a verified-style tick, laid out from the measured name
+function account(cx, y, u) {
+  if (u <= 0) return;
+  const k = ease.expo(u);
+  const nameW = measure(NAME, 40, 800, 5) - 5, logoD = 76, tick = 20, gap = 20;
+  const inner = logoD + gap + nameW + gap + tick * 2, w = inner + 56, h = 104;
+  const x0 = cx - inner / 2;
+  ctx.save();
+  ctx.globalAlpha = clamp(u * 2);
+  ctx.translate(0, (1 - k) * 40);
+  card(cx - w / 2, y - h / 2, w, h, h / 2);
+  logo(x0 + logoD / 2, y, logoD);
+  text(NAME, x0 + logoD + gap, y + 14, { size: 40, weight: 800, color: C.mint, dir: 'ltr', align: 'left', ls: 5 });
+  const tx = x0 + logoD + gap + nameW + gap + tick;
+  ctx.fillStyle = C.light;
+  ctx.beginPath(); ctx.arc(tx, y, tick, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.deep; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(tx - 10, y + 1); ctx.lineTo(tx - 3, y + 8); ctx.lineTo(tx + 11, y - 8); ctx.stroke();
+  ctx.restore();
+}
+// the follow button: a finger comes in, taps on the beat, the button flips
+function button(p, cx, y, t0, tap, t) {
+  const u = prog(t, t0, t0 + 0.6);
+  if (u <= 0) return;
+  const done = t >= tap;
+  const press = Math.exp(-Math.max(0, t - tap) * 12) * (t >= tap - 0.05 ? 1 : 0);
+  const label = done ? `${p.done} ✓` : p.btn;
+  const w = 470, h = 120, s = ease.back(u) * (1 - 0.06 * press);
+  ctx.save();
+  ctx.translate(cx, y);
+  ctx.scale(s, s);
+  ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, h / 2);
+  ctx.fillStyle = done ? C.dark : C.light;
+  ctx.fill();
+  ctx.strokeStyle = C.light; ctx.lineWidth = 4; ctx.stroke();
+  ctx.font = font(900, 52);
+  ctx.textAlign = 'center';
+  ctx.direction = 'rtl';
+  ctx.fillStyle = done ? C.light : C.ink;
+  ctx.fillText(label, 0, 18);
+  ctx.restore();
+  // the ripple of the tap
+  const ru = prog(t, tap, tap + 0.6);
+  if (ru > 0 && ru < 1) {
+    ctx.save();
+    ctx.strokeStyle = C.mint;
+    ctx.globalAlpha = 1 - ru;
+    ctx.lineWidth = 6 * (1 - ru) + 1;
+    ctx.beginPath(); ctx.roundRect(cx - w / 2 - 30 * ru, y - h / 2 - 30 * ru, w + 60 * ru, h + 60 * ru, h / 2 + 30 * ru); ctx.stroke();
+    ctx.restore();
+  }
+}
+function finger(x, y, t, tap) {
+  // a round touch point that glides in, presses and leaves
+  const inU = ease.inOut(prog(t, tap - 0.7, tap - 0.05));
+  const outU = ease.in(prog(t, tap + 0.25, tap + 0.8));
+  if (inU <= 0 || outU >= 1) return;
+  const px = lerp(x + 320, x + 60, inU) + outU * 360, py = lerp(y + 320, y + 24, inU) + outU * 300;
+  const press = t >= tap - 0.05 && t < tap + 0.2 ? 0.8 : 1;
+  ctx.save();
+  ctx.globalAlpha = (1 - outU) * clamp(inU * 3);
+  ctx.fillStyle = 'rgba(232,251,227,0.85)';
+  ctx.beginPath(); ctx.arc(px, py, 34 * press, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = C.light; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(px, py, 50 * press, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+function sparkle(x, y, t, t0) {
+  const u = prog(t, t0, t0 + 0.8);
+  if (u <= 0 || u >= 1) return;
+  const r = rand(Math.round(t0 * 100));
+  ctx.save();
+  ctx.fillStyle = C.light;
+  for (let k = 0; k < 14; k++) {
+    const a = r() * Math.PI * 2, d = (80 + r() * 200) * ease.out(u);
+    const s = (4 + r() * 7) * (1 - u);
+    const px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.6 - 60 * u;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(a);
+    ctx.beginPath(); ctx.moveTo(0, -s * 2); ctx.lineTo(s * 0.5, 0); ctx.lineTo(0, s * 2); ctx.lineTo(-s * 0.5, 0); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- scenes
+const LC = { x: 540, y: 820 };
+function introScene(t) {
+  background(t, [LC.x, LC.y, 300, clamp(prog(t, 0.2, 1.2))]);
+  const lu = prog(t, 0.6, 1.4);
+  logo(LC.x, LC.y, 460 * lerp(0.6, 1, ease.back(lu)), clamp(lu * 2));
+  // the account name, typed out letter by letter
+  const n = Math.floor(NAME.length * prog(t, 1.6, 2.7));
+  if (n > 0) {
+    // left-aligned from where the full name will start, so the letters stay put while typing
+    const full = measure(NAME, 70, 900, 10) - 10;
+    text(NAME.slice(0, n), 540 - full / 2, 1270, { size: 70, weight: 900, color: C.mint, dir: 'ltr', align: 'left', ls: 10 });
+    if (n < NAME.length || Math.floor(t * 3) % 2 === 0) {
+      const w = measure(NAME.slice(0, n), 70, 900, 10);
+      ctx.fillStyle = C.light;
+      ctx.fillRect(540 - full / 2 + w + 2, 1215, 8, 66);
+    }
+  }
+  riseText('بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان', 540, 1370, prog(t, 2.6, 3.3), { size: 44, weight: 800, color: C.light });
+}
+function titleScene(t) {
+  background(t, [540, 640, 210, 0.9]);
+  logo(540, 640, 330 * ease.back(prog(t, 4.0, 4.5)), 1);
+  const s = 1 + 0.03 * beatPulse(t);
+  ctx.save();
+  ctx.translate(540, 1010); ctx.scale(s, s);
+  riseText('فۆڵۆمان بکەن', 0, 0, prog(t, 4.05, 4.6), { size: 136, weight: 900, color: C.mint });
+  ctx.restore();
+  const eu = ease.expo(prog(t, 4.4, 5.0));
+  if (eu > 0) text(NAME, 540 - (1 - eu) * 60, 1110, { size: 48, weight: 800, color: C.light, dir: 'ltr', ls: 12, alpha: eu });
+  riseText('لە هەموو تۆڕە کۆمەڵایەتییەکان', 540, 1200, prog(t, 4.7, 5.3), { size: 54, weight: 800, color: C.mint });
+  PLATFORMS.forEach((p, i) => {
+    const u = prog(t, POPS[i] - 0.05, POPS[i] + 0.35);
+    if (u <= 0) return;
+    const x = 540 + (1.5 - i) * 200, y = 1430;
+    const k = ease.back(u);
+    ctx.save();
+    ctx.translate(x, y + Math.sin(t * 3 + i) * 6);
+    ctx.scale(k, k);
+    card(-80, -80, 160, 160, 40);
+    icon(p.id, 0, 0, 52);
+    ctx.restore();
+  });
+}
+function platformScene(t, i) {
+  const p = PLATFORMS[i], t0 = P0 + i * PLEN, tap = TAP[i];
+  // slide in from the reading side, out the other way
+  const inU = ease.expo(prog(t, t0, t0 + 0.55)), outU = ease.in(prog(t, t0 + PLEN - 0.35, t0 + PLEN));
+  const dx = (1 - inU) * -W * 0.6 + outU * W * 0.6;
+  const cx = 540, cy = 640;
+  background(t, [cx + dx, cy, 250, 0.9 * (1 - outU)]);
+  ctx.save();
+  ctx.translate(dx, 0);
+  ctx.globalAlpha = 1 - outU * 0.6;
+  const k = ease.back(prog(t, t0 + 0.05, t0 + 0.6));
+  ctx.save();
+  ctx.translate(cx, cy + Math.sin(t * 2.2) * 8);
+  ctx.scale(k, k);
+  card(-210, -210, 420, 420, 100, 'rgba(5,25,12,0.9)', 'rgba(158,245,138,0.5)');
+  icon(p.id, 0, 0, 140);
+  ctx.restore();
+  const eu = ease.expo(prog(t, t0 + 0.25, t0 + 0.8));
+  if (eu > 0) text(p.en, cx, 985, { size: 50, weight: 800, color: C.light, dir: 'ltr', ls: 16, alpha: eu });
+  riseText(p.ku, cx, 1110, prog(t, t0 + 0.3, t0 + 0.9), { size: 120, weight: 900, color: C.mint });
+  riseText(p.line, cx, 1205, prog(t, t0 + 0.5, t0 + 1.1), { size: 50, weight: 700, color: C.light });
+  account(cx, 1340, prog(t, t0 + 0.7, t0 + 1.3));
+  button(p, cx, 1510, t0 + 0.9, tap, t);
+  sparkle(cx, 1510, t, tap);
+  finger(cx, 1510, t, tap);
+  ctx.restore();
+}
+function finaleScene(t) {
+  const u = prog(t, END_AT, END_AT + 0.8);
+  background(t, [540, 640, 250, 0.95]);
+  logo(540, 640, 400 * lerp(0.6, 1, ease.back(u)), clamp(u * 2));
+  // the four platforms orbiting the logo
+  PLATFORMS.forEach((p, i) => {
+    const su = ease.back(prog(t, END_AT + 0.4 + i * 0.12, END_AT + 0.9 + i * 0.12));
+    if (su <= 0) return;
+    const a = -Math.PI / 2 + i * (Math.PI / 2) + (t - END_AT) * 0.5;
+    const x = 540 + Math.cos(a) * 340, y = 640 + Math.sin(a) * 340;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(su, su);
+    ctx.beginPath(); ctx.arc(0, 0, 70, 0, Math.PI * 2); ctx.fillStyle = C.deep; ctx.fill();
+    ctx.strokeStyle = 'rgba(158,245,138,0.6)'; ctx.lineWidth = 3; ctx.stroke();
+    icon(p.id, 0, 0, 42);
+    ctx.restore();
+  });
+  riseText('فۆڵۆمان بکەن', 540, 1150, prog(t, END_AT + 0.6, END_AT + 1.2), { size: 120, weight: 900, color: C.mint });
+  const nu = ease.expo(prog(t, END_AT + 0.9, END_AT + 1.5));
+  if (nu > 0) text(NAME, 540, 1255, { size: 54, weight: 800, color: C.light, dir: 'ltr', ls: 12, alpha: nu });
+  const pu = prog(t, END_AT + 1.3, END_AT + 2.0);
+  if (pu > 0) {
+    const label = 'هەمیشە پشتیوانتانین';
+    const w = measure(label, 64, 900) + 96, h = 112, k = ease.inOut(clamp(pu * 1.4));
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(540 - (w * k) / 2, 1395 - h / 2, w * k, h, h / 2);
+    ctx.fillStyle = C.light; ctx.fill(); ctx.clip();
+    text(label, 540, 1417, { size: 64, weight: 900, color: C.ink, alpha: clamp(pu * 3 - 1.2) });
+    ctx.restore();
+  }
+  riseText('بۆردی وەرزشی یەکێتیی نیشتمانیی کوردستان', 540, 1560, prog(t, END_AT + 1.7, END_AT + 2.3), { size: 46, weight: 800, color: C.light });
+}
+
+// a neon flash and a quick zoom at each cut
+function cutFlash(t) {
+  for (const c of [4, 8, 12, 16, 20, 24]) {
+    const u = prog(t, c - 0.08, c + 0.35);
+    if (u <= 0 || u >= 1) continue;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(93,255,115,${0.18 * (1 - u)})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+}
+
+function renderFrame(t) {
+  ctx.save();
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1;
+  if (t < 4) introScene(t);
+  else if (t < P0) titleScene(t);
+  else if (t < END_AT) platformScene(t, Math.floor((t - P0) / PLEN));
+  else finaleScene(t);
+  cutFlash(t);
+  const fade = Math.max(1 - ease.out(prog(t, 0, 0.4)), ease.inOut(prog(t, OUTRO, DURATION)));
+  if (fade > 0) { ctx.fillStyle = `rgba(3,6,4,${fade})`; ctx.fillRect(0, 0, W, H); }
+  ctx.restore();
+}
+
+window.ready = Promise.all([...fontFaces.map(f => f.load()), logoImg.decode()]).then(() => true);
+window.renderFrame = renderFrame;
+window.DURATION = DURATION;
+window.soundCues = () => ({
+  duration: DURATION, bpm: 120,
+  logo: 0.6, typing: [1.6, 2.7, NAME.length], drop: 4,
+  pops: POPS, cuts: [8, 12, 16, 20, 24], taps: TAP, finale: END_AT, outro: OUTRO,
+});
+
+if (!location.search.includes('capture')) {
+  window.ready.then(() => {
+    const start = performance.now();
+    const loop = now => { renderFrame(((now - start) / 1000) % (DURATION + 0.5)); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  });
+}
+</script>
+</body>
+</html>

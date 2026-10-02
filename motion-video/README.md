@@ -5,6 +5,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
 | `output/sports/<sport>.mp4` (not in git; sent in the chat): one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
+| [`output/puk-sports-board-social-4k.mp4`](output/puk-sports-board-social-4k.mp4): follow us on Facebook, Instagram, TikTok and Telegram (dark green, light green and black on a neon grid) | 2160×3840 (4K), 60 fps | 30 s | `social.html`, `audio/social.py` |
 | [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -54,6 +55,27 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
   so the parts are simply joined and the film stays under 29 MiB. The films are delivered in the
   chat and kept out of git. `./make_sport.sh <sport> stills` renders check stills only, and
   `sportfilm.html?sport=<id>&draft` previews a sport whose texts aren't written yet.
+
+## Follow-us film (30 s, 4K)
+
+A 30 s call to follow PUK SPORTS BOARD on Facebook, Instagram, TikTok and Telegram:
+- **Look:** black, dark green and light green, with a neon background: a perspective grid,
+  rings that pulse on the beat, light streaks and sparks, all with a soft bloom.
+- **Story:** the logo in a neon ring and the name typed out (0–4 s); «فۆڵۆمان بکەن» with the
+  four icons popping in on the drop (4–8 s); one platform every 4 s with its name, a line about
+  what is posted there, the account and a finger tapping the follow button on the beat (8–24 s);
+  the logo with the icons orbiting it and «هەمیشە پشتیوانتانین» (24–30 s).
+- **Music:** `audio/social.py` is bright electronic pop at 120 bpm in E major, different from the
+  orchestral scores: a supersaw that pumps against the kick, a plucked arpeggio with a ping-pong
+  delay, a sub bass, a piano hook and synthesised drums, with the clicks, pops, whooshes, taps
+  and chimes placed from the film's cues.
+
+```bash
+node render.mjs --page social.html --cues audio/social-cues.json
+python3 audio/social.py audio/social-cues.json output/social.wav
+# 4K 60 fps (render in parts with --frames a:b to use every core), then add the music
+node render.mjs --page social.html --scale 2 --fps 60 --jpeg 0.95 --cpu-canvas --out video.mp4
+```
 
 ## Editorial poster film (30 s, 4K)
 
@@ -201,6 +223,7 @@ motion-video/
 ├── kurdistan3d.html    # 30 s sports-of-Kurdistan film (same 3D engine)
 ├── trio3d.html         # 30 s boxing / volleyball / table tennis film (same 3D engine)
 ├── editorial.html      # the same story as an editorial poster (2D)
+├── social.html         # 30 s follow-us film for the four social accounts (2D, neon)
 ├── photos.html         # 30 s photo film template (needs assets/photos/)
 ├── sportfilm.html      # 45 s 2D film for any sport (?sport=<id>)
 ├── sportfilm/          # its icons (glyphs.js), fields (fields.js) and plays (plays.js)
@@ -221,6 +244,7 @@ motion-video/
 │   ├── photos.py       # score for the photo film
 │   ├── trio.py         # score and prop sounds for the boxing / volleyball / table tennis film
 │   ├── sportfilm.py    # music and play sounds for the sport films, arranged per sport
+│   ├── social.py       # electronic pop track and UI sounds for the follow-us film
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
