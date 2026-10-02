@@ -484,9 +484,9 @@ def main(cue_path, out_path):
     for k, t in enumerate(cues['words']):
         put('harp', harp.play(near(scale, base + [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19][k % 12]), dur=1.0, release=1.2), t, 0.12, -0.3 + 0.1 * (k % 6))
         put('fx', air(0.5, 1500, 7000), t - 0.1, 0.04, 0.2)
-    # in Kurdistan (a bright fifth and octave) or coming (a rising sixth)
+    # the globe: a bright fifth and octave
     put('fx', tthud(), cues['status'], 0.25)
-    for k, off in enumerate((7, 12) if sport.get('kurdistan') else (4, 9)):
+    for k, off in enumerate((7, 12)):
         put('harp', harp.play(near(scale, base + off), dur=1.4, release=1.2), cues['status'] + 0.15 * k, 0.15, 0.2 * k)
     # a glissando into the logo
     gl = [m for m in range(base - 12, base + 15) if m % 12 in scale]

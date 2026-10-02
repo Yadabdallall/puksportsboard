@@ -4,7 +4,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
-| [`output/sports/football.mp4`](output/sports/football.mp4) and the other files in `output/sports/`: one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
+| `output/sports/<sport>.mp4` (not in git; sent in the chat): one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
 | [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
 | [`output/puk-sports-board-kurdistan.mp4`](output/puk-sports-board-kurdistan.mp4): the sports of Kurdistan (football, volleyball, basketball, and more) in soft 3D | 1080×1920, 30 fps | 30 s | `kurdistan3d.html`, `audio/kurdistan.py` |
@@ -25,8 +25,7 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
 
 - **Look:** flat 2D motion graphics in the logo's green (#129901), beige, petrol blue and a
   little ink, with a fine paper grain, quiet shapes drifting behind, and a blue sheet with a
-  green edge sweeping across on every cut. The sport's name, the numbers, the phrase and the
-  closing titles have a soft neon glow; every number is in Latin digits.
+  green edge sweeping across on every cut. Every number is in Latin digits.
 - **Story, on the bars of the music (96 bpm):**
   - 0–5 s: the sport's icon drops into a green disc; its Kurdish and English names, a tagline
     and its category.
@@ -37,8 +36,8 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
   - 15–25 s: «بە ژمارە», three facts counted up in Latin digits, and the sport's names
     running along a blue band.
   - 25–32.5 s: a two-line phrase on the green, word by word, the key word in a blue tag.
-  - 32.5–37.5 s: «لە کوردستان» with a tick, or «بەم زووانە لە کوردستان / لە داهاتوودا دێت»
-    with a turning hourglass.
+  - 32.5–37.5 s: a turning globe, «وەرزش بۆ هەمووان», «بیناسە و تاقی بکەرەوە» and «بۆ
+    ناساندنی یارییەکانی جیهان بە هەموو تاکێک»: the films introduce the world's games to everyone.
   - 37.5–45 s: the logo with rings on the beat, the sport's icon orbiting, and «هەمیشە لە پاڵتانین».
 - **Music:** arranged per sport from the same real instruments as the other films. The
   sport's mood sets the harmony and the instruments: energetic (driving piano,
@@ -49,9 +48,11 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
 - **Data:** each sport in `sports.json` names its field, play, icon, sound family and mood, and
   carries its texts. The drawings are in `sportfilm/glyphs.js` (44 icons), `sportfilm/fields.js`
   (25 fields, courts, tracks and boards) and `sportfilm/plays.js` (14 plays).
-- **Build:** `make_sport.sh` renders four lossless parts side by side (about 10 minutes for 4K
-  on 4 cores) while the music is written, then encodes once with a bitrate cap so the film stays
-  under 29 MiB. `./make_sport.sh <sport> stills` renders check stills only, and
+- **Build:** `make_sport.sh` renders four parts side by side while the music is written (about
+  7 minutes for 4K at 60 fps on 4 cores). Each part grabs JPEG frames from a software canvas,
+  which reads back far faster than PNG at 4K, and is encoded as it renders with a bitrate cap,
+  so the parts are simply joined and the film stays under 29 MiB. The films are delivered in the
+  chat and kept out of git. `./make_sport.sh <sport> stills` renders check stills only, and
   `sportfilm.html?sport=<id>&draft` previews a sport whose texts aren't written yet.
 
 ## Editorial poster film (30 s, 4K)
@@ -225,7 +226,7 @@ motion-video/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits and chess pieces
 └── output/
-    ├── sports/         # one film per sport, e.g. football.mp4
+    ├── sports/         # one film per sport, e.g. football.mp4 (not in git)
     ├── puk-sports-board-kurdistan.mp4
     ├── puk-sports-board-3d-cinematic.mp4
     ├── puk-sports-board-3d-warm.mp4

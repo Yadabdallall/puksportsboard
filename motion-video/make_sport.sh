@@ -41,7 +41,10 @@ fi
 python3 audio/sportfilm.py "$TMP/cues.json" "$TMP/audio.wav" > "$TMP/audio.log" 2>&1 &
 AUDIO=$!
 
-# 3. the picture, in lossless parts rendered side by side
+# 3. the picture, in parts rendered side by side and encoded as they go, with
+# the bitrate capped so the film stays under MAXMB; the parts are then joined
+# without encoding again
+KBPS=$((MAXMB * 8 * 1024 * 1024 / 45 / 1000 * 92 / 100 - 320))
 TOTAL=$((45 * FPS))
 STEP=$(((TOTAL + PARTS - 1) / PARTS))
 PIDS=()
@@ -49,10 +52,11 @@ PIDS=()
 for ((i = 0; i < PARTS; i++)); do
   a=$((i * STEP))
   b=$(((i + 1) * STEP < TOTAL ? (i + 1) * STEP : TOTAL))
-  node render.mjs --page sportfilm.html --query "sport=$ID" --scale "$SCALE" --fps "$FPS" \
-    --frames "$a:$b" --lossless --out "$TMP/part$i.mkv" > "$TMP/part$i.log" 2>&1 &
+  node render.mjs --page sportfilm.html --query "sport=$ID" --scale "$SCALE" --fps "$FPS" --frames "$a:$b" \
+    --jpeg 0.95 --cpu-canvas --preset medium --crf 14 --maxrate "${KBPS}k" --bufsize "$((KBPS * 2))k" --x264 aq-mode=3 \
+    --out "$TMP/part$i.mp4" > "$TMP/part$i.log" 2>&1 &
   PIDS+=($!)
-  echo "file 'part$i.mkv'" >> "$TMP/parts.txt"
+  echo "file 'part$i.mp4'" >> "$TMP/parts.txt"
 done
 echo "rendering $TOTAL frames of $ID in $PARTS parts..."
 for p in "${PIDS[@]}"; do
@@ -61,10 +65,8 @@ done
 wait $AUDIO || { cat "$TMP/audio.log"; exit 1; }
 cat "$TMP/audio.log"
 
-# 4. one encode of the joined parts with the music; the bitrate cap keeps the file under MAXMB
-KBPS=$((MAXMB * 8 * 1024 * 1024 / 45 / 1000 * 92 / 100 - 320))
+# 4. join the parts and add the music
 "$FFMPEG" -y -loglevel error -f concat -safe 0 -i "$TMP/parts.txt" -i "$TMP/audio.wav" \
-  -c:v libx264 -preset slow -crf 14 -maxrate "${KBPS}k" -bufsize "$((KBPS * 2))k" -pix_fmt yuv420p \
-  -profile:v high -x264-params aq-mode=3 -c:a aac -b:a 320k -movflags +faststart -shortest "$OUT/$ID.mp4"
+  -map 0:v -map 1:a -c:v copy -c:a aac -b:a 320k -movflags +faststart -shortest "$OUT/$ID.mp4"
 rm -rf "$TMP"
 echo "wrote $OUT/$ID.mp4 ($(du -m "$OUT/$ID.mp4" | cut -f1) MB)"

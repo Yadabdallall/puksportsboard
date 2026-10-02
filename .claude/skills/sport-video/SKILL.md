@@ -7,8 +7,8 @@ description: Make the PUK Sports Board's 45-second 2D motion film, with its own 
 
 Each film is 45 s, vertical 9:16, 4K at 60 fps, in the board's colours (logo
 green #129901, beige, petrol blue, a little ink), with music arranged for the
-sport and sounds timed to the play. Titles, numbers and the phrase have a soft
-neon glow; numbers are in Latin digits. One template makes them all:
+sport and sounds timed to the play. No neon or glow on the text; numbers are in
+Latin digits. One template makes them all:
 `motion-video/sportfilm.html` draws the picture, `motion-video/audio/sportfilm.py`
 writes the music, and `motion-video/make_sport.sh` does both and the encode.
 
@@ -27,11 +27,12 @@ writes the music, and `motion-video/make_sport.sh` does both and the encode.
 4. **Check the layout:** `cd motion-video && ./make_sport.sh <id> stills`, then
    look at every PNG in `output/stills/<id>/`. Texts must fit and not overlap,
    numbers must show correctly, the field and play must make sense. Fix and repeat.
-5. **Build:** `./make_sport.sh <id>` (about 10–12 minutes on 4 cores). It
+5. **Build:** `./make_sport.sh <id>` (about 7 minutes on 4 cores). It
    installs what is missing (npm, pip), renders in parallel, writes the music
    and leaves `output/sports/<id>.mp4`, under 29 MiB so it can be sent.
 6. **Deliver:** send the mp4 to the user (SendUserFile), then commit
-   `sports/sports.json`, `sports/SPORTS.md` (if changed) and the mp4, and push.
+   `sports/sports.json` and `sports/SPORTS.md` if they changed, and push. The
+   mp4s stay out of git (`output/sports/*.mp4` is ignored; 113 films would be ~3 GB).
    Reply in Kurdish (Sorani), briefly.
 
 Draft quickly with `SCALE=0.5 FPS=30 ./make_sport.sh <id>` when trying changes.
@@ -63,8 +64,8 @@ body; no politics, no people's names.
  "scoreWord": "گۆڵ!", "start": "whistle", ...texts}
 ```
 
-- `kurdistan`: true if it is played in Kurdistan today; false shows «بەم زووانە
-  لە کوردستان / لە داهاتوودا دێت».
+- `kurdistan`: true if it is played in Kurdistan today (for the list in SPORTS.md;
+  every film ends with the same «وەرزش بۆ هەمووان / بیناسە و تاقی بکەرەوە»).
 - `field` (`name/variant`): pitch[/futsal|handball|beach|rugby|american|hockey|polo],
   court[/netball], net/volleyball|beach|tennis|badminton|squash|padel|pickleball|sitting,
   table[/billiard], diamond, oval, ring[/cage], mat/wrestling|judo|karate|taekwondo|sumo|gym|kabaddi,

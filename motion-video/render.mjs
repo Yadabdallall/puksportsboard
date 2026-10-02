@@ -14,6 +14,10 @@
 //   node render.mjs --frames 250:460      -> only frames 250..459, no audio (to patch
 //                                            one keyframe interval of an earlier render)
 //   node render.mjs --query sport=judo    -> extra URL parameters for the page
+//   node render.mjs --jpeg 0.95           -> grab JPEG frames instead of PNG (much faster at 4K)
+//   node render.mjs --cpu-canvas          -> software 2D canvas, faster to read back than the GPU one
+//   node render.mjs --preset medium --maxrate 4600k --bufsize 9200k --x264 aq-mode=3
+//                                         -> final-encode settings, e.g. for parts joined by stream copy
 //
 // Needs Playwright (npm i playwright) and ffmpeg (on PATH or via $FFMPEG).
 import { spawn } from 'node:child_process';
@@ -41,7 +45,7 @@ const out = path.resolve(here, args.out || 'output/puk-sports-board-motion.mp4')
 const ffmpeg = process.env.FFMPEG || 'ffmpeg';
 
 const MIME = { '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.ttf': 'font/ttf', '.js': 'text/javascript', '.json': 'application/json' };
-const browser = await chromium.launch();
+const browser = await chromium.launch(args['cpu-canvas'] ? { args: ['--disable-accelerated-2d-canvas'] } : {});
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
 await page.route('http://motion.local/**', async route => {
   const rel = decodeURIComponent(new URL(route.request().url()).pathname);
@@ -59,10 +63,10 @@ const duration = await page.evaluate(() => window.DURATION);
 
 // Reading the canvas directly is ~3x faster than a page screenshot.
 const grab = async t => {
-  const url = await page.evaluate(t => {
+  const url = await page.evaluate(([t, fmt]) => {
     window.renderFrame(t);
-    return document.getElementById('stage').toDataURL('image/png');
-  }, t);
+    return document.getElementById('stage').toDataURL(...fmt);
+  }, [t, args.jpeg ? ['image/jpeg', Number(args.jpeg)] : ['image/png']]);
   return Buffer.from(url.slice(url.indexOf(',') + 1), 'base64');
 };
 
@@ -92,11 +96,15 @@ const [first, last] = args.frames ? String(args.frames).split(':').map(Number) :
 if (args.frames && args.audio) throw new Error('--frames renders a silent part; add the audio to the finished video');
 
 await mkdir(path.dirname(out), { recursive: true });
-const ffArgs = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-i', '-'];
+const ffArgs = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), ...(args.jpeg ? ['-c:v', 'mjpeg'] : []), '-i', '-'];
 if (args.audio) ffArgs.push('-i', path.resolve(args.audio));
 if (args.lossless) ffArgs.push('-c:v', 'libx264', '-preset', 'ultrafast', '-qp', '0', '-pix_fmt', 'yuv444p', '-r', String(fps));
-else ffArgs.push('-c:v', 'libx264', '-preset', 'slow', '-crf', String(args.crf || 18), '-pix_fmt', 'yuv420p',
-  '-profile:v', 'high', '-movflags', '+faststart', '-r', String(fps));
+else {
+  ffArgs.push('-c:v', 'libx264', '-preset', args.preset || 'slow', '-crf', String(args.crf || 18), '-pix_fmt', 'yuv420p',
+    '-profile:v', 'high', '-movflags', '+faststart', '-r', String(fps));
+  if (args.maxrate) ffArgs.push('-maxrate', args.maxrate, '-bufsize', args.bufsize || args.maxrate);
+  if (args.x264) ffArgs.push('-x264-params', args.x264);
+}
 if (args.audio) ffArgs.push('-c:a', 'aac', '-b:a', '192k', '-shortest');
 ffArgs.push(out);
 const enc = spawn(ffmpeg, ffArgs, { stdio: ['pipe', 'inherit', 'inherit'] });
