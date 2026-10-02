@@ -38,7 +38,7 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
   - 25–32.5 s: a two-line phrase on the green, word by word, the key word in a blue tag.
   - 32.5–37.5 s: a turning globe, «وەرزش بۆ هەمووان», «بیناسە و تاقی بکەرەوە» and «بۆ
     ناساندنی یارییەکانی جیهان بە هەموو تاکێک»: the films introduce the world's games to everyone.
-  - 37.5–45 s: the logo with rings on the beat, the sport's icon orbiting, and «هەمیشە لە پاڵتانین».
+  - 37.5–45 s: the logo with rings on the beat, the sport's icon orbiting, and «هەمیشە پشتیوانتانین».
 - **Music:** arranged per sport from the same real instruments as the other films. The
   sport's mood sets the harmony and the instruments: energetic (driving piano,
   four-on-the-floor), heroic (minor, low strings, horns, taiko-like drums, a major ending),
