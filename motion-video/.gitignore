@@ -6,3 +6,4 @@ output/sports/.work-*/
 # the sport films (~25 MB each, 113 of them) are delivered in the chat, not kept in git
 output/sports/*.mp4
 output/.social-work/
+output/.memorial-work/

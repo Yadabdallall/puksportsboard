@@ -5,6 +5,7 @@ Motion-graphics clips for the PUK Sports Board, all MP4/H.264 with AAC audio.
 | Video | Format | Length | Source |
 | --- | --- | --- | --- |
 | `output/sports/<sport>.mp4` (not in git; sent in the chat): one film per sport, made from one template (`./make_sport.sh <sport>`) | 2160×3840 (4K), 60 fps | 45 s | `sportfilm.html`, `audio/sportfilm.py` |
+| [`output/puk-sports-board-mam-jalal-4k.mp4`](output/puk-sports-board-mam-jalal-4k.mp4): for the anniversary of the death of President Mam Jalal (3 October), eight archive photos with words in motion, black, cream and gold | 2160×3840 (4K), 60 fps | 50 s | `memorial.html`, `audio/memorial.py` |
 | [`output/puk-sports-board-social-4k.mp4`](output/puk-sports-board-social-4k.mp4): follow us on Facebook, Instagram, TikTok and Telegram (dark green, light green and black on a neon grid) | 2160×3840 (4K), 60 fps | 30 s | `social.html`, `audio/social.py` |
 | [`output/puk-sports-board-editorial-4k.mp4`](output/puk-sports-board-editorial-4k.mp4): boxing, volleyball and table tennis as an editorial poster (paper, ink, red and the board's green) | 2160×3840 (4K), 30 fps | 30 s | `editorial.html`, `audio/trio.py` |
 | [`output/puk-sports-board-trio-3k.mp4`](output/puk-sports-board-trio-3k.mp4): boxing, volleyball and table tennis in soft 3D | 1620×2880 (3K), 30 fps | 30 s | `trio3d.html`, `audio/trio.py` |
@@ -55,6 +56,27 @@ behind it are in `.claude/skills/sport-video/SKILL.md` at the root of the reposi
   so the parts are simply joined and the film stays under 29 MiB. The films are delivered in the
   chat and kept out of git. `./make_sport.sh <sport> stills` renders check stills only, and
   `sportfilm.html?sport=<id>&draft` previews a sport whose texts aren't written yet.
+
+## Mam Jalal memorial film (50 s, 4K)
+
+For the anniversary of the death of President Mam Jalal (Jalal Talabani, 1933 – 2017) on 3 October:
+- **Look:** black, cream and gold, restrained. The board's logo heads every photo and closes the film.
+- **Photos:** the eight archive photos in `assets/memorial/src/`, enlarged for 4K by
+  `assets/memorial/make_photos.py`. Each one sits in a wide frame with soft edges over a blurred,
+  darkened copy of itself, drifts slowly, and starts in black and white before blooming into
+  colour. A warm light passes over the frame between photos.
+- **Words:** a candle is lit for «بە یادی سەرۆک مام جەلال», 1933 – 2017 and «نۆیەمین ساڵیادی کۆچی دوایی».
+  Then each photo has a gold kicker (پێشمەرگە, ساڵانی شاخ, 1975, 2005 – 2014...) and a line whose
+  words rise in one by one, from the right. It ends with the candle, «یادت هەمیشە لە دڵماندایە» and
+  the logo inside a gold ring. Numbers are in Latin digits.
+- **Music:** `audio/memorial.py` is an elegy in 3/4 in maqam Kurd on D (piano, cello, violins,
+  double bass, horn, harp), one photo every two bars, ending in D major with a harp glissando
+  on the logo.
+
+```bash
+node render.mjs --page memorial.html --cues audio/memorial-cues.json
+python3 audio/memorial.py audio/memorial-cues.json output/memorial.wav
+```
 
 ## Follow-us film (30 s, 4K)
 
@@ -227,6 +249,7 @@ motion-video/
 ├── trio3d.html         # 30 s boxing / volleyball / table tennis film (same 3D engine)
 ├── editorial.html      # the same story as an editorial poster (2D)
 ├── social.html         # 30 s follow-us film for the four social accounts (2D, neon)
+├── memorial.html       # 50 s film for the anniversary of Mam Jalal's death (archive photos)
 ├── photos.html         # 30 s photo film template (needs assets/photos/)
 ├── sportfilm.html      # 45 s 2D film for any sport (?sport=<id>)
 ├── sportfilm/          # its icons (glyphs.js), fields (fields.js) and plays (plays.js)
@@ -248,10 +271,12 @@ motion-video/
 │   ├── trio.py         # score and prop sounds for the boxing / volleyball / table tennis film
 │   ├── sportfilm.py    # music and play sounds for the sport films, arranged per sport
 │   ├── social.py       # electronic pop track and UI sounds for the follow-us film
+│   ├── memorial.py     # the elegy for the Mam Jalal film
 │   └── *cues.json      # sound cue times exported from each animation timeline
 ├── assets/
 │   ├── logo.png        # the Sports Board logo (transparent background)
 │   ├── icons/          # platform marks: src/ originals, make_icons.py, the white masks
+│   ├── memorial/       # the archive photos (src/) and their 4K enlargements
 │   └── fonts/          # Zain (SIL OFL, see OFL.txt) and DejaVu Sans Bold for the podium digits and chess pieces
 └── output/
     ├── sports/         # one film per sport, e.g. football.mp4 (not in git)
