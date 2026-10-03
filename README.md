@@ -38,6 +38,7 @@ python3 -m http.server 8000
 ```
 
 - **Cloudflare Pages**: Workers & Pages → Create → Pages → Upload assets، و فۆڵدەرەکە (یان ZIP ەکە) ڕابکێشە.
+  - گرنگ: `index.html` دەبێت ڕاستەوخۆ لە سەرەوەی ZIP ـەکەدا بێت، نەک لە ناو فۆڵدەرێکدا؛ ئەگەرنا Cloudflare هەڵەی 404 پیشان دەدات. بۆ دروستکردنی: `git archive --format=zip -o site.zip HEAD -- index.html assets`
 - **GitHub Pages**: Settings → Pages → Deploy from a branch، و فۆڵدەری `/ (root)` هەڵبژێرە.
 - زمان بە `?lang=ku|ar|en|de` لە بەستەرەکەدا دیاری دەکرێت.
 - دوای گۆڕینی هەر فایلێکی `assets`، ژمارەی `v=5` لە `index.html` و `V` لە `app.js` زیاد بکە، بۆ ئەوەی وێبگەڕ وەشانی نوێ بهێنێت.
