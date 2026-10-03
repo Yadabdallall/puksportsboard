@@ -19,7 +19,7 @@ window.I18N = window.I18N || {};
       depts: { eyebrow: 'Fachrichtungen', title: 'Die Ingenieur-|fachrichtungen', lead: 'Wähle ein Fach und sieh, wie es ist, was Studierende lernen, wie viele Zweige es hat, welche Master- und Promotionswege es gibt und wer seine größten Ingenieure sind.' },
       safety: { eyebrow: 'Sicherheit', title: 'Helme &|Sicherheit', lead: 'Sicherheit ist die erste Regel des Ingenieurwesens. Hier lernst du den Farbcode der Helme, die Helmtypen, die elektrischen Klassen und die gesamte persönliche Schutzausrüstung (PSA).' },
       software: { eyebrow: 'Software', title: 'Der Werkzeugkasten|der Ingenieure', lead: 'Die Programme, die Ingenieure jeden Tag nutzen. Tippe auf ein Programm, um zu erfahren, was es ist, wer es nutzt und welche großen Werke damit entstanden sind.' },
-      legends: { eyebrow: 'Legenden', title: 'Die größten Ingenieure|der Welt', lead: '140 Ingenieure und Erfinder — 10 für jedes Fach, jeweils mit Biografie und 3 bedeutenden Projekten. Tippe auf jemanden, um ihn kennenzulernen.' },
+      legends: { eyebrow: 'Legenden', title: 'Die größten Ingenieure|der Welt', lead: 'Ein Ingenieur aus jedem Fach. In den Fächern findest du 140 Ingenieure und Erfinder, jeweils mit Biografie und 3 bedeutenden Projekten. Tippe auf jemanden, um ihn kennenzulernen.' },
       quiz: { eyebrow: 'Wählen', title: 'Welches Fach|passt zu dir?', lead: 'Beantworte sechs kurze Fragen und sieh die drei Fächer, die am besten zu dir passen.' },
       others: { eyebrow: 'Mehr', title: 'Weitere|Ingenieurfächer', lead: 'Neben den Hauptfächern gibt es an Universitäten weltweit diese Vertiefungen; die meisten sind Zweige eines der Hauptfächer.' }
     },

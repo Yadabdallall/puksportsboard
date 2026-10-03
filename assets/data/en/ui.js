@@ -19,7 +19,7 @@ window.I18N = window.I18N || {};
       depts: { eyebrow: 'Departments', title: 'Engineering|departments', lead: 'Pick a department to see what it is like, what students study, how many branches it has, its master’s and PhD options, and who its greatest engineers are.' },
       safety: { eyebrow: 'Safety', title: 'Helmets &|safety', lead: 'Safety is the first rule of engineering. Here you will learn the helmet color code, helmet types, electrical classes and all the personal protective equipment (PPE).' },
       software: { eyebrow: 'Software', title: 'The engineers’|toolbox', lead: 'The programs engineers use every day. Tap any program to learn what it is, who uses it and which great works were made with it.' },
-      legends: { eyebrow: 'Legends', title: 'The world’s|greatest engineers', lead: '140 engineers and inventors — 10 for every department, each with a biography and 3 landmark projects. Tap anyone to meet them.' },
+      legends: { eyebrow: 'Legends', title: 'The world’s|greatest engineers', lead: 'One engineer from each department. Inside the departments you will find 140 engineers and inventors, each with a biography and 3 landmark projects. Tap anyone to meet them.' },
       quiz: { eyebrow: 'Choose', title: 'Which field|suits you?', lead: 'Answer six quick questions and see the three departments that fit you best.' },
       others: { eyebrow: 'More', title: 'Other engineering|fields', lead: 'Besides the main departments, these specialties exist at universities around the world; most of them are branches of one of the main departments.' }
     },

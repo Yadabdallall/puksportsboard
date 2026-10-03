@@ -10,7 +10,7 @@ window.BG = (function () {
   var TAU = Math.PI * 2;
   var FONT = 'Zain, system-ui, sans-serif';
   var W = 0, H = 0, S = 0, DPR = 1, small = false;
-  var t = 0, flow = 0, sy = 0, lastSy = 0, vel = 0, running = true;
+  var t = 0, flow = 0, sy = 0, lastSy = 0, vel = 0, running = true, k = 1, lastT = 0;
   var col = [255, 184, 28], tgt = col.slice();
   var BLUE = [150, 190, 255], WHITE = [235, 242, 255];
   var mouse = { x: -9999, y: -9999 };
@@ -517,7 +517,7 @@ window.BG = (function () {
       for (x = 0; x <= W; x += 6) { var ev = A * 0.5 * (1 + 0.6 * Math.sin(x * 0.006 - flow * 0.02)); if (x) ctx.lineTo(x, y0 - ev); else ctx.moveTo(x, y0 - ev); }
       ctx.stroke();
       /* rings */
-      s.acc += 1 + Math.min(Math.abs(vel), 40) * 0.05;
+      s.acc += (1 + Math.min(Math.abs(vel), 40) * 0.05) * k;
       if (s.acc > 70) { s.acc = 0; s.tw.forEach(function (tw) { s.rings.push({ x: tw.x, y: tw.top, r: 6 }); }); }
       var rmax = S * 0.7;
       s.rings = s.rings.filter(function (r) { r.r += 1.5 + Math.min(Math.abs(vel), 40) * 0.04; return r.r < rmax; });
@@ -688,7 +688,7 @@ window.BG = (function () {
     draw: function (s) {
       var self = this, i, x;
       s.rain.forEach(function (r) {
-        r.y += r.v * (1 + Math.min(Math.abs(vel), 40) * 0.03);
+        r.y += r.v * (1 + Math.min(Math.abs(vel), 40) * 0.03) * k;
         if (r.y > self.wy(0, r.x)) { if (Math.random() < 0.08) s.rip.push({ x: r.x, y: self.wy(0, r.x), r: 2 }); r.y = -20; r.x = rnd(0, W); }
         stroke(BLUE, 0.2, 1); line(r.x, r.y, r.x - 3, r.y + r.l);
       });
@@ -853,7 +853,7 @@ window.BG = (function () {
       stroke(col, 0.6, 1.4); line(today, gy, today, gy + gh); glowDot(today, gy, 2.6, col, 1);
       if (!small) {
         var cx = W * 0.06, cy = H * 0.24, cww = W * 0.3, chh = H * 0.22, mid = cy + chh / 2;
-        s.acc += 1 + Math.min(Math.abs(vel), 40) * 0.05;
+        s.acc += (1 + Math.min(Math.abs(vel), 40) * 0.05) * k;
         if (s.acc > 34) { s.acc = 0; s.data.shift(); s.data.push(Math.random() < 0.06 ? rnd(1.05, 1.3) * (Math.random() < 0.5 ? -1 : 1) : rnd(-0.75, 0.75)); }
         stroke(BLUE, 0.25, 1); line(cx, cy - 10, cx, cy + chh + 10); line(cx, cy + chh + 10, cx + cww, cy + chh + 10);
         stroke(col, 0.35, 1); line(cx, mid, cx + cww, mid);
@@ -935,7 +935,7 @@ window.BG = (function () {
 
   /* ═════════════════ common layer + loop ═════════════════ */
   function initPts() {
-    var count = Math.round(Math.min(110, Math.max(36, W * H / 15000)));
+    var count = Math.round(Math.min(small ? 46 : 100, Math.max(30, W * H / 15000)));
     pts = [];
     for (var i = 0; i < count; i++) pts.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.22, vy: (Math.random() - 0.5) * 0.22, r: Math.random() * 1.5 + 0.6, z: Math.random() * 0.8 + 0.2 });
   }
@@ -944,7 +944,7 @@ window.BG = (function () {
     for (var a = 0; a < pts.length; a++) {
       var p = pts[a];
       if (!reduce) {
-        p.x += p.vx; p.y += p.vy;
+        p.x += p.vx * k; p.y += p.vy * k;
         if (p.x < -20) p.x = W + 20; if (p.x > W + 20) p.x = -20;
         if (p.y < -20) p.y = H + 20; if (p.y > H + 20) p.y = -20;
         var dxm = p.x - mouse.x, dym = p.y - mouse.y;
@@ -1000,8 +1000,8 @@ window.BG = (function () {
   }
 
   function resize() {
-    DPR = Math.min(2, window.devicePixelRatio || 1);
     W = window.innerWidth; H = window.innerHeight; S = Math.min(W, H); small = W < 700;
+    DPR = Math.min(small ? 1.5 : 2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -1009,17 +1009,26 @@ window.BG = (function () {
     if (reduce) draw();
   }
 
-  function loop() {
+  /* Phones draw at ~40 fps; every step is scaled by elapsed time so speeds stay the same */
+  var minGap = 0;
+  function loop(now) {
     if (!running) return;
-    t += 1;
+    requestAnimationFrame(loop);
+    now = now || performance.now();
+    if (!lastT) lastT = now;
+    var dt = now - lastT;
+    if (dt < minGap) return;
+    lastT = now;
+    k = Math.max(0.5, Math.min(3, dt / 16.67));
+    t += k;
     sy = window.scrollY || window.pageYOffset || 0;
     var dv = sy - lastSy; lastSy = sy;
-    vel = vel * 0.85 + dv * 0.15;
-    flow += 1 + Math.min(Math.abs(dv), 80) * 0.25;
-    for (var i = 0; i < 3; i++) col[i] += (tgt[i] - col[i]) * 0.05;
-    if (mix < 1) { mix = Math.min(1, mix + 0.022); if (mix >= 1) prev = null; }
+    vel = vel * Math.pow(0.85, k) + dv * 0.15;
+    flow += (1 + Math.min(Math.abs(dv / k), 80) * 0.25) * k;
+    var f = 1 - Math.pow(0.95, k);
+    for (var i = 0; i < 3; i++) col[i] += (tgt[i] - col[i]) * f;
+    if (mix < 1) { mix = Math.min(1, mix + 0.022 * k); if (mix >= 1) prev = null; }
     draw();
-    requestAnimationFrame(loop);
   }
 
   window.addEventListener('resize', resize);
@@ -1029,11 +1038,13 @@ window.BG = (function () {
     if (reduce) return;
     var was = running;
     running = !document.hidden;
-    if (running && !was) requestAnimationFrame(loop);
+    if (running && !was) { lastT = 0; requestAnimationFrame(loop); }
   });
   if (reduce) window.addEventListener('scroll', function () { sy = window.scrollY; draw(); }, { passive: true });
 
   resize();
+  minGap = small ? 24 : 0;
+  window.addEventListener('resize', function () { minGap = small ? 24 : 0; });
   if (!reduce) requestAnimationFrame(loop);
 
   return {
