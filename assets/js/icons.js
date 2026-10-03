@@ -79,7 +79,22 @@ window.ICONS = (function () {
     calendar: '<rect x="3" y="4.5" width="18" height="16.5" rx="2.2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>',
     company: '<path d="M3 21h18M5 21V5.5L13 3v18M13 8.5l6 2V21M8 8h2M8 12h2M8 16h2M16 13h1M16 16.5h1"/>',
     layers: '<path d="m12 3 9.5 5-9.5 5-9.5-5z"/><path d="m2.5 13 9.5 5 9.5-5"/>',
-    sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>'
+    sparkle: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>',
+    calc: '<rect x="4.5" y="2.5" width="15" height="19" rx="2.2"/><path d="M8 6.5h8v3H8zM8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/>',
+    ruler: '<path d="M3 16.5 16.5 3 21 7.5 7.5 21z"/><path d="m7 12.5 2 2M10 9.5l1.5 1.5M13 6.5l2 2M5.5 14l1 1M14.5 5l1 1"/>',
+    cube: '<path d="m12 2.8 8.5 4.8v8.8L12 21.2l-8.5-4.8V7.6z"/><path d="m3.5 7.6 8.5 4.8 8.5-4.8M12 12.4v8.8"/>',
+    uni: '<path d="m12 3 9.5 5H2.5z"/><path d="M4.5 8.5v9M9 8.5v9M15 8.5v9M19.5 8.5v9M2.5 20.5h19M3.5 17.5h17"/>',
+    column: '<path d="M5 4h14M6 6.5h12M5 20h14M4 22h16M8 6.5V20M12 6.5V20M16 6.5V20"/><path d="M5 4c0-1 1-1.5 2-1.5h10c1 0 2 .5 2 1.5"/>',
+    pdf: '<path d="M14 2.5H6.5A1.5 1.5 0 0 0 5 4v16a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 20V7.5z"/><path d="M14 2.5v5h5M8.5 13h7M8.5 16.5h5"/>',
+    download: '<path d="M12 3.5v12M7 10.5l5 5 5-5M4 20.5h16"/>',
+    award: '<circle cx="12" cy="9" r="6"/><path d="m8.5 13.8-1.5 7.7 5-2.8 5 2.8-1.5-7.7"/>',
+    trend: '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    send: '<path d="M21.5 3 2.5 10.5l7 2.5 2.5 7z"/><path d="m21.5 3-12 10"/>',
+    flag: '<path d="M5 21V4M5 4.5c4-2 7 2 14 0v9c-7 2-10-2-14 0"/>',
+    rotate: '<path d="M3.5 12a8.5 8.5 0 0 1 14.6-5.9L20.5 8.5M20.5 3.5v5h-5M20.5 12a8.5 8.5 0 0 1-14.6 5.9L3.5 15.5M3.5 20.5v-5h5"/>',
+    blueprint: '<rect x="3" y="3.5" width="18" height="17" rx="1.5"/><path d="M3 9h18M9 9v11.5M13 13h5M13 16.5h3"/>',
+    filter: '<path d="M3.5 5h17l-6.5 8v6l-4 2v-8z"/>',
+    swap: '<path d="M4 8h15l-4-4M20 16H5l4 4"/>'
   };
   return { gearD: gearD, get: function (k) { return I[k] || ''; }, all: I };
 })();

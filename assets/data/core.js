@@ -19,7 +19,7 @@ window.CORE = (function () {
     sw: ['autocad', 'revit', 'etabs', 'sap2000', 'safe', 'staad', 'civil3d', 'plaxis', 'primavera', 'tekla'],
     ppe: ['helmet', 'vest', 'boots', 'gloves', 'glasses', 'harness', 'ear', 'mask'],
     eng: [
-      { w: 'Fazlur Rahman Khan', en: 'Fazlur Rahman Khan', life: '1929–1982', p: [
+      { w: 'Fazlur Rahman Khan', en: 'Fazlur Rahman Khan', life: '1929–1982', img: 'assets/img/eng/fazlur-khan.jpg', p: [
         { w: 'Willis Tower', en: 'Willis Tower', y: '1973' },
         { w: 'John Hancock Center', en: 'John Hancock Center', y: '1969' },
         { w: 'Hajj Terminal', en: 'Hajj Terminal', y: '1981' }] },
@@ -590,7 +590,7 @@ window.CORE = (function () {
     sw: ['matlab', 'labview', 'solidworks', 'comsol', 'ansys', 'slicer', 'python', 'proteus', 'opensim', 'imagej'],
     ppe: ['labcoat', 'gloves', 'glasses', 'mask', 'dosimeter', 'esd', 'bumpcap'],
     eng: [
-      { w: 'Wilson Greatbatch', en: 'Wilson Greatbatch', life: '1919–2011', p: [
+      { w: 'Wilson Greatbatch', en: 'Wilson Greatbatch', life: '1919–2011', img: 'assets/img/eng/wilson-greatbatch.jpg', p: [
         { w: 'Artificial cardiac pacemaker', en: 'Implantable Pacemaker', y: '1960' },
         { w: 'Integer Holdings', en: 'Greatbatch Ltd.', y: '1970', q: 'Greatbatch Ltd medical battery company' },
         { w: 'Lithium–iodine battery', en: 'Lithium–Iodine Battery', y: '1971', q: 'lithium iodine battery pacemaker Greatbatch' }] },
@@ -935,8 +935,18 @@ window.CORE = (function () {
     [{ survey: 3, petro: 3, civil: 2, water: 2, comm: 1 }, { mech: 2, elec: 2, arch: 2, chem: 1, industrial: 1 }, { software: 3, computer: 2, biomed: 2, chem: 1 }]
   ];
 
+  /* Kurdish engineers on the Stanford University / Elsevier list of the world's top 2% scientists.
+     Texts (titles, schools, highlights) live in assets/data/<lang>/home.js */
+  var kurds = [
+    { id: 'ahmed', en: 'Prof. Dr. Ahmed Salih Mohammed', img: 'assets/img/kurds/ahmed-mohammed.jpg', papers: 300, cites: 14669, books: 2, top: [2021, 2022, 2023, 2024, 2025], scholar: 'aU-9E8gAAAAJ', feat: true },
+    { id: 'rabar', en: 'Asst. Prof. Dr. Rabar H. Faraj', img: 'assets/img/kurds/rabar-faraj.jpg', papers: 68, cites: 5253, top: [2024], scholar: 'wDDKJwUAAAAJ' },
+    { id: 'rawaz', en: 'Asst. Prof. Dr. Rawaz Kurda', img: 'assets/img/kurds/rawaz-kurda.jpg', papers: 96, cites: 7180, top: [2024], scholar: 'KesSqb4AAAAJ' },
+    { id: 'hemn', en: 'Asst. Prof. Dr. Hemn Unis Ahmed', img: 'assets/img/kurds/hemn-ahmed.jpg', papers: 70, cites: 6151, top: [2024], scholar: 'u9bRu-8AAAAJ' },
+    { id: 'sarmad', en: 'Sarmad Dashti Latif', img: 'assets/img/kurds/sarmad-latif.jpg', papers: 57, cites: 1907, books: 2, top: [2025], scholar: 'rrjrWM4AAAAJ' }
+  ];
+
   return {
-    quiz: quiz,
+    quiz: quiz, kurds: kurds,
     langs: [
       { id: 'ku', label: 'کوردی', short: 'KU', dir: 'rtl' },
       { id: 'ar', label: 'العربية', short: 'AR', dir: 'rtl' },

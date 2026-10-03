@@ -6,12 +6,12 @@ window.I18N = window.I18N || {};
     nav: { depts: 'Departments', colors: 'Helmet colors', safety: 'Safety', software: 'Software', legends: 'Engineers', quiz: 'Which field suits me?' },
     loader: 'Preparing your helmet…',
     heroKicker: 'ENGINEERING · ENCYCLOPEDIA',
-    heroTitle: ['Every engineering', 'department', 'in one place'],
-    heroLead: 'This website is a simple, reliable encyclopedia. It shines a light on the most important engineering departments, the nature of their work, their key software and the career paths in each. Our goal is to help you understand them and choose the right department for you.',
-    ctaDepts: 'Explore departments', ctaQuiz: 'Which field suits me?',
+    heroTitle: ['The world of', 'engineering', 'in one place'],
+    heroLead: 'Engineerpedia is for everyone who loves engineering: students, working engineers, teachers and the simply curious. Here you will find the engineering disciplines, world standards, everyday calculators, humanity’s greatest projects, the best universities and the greatest engineers of the world and of Kurdistan — explained simply, all in one place.',
+    ctaDepts: 'Explore departments', ctaQuiz: 'Engineering calculators',
     stageHint: 'Tap to put the helmet on',
     helmetOf: '{c} helmet',
-    quote: { label: 'Quote of the day', text: 'I am a civil engineer… made for the project site.', by: 'Yad Abdullah', role: 'Civil engineer' },
+    quote: { label: 'Quote of the day', text: 'I am a civil engineer… made for the project site.', by: 'Yad Abdalla', role: 'Civil engineer' },
     stats: { depts: 'Engineering departments', branches: 'Branches & specialties', engineers: 'Brilliant engineers', projects: 'World-class projects', software: 'Key programs' },
     sec: {
       intro: { eyebrow: 'About', title: 'What is|engineering?', lead: 'Engineering is the use of science and mathematics to solve real-life problems: from bridges, buildings and electricity to phones, medicine and rockets. Every department is a world of its own — we open all of them for you.' },
@@ -53,10 +53,10 @@ window.I18N = window.I18N || {};
     sw: { maker: 'Maker', since: 'First release', usedIn: 'Used in these departments', who: 'Who uses it?', works: 'Great works & examples', about: 'What is this program?', site: 'Official website', wiki: 'Wikipedia', google: 'Images on Google', close: 'Close' },
     drop: { wear: 'Put on the {c} helmet', welcome: 'Welcome to {d}' },
     footer: {
-      about: 'A simple, reliable encyclopedia to help you understand engineering and choose the right department.',
+      about: 'A simple, reliable website for everyone who loves engineering: to learn, to work, to calculate and to be inspired.',
       img: 'Images: photos of engineers and projects come from Wikipedia and Wikimedia Commons, and department photos from Pexels (free). Every card also has an “Images on Google” button.',
       helmet: 'The department helmet colors on this website are for identification; on a real site, company and national rules apply.',
-      credit: 'Developed by Yad Abdullah', top: 'Back to top'
+      credit: 'Developed by Yad Abdalla', top: 'Back to top'
     }
   };
 

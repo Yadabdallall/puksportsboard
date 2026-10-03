@@ -6,12 +6,12 @@ window.I18N = window.I18N || {};
     nav: { depts: 'Fachrichtungen', colors: 'Helmfarben', safety: 'Sicherheit', software: 'Software', legends: 'Ingenieure', quiz: 'Fach-Quiz' },
     loader: 'Dein Helm wird vorbereitet…',
     heroKicker: 'INGENIEURWESEN · ENZYKLOPÄDIE',
-    heroTitle: ['Alle', 'Ingenieurfächer', 'an einem Ort'],
-    heroLead: 'Diese Website ist eine einfache, verlässliche Enzyklopädie. Sie beleuchtet die wichtigsten Ingenieurfächer, die Art ihrer Arbeit, ihre wichtigste Software und die Berufswege in jedem Fach. Unser Ziel ist, dass du sie verstehst und das richtige Fach für dich wählst.',
-    ctaDepts: 'Fachrichtungen entdecken', ctaQuiz: 'Welches Fach passt zu mir?',
+    heroTitle: ['Die Welt', 'des Ingenieurwesens', 'an einem Ort'],
+    heroLead: 'Ingenieurpedia ist für alle, die Technik lieben: Studierende, Ingenieure im Beruf, Lehrende und alle Neugierigen. Hier findest du die Ingenieurfächer, internationale Normen, Rechner für den Arbeitsalltag, die größten Projekte der Menschheit, die besten Universitäten und die größten Ingenieure der Welt und Kurdistans — einfach erklärt, an einem Ort.',
+    ctaDepts: 'Fachrichtungen entdecken', ctaQuiz: 'Ingenieur-Rechner',
     stageHint: 'Tippen, um den Helm aufzusetzen',
     helmetOf: 'Helm in {c}',
-    quote: { label: 'Zitat des Tages', text: 'Ich bin Bauingenieur… gemacht für die Baustelle.', by: 'Yad Abdullah', role: 'Bauingenieur' },
+    quote: { label: 'Zitat des Tages', text: 'Ich bin Bauingenieur… gemacht für die Baustelle.', by: 'Yad Abdalla', role: 'Bauingenieur' },
     stats: { depts: 'Ingenieurfächer', branches: 'Zweige & Vertiefungen', engineers: 'Brillante Ingenieure', projects: 'Weltbekannte Projekte', software: 'Wichtige Programme' },
     sec: {
       intro: { eyebrow: 'Über', title: 'Was ist|Ingenieurwesen?', lead: 'Ingenieurwesen heißt, Naturwissenschaft und Mathematik zu nutzen, um echte Probleme zu lösen: von Brücken, Gebäuden und Strom bis zu Handys, Medizin und Raketen. Jedes Fach ist eine eigene Welt — wir öffnen sie alle für dich.' },
@@ -53,10 +53,10 @@ window.I18N = window.I18N || {};
     sw: { maker: 'Hersteller', since: 'Erste Version', usedIn: 'Genutzt in diesen Fächern', who: 'Wer nutzt es?', works: 'Große Werke & Beispiele', about: 'Was ist dieses Programm?', site: 'Offizielle Website', wiki: 'Wikipedia', google: 'Bilder bei Google', close: 'Schließen' },
     drop: { wear: 'Setz den Helm in {c} auf', welcome: 'Willkommen — {d}' },
     footer: {
-      about: 'Eine einfache, verlässliche Enzyklopädie, die dir hilft, das Ingenieurwesen zu verstehen und das richtige Fach zu wählen.',
+      about: 'Eine einfache, verlässliche Website für alle, die Technik lieben: zum Lernen, Arbeiten, Rechnen und für Inspiration.',
       img: 'Bilder: Fotos von Ingenieuren und Projekten stammen aus Wikipedia und Wikimedia Commons, Fotos der Fächer von Pexels (kostenlos). Jede Karte hat außerdem einen Button „Bilder bei Google“.',
       helmet: 'Die Helmfarben der Fächer auf dieser Website dienen der Erkennung; auf einer echten Baustelle gelten die Regeln der Firma und des Landes.',
-      credit: 'Entwickelt von Yad Abdullah', top: 'Nach oben'
+      credit: 'Entwickelt von Yad Abdalla', top: 'Nach oben'
     }
   };
 

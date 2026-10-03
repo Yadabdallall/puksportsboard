@@ -8,7 +8,7 @@
   var SW_IDS = [];
   D.forEach(function (d) { d.sw.forEach(function (s) { if (SW_IDS.indexOf(s) < 0 && C.sw[s]) SW_IDS.push(s); }); });
 
-  var V = '4';                 /* bump to refresh cached data files */
+  var V = '5';                 /* bump to refresh cached data files */
   var ACCENT = '#FFB81C';
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var LANG_KEY = 'eng-lang';
@@ -18,6 +18,9 @@
   var TYPE_KEYS = ['Type I', 'Type II'];
   var CLASS_KEYS = ['Class G', 'Class E', 'Class C'];
   var SW_SHOW = 18;
+  var PAGES = ['tools', 'standards', 'projects', 'universities', 'styles'];
+  var RESEARCH_PDF = 'assets/docs/lightweight-concrete-research.pdf';
+  var TG_URL = 'https://t.me/Yad_abdalla';
   var DPR = Math.min(2, window.devicePixelRatio || 1);
 
   var lang = 'ku';
@@ -61,6 +64,12 @@
     for (var i = 0; i < p.length; i++) { if (o == null) return undefined; o = o[p[i]]; }
     return o;
   }
+  /* Escape text; in right-to-left text, an English phrase in brackets is isolated so the brackets stay in place */
+  function tx(s) {
+    s = esc(s);
+    return document.documentElement.dir === 'rtl' ? s.replace(/\(([A-Za-z][^()]*)\)/g, '<bdi dir="ltr">($1)</bdi>') : s;
+  }
+  function num(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function longWord(s) { return Math.max.apply(null, String(s).split(/[\s\-–—/]+/).map(function (w) { return w.length; })); }
 
   /* ───────────── i18n ───────────── */
@@ -75,6 +84,7 @@
   function dName(d) { return dt(d.id).n || d.en; }
   function cname(d) { return dt(d.id).cname || ''; }
   function helmetOf(d) { return fmt(ui('helmetOf'), { c: cname(d) }); }
+  function hm(path) { var v = get(L().home, path); return v != null ? v : get(K().home, path); }
 
   var loaded = {};
   function loadScript(src) {
@@ -88,13 +98,18 @@
     });
     return loaded[src];
   }
+  function loadFile(l, f) {
+    return loadScript('assets/data/' + l + '/' + f + '.js').then(function (ok) {
+      return ok || l === 'ku' ? ok : loadScript('assets/data/ku/' + f + '.js');
+    });
+  }
   function loadLang(l) {
-    var files = ['ui'].concat(D.map(function (d) { return d.id; }), ['sw']);
-    return Promise.all(files.map(function (f) {
-      return loadScript('assets/data/' + l + '/' + f + '.js').then(function (ok) {
-        return ok || l === 'ku' ? ok : loadScript('assets/data/ku/' + f + '.js');
-      });
-    }));
+    var files = ['ui', 'home'].concat(D.map(function (d) { return d.id; }), ['sw']);
+    return Promise.all(files.map(function (f) { return loadFile(l, f); }));
+  }
+  /* Extra pages (calculators, standards, …) load their code and texts only when opened */
+  function loadPage(name, l) {
+    return Promise.all([loadScript('assets/js/pages/' + name + '.js'), loadFile(l || lang, name)]);
   }
 
   /* ───────────── text motion (from the text-motion kit) ─────────────
@@ -253,7 +268,7 @@
     if (el.getAttribute('data-done')) return;
     el.setAttribute('data-done', '1');
     var to = +el.getAttribute('data-count'), suf = el.getAttribute('data-suffix') || '';
-    function out(v) { el.innerHTML = v + (suf ? '<em>' + suf + '</em>' : ''); }
+    function out(v) { el.innerHTML = num(v) + (suf ? '<em>' + suf + '</em>' : ''); }
     if (reduce) { out(to); return; }
     var t0 = performance.now(), dur = 1400;
     (function step(now) {
@@ -341,7 +356,7 @@
     function apply(img, url) {
       var fig = img.closest('.ph');
       if (!url) { if (fig) fig.classList.add('noimg'); img.remove(); return; }
-      img.onload = function () { img.classList.add('ok'); if (fig) fig.classList.add('loaded'); };
+      img.onload = function () { fitImg(img, url); };
       img.onerror = function () { if (fig) fig.classList.add('noimg'); img.remove(); };
       img.src = url;
     }
@@ -380,6 +395,34 @@
     }
     return { fill: fill };
   })();
+  /* After a photo loads: fade it in. A photo much taller than its frame (a statue, a tower)
+     is shown whole over a soft blurred copy instead of being cut; logos and seals sit on a plate. */
+  function fitImg(img, url) {
+    var fig = img.closest('.ph');
+    img.classList.add('ok');
+    if (!fig) return;
+    fig.classList.add('loaded');
+    url = url || img.currentSrc || img.src;
+    var r = img.naturalWidth / Math.max(1, img.naturalHeight), fr = fig.clientWidth / Math.max(1, fig.clientHeight);
+    if (/\.svg/i.test(url)) fig.classList.add('svgimg');
+    else if (fr > 0 && r < fr * 0.7) { fig.classList.add('tall'); fig.style.setProperty('--ph', 'url("' + url.replace(/"/g, '%22') + '")'); }
+  }
+  /* Photos stored with the site (assets/img) */
+  function limg(src, alt) {
+    return '<img class="limg" alt="' + esc(alt) + '" src="' + esc(src) + '" loading="lazy" decoding="async">';
+  }
+  function hydrateLocal(root) {
+    $$('img.limg:not([data-state])', root).forEach(function (img) {
+      img.setAttribute('data-state', '1');
+      if (img.complete && img.naturalWidth) fitImg(img);
+      else {
+        img.onload = function () { fitImg(img); };
+        img.onerror = function () { var f = img.closest('.ph'); if (f) f.classList.add('noimg'); img.remove(); };
+      }
+    });
+  }
+  /* An engineer or project: its own stored photo if there is one, otherwise Wikipedia */
+  function photo(o, q, alt) { return o.img ? limg(o.img, alt) : wimg(o.w, q, alt); }
   function wimg(wiki, q, alt) {
     return '<img class="wimg" alt="' + esc(alt) + '" data-wiki="' + esc(wiki) + '"' + (q ? ' data-q="' + esc(q) + '"' : '') + ' loading="lazy" decoding="async" referrerpolicy="no-referrer">';
   }
@@ -433,7 +476,7 @@
       img.src = 'https://cdn.simpleicons.org/' + img.getAttribute('data-si') + '/white';
     });
   }
-  function hydrate(root) { hydratePex(root); hydrateLogos(root); }
+  function hydrate(root) { hydratePex(root); hydrateLogos(root); hydrateLocal(root); }
 
   function setAccent(color) {
     var r = document.documentElement.style;
@@ -462,23 +505,27 @@
     var cur = C.langs.filter(function (l) { return l.id === lang; })[0];
     $('#topbar').innerHTML = '<div class="topbar-in">' +
       '<a class="brand" href="#/" aria-label="' + esc(ui('brand')) + '"><span class="brand-helmet">' + helmet(ACCENT) + '</span><b>' + esc(ui('brand')) + '</b></a>' +
-      '<nav class="nav" id="nav">' +
-      [['departments', 'depts'], ['safety', 'safety'], ['software', 'software'], ['legends', 'legends']].map(function (n) {
-        return '<a href="#' + n[0] + '">' + esc(ui('nav.' + n[1])) + '</a>';
-      }).join('') + '<a class="nav-cta" href="#quiz">' + esc(ui('nav.quiz')) + '</a></nav>' +
+      '<nav class="nav" id="nav"><a href="#departments" data-nav="home">' + esc(ui('nav.depts')) + '</a>' +
+      PAGES.map(function (p) {
+        return '<a href="#/' + p + '" data-nav="' + p + '">' + esc(hm('pages.' + p + '.nav')) + '</a>';
+      }).join('') + '</nav>' +
       '<div class="lang" id="lang"><button class="lang-btn" id="langBtn" aria-haspopup="true" aria-expanded="false" aria-label="' + esc(ui('lang')) + '">' + icon('globe') + '<b>' + cur.short + '</b></button>' +
       '<div class="lang-menu" role="menu">' + C.langs.map(function (l) {
         return '<button role="menuitem" data-lang="' + l.id + '" class="' + (l.id === lang ? 'on' : '') + '" lang="' + HTML_LANG[l.id] + '" dir="' + l.dir + '"><span>' + esc(l.label) + '</span><small>' + l.short + '</small></button>';
       }).join('') + '</div></div>' +
       '<button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="nav">' + icon('menu') + icon('close') + '</button></div>';
-    wasScrolled = null; onScroll();
+    wasScrolled = null; onScroll(); markNav();
+  }
+  function markNav() {
+    var on = view === 'page' ? curPage : view === 'dept' ? '' : 'home';
+    $$('#nav a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-nav') === on && on !== 'home'); });
   }
   function renderFooter() {
     var f = ui('footer') || {};
     $('#footer').innerHTML =
       '<div class="foot-in"><div class="foot-brand"><b>' + esc(ui('brand')) + '</b><p>' + esc(f.about) + '</p></div>' +
       '<div class="foot-note"><p>' + esc(f.img) + '</p><p>' + esc(f.helmet) + '</p></div></div>' +
-      '<div class="credit"><span class="dev">' + esc(f.credit) + '</span>' +
+      '<div class="credit"><span class="dev">' + esc(f.credit) + ' · <a href="' + TG_URL + '" target="_blank" rel="noopener" dir="ltr">' + icon('send') + '@Yad_abdalla</a></span>' +
       '<button class="to-top" id="toTop">' + icon('up') + esc(f.top) + '</button></div>';
   }
 
@@ -493,13 +540,10 @@
       '<h1 class="hero-title reveal words"><span class="ln">' + esc(title[0]) + '</span> <span class="ln acc">' + esc(title[1]) + '</span> <span class="ln">' + esc(title[2]) + '</span></h1>' +
       '<p class="hero-lead reveal lines">' + esc(ui('heroLead')) + '</p>' +
       '<div class="hero-cta reveal"><a class="btn primary" href="#departments">' + esc(ui('ctaDepts')) + icon('arrow', 'flip') + '</a>' +
-      '<a class="btn ghost" href="#quiz">' + esc(ui('ctaQuiz')) + '</a></div></section>';
+      '<a class="btn ghost" href="#/tools">' + icon('calc') + esc(ui('ctaQuiz')) + '</a></div></section>';
 
-    /* ticker: department names gliding by */
-    var tk = D.map(function (d) {
-      return '<a class="tk" href="#/dept/' + d.id + '" tabindex="-1" style="' + vars(d.color) + '"><i></i>' + esc(dName(d)) + '</a>';
-    }).join('');
-    h += '<div class="ticker" aria-hidden="true"><div class="ticker-track">' + tk + tk + '</div></div>';
+    h += renderHub();
+    h += renderKurds();
 
     /* intro + numbers */
     var brCount = 0, engCount = 0, projCount = 0;
@@ -557,12 +601,14 @@
     h += '<section class="sec" id="legends">' + secHead('legends') + '<div class="legs">' + D.map(function (d) {
       var e = d.eng[0], nm = isEn() ? e.en : ((dt(d.id).eng || [])[0] || {}).n || e.en;
       return '<a class="leg reveal" href="#/dept/' + d.id + '/eng-0" style="' + vars(d.color) + '">' +
-        '<span class="leg-ph ph">' + wimg(e.w, e.en + ' engineer', e.en) + '<span class="ph-fb">' + esc(initials(e.en)) + '</span></span>' +
+        '<span class="leg-ph ph">' + photo(e, e.en + ' engineer', e.en) + '<span class="ph-fb">' + esc(initials(e.en)) + '</span></span>' +
         '<b>' + esc(nm) + '</b><small><i></i>' + esc(dName(d)) + '</small></a>';
     }).join('') + '</div></section>';
 
     /* quiz */
     h += '<section class="sec" id="quiz">' + secHead('quiz') + '<div class="quiz reveal" id="quizBox" aria-live="polite"></div></section>';
+
+    h += renderAuthor();
 
     /* other fields */
     h += '<section class="sec" id="others">' + secHead('others') + '<div class="others">' + (part('others') || []).map(function (o) {
@@ -576,6 +622,83 @@
     hydrate(home);
     lazyFill($('#legends'));
     M.scan(home);
+  }
+
+  /* Explore: one card for every part of the site */
+  var HUB = [['#departments', 'helmet', 'depts'], ['#/tools', 'calc', 'tools'], ['#/standards', 'ruler', 'standards'], ['#/projects', 'cube', 'projects'],
+    ['#/universities', 'uni', 'universities'], ['#/styles', 'column', 'styles'], ['#kurds', 'award', 'kurds'], ['#author', 'send', 'author']];
+  function renderHub() {
+    var hb = hm('hub') || {};
+    return '<section class="sec hub-sec" id="explore"><header class="sec-head">' + label(hb.eyebrow) + h2(hb.title) + lead(hb.lead) + '</header>' +
+      '<div class="hub">' + HUB.map(function (x, i) {
+        var it = (hb.items || {})[x[2]] || ['', ''];
+        return '<a class="hub-card reveal" href="' + x[0] + '"><span class="hub-n">' + pad(i + 1) + '</span>' + icon(x[1], 'hub-ic') +
+          '<b>' + esc(it[0]) + '</b><span class="hub-d">' + esc(it[1]) + '</span>' + icon('arrow', 'flip hub-go') + '</a>';
+      }).join('') + '</div></section>';
+  }
+
+  /* The flag of Kurdistan: red, white and green with a golden sun of 21 rays */
+  function kurdFlag() {
+    var rays = '';
+    for (var i = 0; i < 21; i++) {
+      var a = i / 21 * Math.PI * 2, b = a + Math.PI / 21 * 0.55, c = a - Math.PI / 21 * 0.55;
+      rays += 'M' + (27 + 8.6 * Math.cos(a)).toFixed(2) + ' ' + (18 + 8.6 * Math.sin(a)).toFixed(2) +
+        'L' + (27 + 4.6 * Math.cos(b)).toFixed(2) + ' ' + (18 + 4.6 * Math.sin(b)).toFixed(2) +
+        'L' + (27 + 4.6 * Math.cos(c)).toFixed(2) + ' ' + (18 + 4.6 * Math.sin(c)).toFixed(2) + 'Z';
+    }
+    return '<svg class="k-flag" viewBox="0 0 54 36" aria-hidden="true"><rect width="54" height="12" fill="#ED2024"/><rect y="12" width="54" height="12" fill="#fff"/><rect y="24" width="54" height="12" fill="#278E43"/>' +
+      '<path fill="#FEBD11" d="' + rays + '"/><circle cx="27" cy="18" r="4.9" fill="#FEBD11"/></svg>';
+  }
+
+  /* Kurdish engineers among the world's top 2% scientists (Stanford University / Elsevier list) */
+  function renderKurds() {
+    var kt = hm('kurds') || {}, lb = kt.labels || {};
+    return '<section class="sec kurds" id="kurds">' + kurdFlag() +
+      '<header class="sec-head">' + label(kt.eyebrow) + h2(kt.title) + lead(kt.lead) + '</header>' +
+      '<div class="k-grid">' + C.kurds.map(function (k) {
+        var t = (kt.people || {})[k.id] || {};
+        var st = [[k.papers, lb.papers, ''], [k.cites, lb.cites, '+']];
+        if (k.books) st.push([k.books, lb.books, '']);
+        return '<article class="kcard reveal' + (k.feat ? ' feat' : '') + '" id="k-' + k.id + '">' +
+          '<figure class="k-ph ph">' + limg(k.img, k.en) + '<span class="ph-fb">' + esc(initials(k.en)) + '</span>' +
+          '<span class="k-badge">' + icon('award') + '<span><b>Top 2%</b><small>Stanford · Elsevier</small></span></span></figure>' +
+          '<div class="k-head"><p class="k-rank">' + esc(t.title) + '</p><h3>' + esc(t.n) + '</h3>' +
+          (isEn() ? '' : '<em class="k-en" dir="ltr">' + esc(k.en) + '</em>') +
+          '<p class="k-at">' + icon('uni') + '<span>' + esc(t.at) + '</span></p></div>' +
+          '<div class="k-more"><div class="k-stats">' + st.map(function (x) {
+            return '<div><b data-count="' + x[0] + '" data-suffix="' + x[2] + '">' + (M.on ? 0 : num(x[0]) + x[2]) + '</b><span>' + esc(x[1]) + '</span></div>';
+          }).join('') + '</div>' +
+          '<p class="k-top">' + icon('star') + '<span>' + esc(lb.top) + '</span>' + k.top.map(function (y) { return '<i dir="ltr">' + y + '</i>'; }).join('') + '</p>' +
+          '<h4>' + icon('cap') + esc(lb.edu) + '</h4><ol class="k-edu">' + (t.edu || []).map(function (e) {
+            return '<li><b dir="ltr">' + esc(e[0]) + '</b><span>' + tx(e[1]) + '<small>' + esc(e[2]) + '</small></span></li>';
+          }).join('') + '</ol>' +
+          '<h4>' + icon('sparkle') + esc(lb.hi) + '</h4><ul class="k-hi">' + (t.hi || []).map(function (x) {
+            return '<li>' + tx(x) + '</li>';
+          }).join('') + '</ul>' +
+          '<div class="links"><a href="https://scholar.google.com/citations?user=' + k.scholar + '" target="_blank" rel="noopener">' + icon('ext') + 'Google Scholar</a></div>' +
+          '</div></article>';
+      }).join('') + '</div><p class="note k-note reveal">' + esc(kt.note) + '</p></section>';
+  }
+
+  /* The developer: bachelor research (PDF) + Telegram channel for learning German */
+  var TG_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#fff"/><path fill="#26A5E4" d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>';
+  function renderAuthor() {
+    var a = hm('author') || {};
+    return '<section class="sec" id="author"><header class="sec-head">' + label(a.eyebrow) + h2(a.title) + lead(a.lead) + '</header>' +
+      '<div class="author">' +
+      '<article class="paper reveal"><a class="paper-cover" href="' + RESEARCH_PDF + '" target="_blank" rel="noopener" aria-label="' + esc(a.read) + '">' +
+      '<img src="assets/img/research-cover.jpg" alt="" loading="lazy" decoding="async"></a>' +
+      '<div class="paper-b"><span class="tag">' + icon('pdf') + '<span>' + esc(a.pdfMeta) + '</span></span>' +
+      '<h3>' + esc(a.paperTitle) + '</h3><em dir="ltr">Review of Some Aspects of Lightweight and Normal Weight Concrete</em>' +
+      '<p>' + esc(a.paperAbout) + '</p><ul class="paper-pts">' + (a.paperPts || []).map(function (x) { return '<li>' + icon('check') + '<span>' + esc(x) + '</span></li>'; }).join('') + '</ul>' +
+      '<p class="paper-meta">' + esc(a.paperMeta) + '</p>' +
+      '<div class="paper-cta"><a class="btn primary" href="' + RESEARCH_PDF + '" target="_blank" rel="noopener">' + icon('book') + esc(a.read) + '</a>' +
+      '<a class="btn ghost" href="' + RESEARCH_PDF + '" download>' + icon('download') + esc(a.download) + '</a></div></div></article>' +
+      '<article class="tg reveal"><span class="tg-logo">' + TG_SVG + '</span><p class="tg-k">Telegram</p><h3>' + esc(a.tgTitle) + '</h3><p>' + esc(a.tgText) + '</p>' +
+      '<ul class="paper-pts">' + (a.tgPts || []).map(function (x) { return '<li>' + icon('check') + '<span>' + esc(x) + '</span></li>'; }).join('') + '</ul>' +
+      '<a class="btn tg-btn" href="' + TG_URL + '" target="_blank" rel="noopener">' + icon('send') + esc(a.tgJoin) + '</a>' +
+      '<a class="tg-handle" href="' + TG_URL + '" target="_blank" rel="noopener" dir="ltr">t.me/Yad_abdalla</a></article>' +
+      '</div></section>';
   }
 
   function renderGrid(q) {
@@ -716,7 +839,7 @@
       '<aside class="fact reveal">' + icon('bulb') + '<div><b>' + esc(U.fact) + '</b><p>' + esc(t.fact) + '</p></div></aside></div>' +
       '<h3 class="sub reveal">' + icon('sparkle') + esc(U.nature) + '</h3><ul class="nature">' + (t.nature || []).map(function (n) {
         return '<li class="reveal">' + esc(n) + '</li>';
-      }).join('') + '</ul></section>';
+      }).join('') + '</ul>' + related(d) + '</section>';
 
     /* study */
     h += '<section class="sec d-sec" id="d-study">' + dHead(1, U.study, lead(fmt(U.studyLead, { n: d.years }))) +
@@ -781,7 +904,7 @@
       '<div class="engs">' + d.eng.map(function (e, i) {
         var te = (t.eng || [])[i] || {}, nm = isEn() ? e.en : (te.n || e.en);
         return '<article class="eng reveal" id="eng-' + i + '">' +
-          '<div class="eng-head"><figure class="eng-ph ph">' + wimg(e.w, e.en + ' engineer', e.en) + '<span class="ph-fb">' + esc(initials(e.en)) + '</span></figure>' +
+          '<div class="eng-head"><figure class="eng-ph ph">' + photo(e, e.en + ' engineer', e.en) + '<span class="ph-fb">' + esc(initials(e.en)) + '</span></figure>' +
           '<div class="eng-info"><h3>' + esc(nm) + '</h3>' + (isEn() ? '' : '<em>' + esc(e.en) + '</em>') +
           '<div class="eng-meta"><span>' + icon('calendar') + '<bdi dir="ltr">' + esc(e.life) + '</bdi></span>' + (te.from ? '<span>' + icon('pin') + esc(te.from) + '</span>' : '') + '</div>' +
           '<p>' + esc(te.bio) + '</p>' +
@@ -807,12 +930,24 @@
     return h;
   }
 
+  /* Links from a department to the pages that serve it */
+  var TOOLS_FOR = { civil: 'civil', arch: 'civil', water: 'civil', survey: 'conv', elec: 'elec', comm: 'elec', computer: 'elec', mech: 'mech', aero: 'mech', industrial: 'mech', petro: 'conv', chem: 'conv', biomed: 'conv', software: 'conv' };
+  function related(d) {
+    var r = [['#/standards/' + d.id, 'ruler', hm('related.standards')]];
+    if (TOOLS_FOR[d.id]) r.push(['#/tools/' + TOOLS_FOR[d.id], 'calc', hm('related.tools')]);
+    if (d.id === 'arch') r.push(['#/styles', 'column', hm('pages.styles.nav')]);
+    r.push(['#/projects', 'cube', hm('pages.projects.nav')], ['#/universities', 'uni', hm('related.unis')]);
+    return '<div class="related reveal"><p>' + esc(hm('related.title')) + '</p><div>' + r.map(function (x) {
+      return '<a href="' + x[0] + '">' + icon(x[1]) + '<span>' + esc(x[2]) + '</span></a>';
+    }).join('') + '</div></div>';
+  }
+
   var tabIO = null, curDept = null;
   function mountDept(d) {
-    var view = $('#dept');
-    view.innerHTML = renderDept(d);
-    view.style.cssText = vars(d.color);
-    hydrate(view);
+    var el = $('#dept');
+    el.innerHTML = renderDept(d);
+    el.style.cssText = vars(d.color);
+    hydrate(el);
     pexBg(d.cover, pexW(window.innerWidth), function (url) {
       var cov = $('#dCover'); if (!cov) return;
       cov.style.backgroundImage = 'url("' + url + '")';
@@ -834,7 +969,7 @@
           });
         });
       }, { rootMargin: '-45% 0px -50% 0px' });
-      $$('.d-sec', view).forEach(function (s) { tabIO.observe(s); });
+      $$('.d-sec', el).forEach(function (s) { tabIO.observe(s); });
     }
     document.title = dName(d) + ' — ' + ui('brand');
   }
@@ -862,25 +997,34 @@
     drop.onclick = function () { clearTimeout(tm); finish(); };
   }
 
-  /* ───────────── router ───────────── */
-  var homeScroll = 0, inDept = false;
+  /* ───────────── router: home, a department, or one of the extra pages ───────────── */
+  var homeScroll = 0, view = 'home', curPage = null, pageToken = 0;
   function scrollToEl(el, smooth) {
     if (!el) return;
-    var top = el.getBoundingClientRect().top + window.scrollY - (el.closest('.dept') ? 130 : 84);
+    var top = el.getBoundingClientRect().top + window.scrollY - (el.closest('.dept, .page') ? 130 : 84);
     window.scrollTo({ top: top, behavior: smooth && !reduce ? 'smooth' : 'auto' });
   }
-  function enter(view) { view.classList.remove('page-in'); void view.offsetWidth; view.classList.add('page-in'); }
+  function enter(el) { el.classList.remove('page-in'); void el.offsetWidth; el.classList.add('page-in'); }
+  function swapTo(name) {
+    $('#home').hidden = name !== 'home';
+    $('#dept').hidden = name !== 'dept';
+    $('#page').hidden = name !== 'page';
+    if (name !== 'dept') { $('#dept').innerHTML = ''; curDept = null; }
+    if (name !== 'page') { $('#page').innerHTML = ''; curPage = null; }
+    view = name;
+    markNav();
+  }
   function showDept(d, sub, instant) {
-    var home = $('#home'), view = $('#dept');
-    closeSw();
-    if (curDept === d && inDept && !instant) { if (sub) scrollToEl(document.getElementById(sub), true); return; }
-    if (!inDept) homeScroll = window.scrollY;
+    var el = $('#dept');
+    closeSw(); pageToken++;
+    if (curDept === d && view === 'dept' && !instant) { if (sub) scrollToEl(document.getElementById(sub), true); return; }
+    if (view === 'home') homeScroll = window.scrollY;
     function mount() {
-      mountDept(d); curDept = d;
-      home.hidden = true; view.hidden = false; inDept = true;
+      mountDept(d);
+      swapTo('dept'); curDept = d;
       window.scrollTo(0, 0);
-      enter(view);
-      M.scan(view);
+      enter(el);
+      M.scan(el);
       lazyFill($('#d-engineers'));
       setAccent(d.color);
       if (window.BG) BG.setScene(d.scene);
@@ -893,10 +1037,11 @@
     if (instant) mount(); else playDrop(d, mount);
   }
   function showHome(anchor) {
-    var home = $('#home'), view = $('#dept'), was = inDept;
-    closeSw();
-    if (inDept) {
-      view.hidden = true; view.innerHTML = ''; home.hidden = false; inDept = false; curDept = null;
+    var home = $('#home'), was = view !== 'home';
+    closeSw(); pageToken++;
+    document.body.classList.remove('switching');
+    if (was) {
+      swapTo('home');
       document.title = ui('brand');
       enter(home);
     }
@@ -906,11 +1051,62 @@
     if (el) requestAnimationFrame(function () { scrollToEl(el, !was); });
     else if (was) window.scrollTo(0, homeScroll);
   }
+
+  /* What a page module gets to build itself with */
+  function api(name) {
+    return {
+      C: C, D: D, byId: byId, lang: lang, isEn: isEn(), rtl: document.documentElement.dir === 'rtl', reduce: reduce,
+      t: function (path) { var v = get(L()[name], path); return v != null ? v : get(K()[name], path); },
+      ui: ui, hm: hm, esc: esc, fmt: fmt, num: num, pad: pad, icon: icon, h2: h2, lead: lead, label: label, vars: vars, rgb: rgb,
+      dName: dName, helmet: helmet, wimg: wimg, limg: limg, photo: photo, pexImg: pexImg, hydrate: hydrate, lazyFill: lazyFill,
+      fitImg: fitImg, tx: tx, M: M, scrollToEl: scrollToEl, loadScript: loadScript, wikiUrl: wikiUrl, googleUrl: googleUrl
+    };
+  }
+  function pageHead(name) {
+    var p = hm('pages.' + name) || {};
+    return '<section class="p-hero"><a class="back" href="#/">' + icon('back', 'flip') + esc(hm('back')) + '</a>' +
+      label(p.label) + '<h1 class="p-title reveal words">' + esc(p.title) + '</h1>' + lead(p.lead, 'p-lead') + '</section>';
+  }
+  function showPage(name, sub, keepY) {
+    closeSw();
+    if (view === 'page' && curPage === name && keepY == null) { pageSub(sub, true); return; }
+    if (view === 'home') homeScroll = window.scrollY;
+    var token = ++pageToken;
+    document.body.classList.add('switching');
+    loadPage(name).then(function () {
+      if (token !== pageToken) return;
+      document.body.classList.remove('switching');
+      var mod = (window.PAGE_MODS || {})[name];
+      if (!mod) { showHome(); return; }
+      var el = $('#page'), A = api(name);
+      swapTo('page'); curPage = name;
+      el.innerHTML = pageHead(name) + '<div class="p-body">' + mod.render(A, sub) + '</div>';
+      el.className = 'page p-' + name;
+      window.scrollTo(0, keepY || 0);
+      if (keepY == null) enter(el);
+      hydrate(el);
+      M.scan(el);
+      if (mod.mount) mod.mount(A, el, sub);
+      setAccent(ACCENT);
+      if (window.BG) BG.setScene(mod.scene || 'home');
+      document.title = (hm('pages.' + name + '.nav') || name) + ' — ' + ui('brand');
+      if (sub && keepY == null) setTimeout(function () { pageSub(sub, false); }, 140);
+    });
+  }
+  function pageSub(sub, smooth) {
+    var mod = (window.PAGE_MODS || {})[curPage], el = $('#page');
+    if (mod && mod.sub && mod.sub(api(curPage), el, sub) === true) return;
+    var t = sub ? document.getElementById(sub) || document.getElementById('s-' + sub) : null;
+    if (t) { scrollToEl(t, smooth); M.show(t); }
+    else if (!sub) window.scrollTo({ top: 0, behavior: smooth && !reduce ? 'smooth' : 'auto' });
+  }
   function route(instant) {
     var h = decodeURIComponent(location.hash || '');
     var m = h.match(/^#\/dept\/([\w-]+)(?:\/([\w-]+))?/);
     closeMenu();
     if (m && byId[m[1]]) return showDept(byId[m[1]], m[2], instant === true);
+    var pm = h.match(/^#\/([\w-]+)(?:\/([\w-]+))?/);
+    if (pm && PAGES.indexOf(pm[1]) > -1) return showPage(pm[1], pm[2]);
     var a = h.replace(/^#\/?/, '');
     showHome(a && document.getElementById(a) && !/^dept/.test(a) ? a : null);
   }
@@ -938,11 +1134,13 @@
     try { localStorage.setItem(LANG_KEY, l); } catch (e) {}
     closeMenu();
     document.body.classList.add('switching');
-    loadLang(l).then(function () {
+    var pg = view === 'page' ? curPage : null;
+    Promise.all([loadLang(l), pg ? loadPage(pg, l) : null]).then(function () {
       lang = l;
       var y = window.scrollY;
       renderAll();
-      if (inDept && curDept) { mountDept(curDept); M.scan($('#dept')); lazyFill($('#d-engineers')); }
+      if (view === 'dept' && curDept) { mountDept(curDept); M.scan($('#dept')); lazyFill($('#d-engineers')); }
+      else if (pg) { var hs = location.hash.match(/^#\/[\w-]+\/([\w-]+)/); showPage(pg, hs ? hs[1] : null, y); }
       else window.scrollTo(0, y);
       quiz.i = Math.min(quiz.i, C.quiz.length); renderQuiz();
       document.body.classList.remove('switching');
@@ -997,7 +1195,7 @@
     if (t.closest('.qz-reset')) { quiz.i = 0; quiz.s = {}; renderQuiz(); return; }
     /* same-page anchors on home: smooth scroll without breaking the router */
     var a2 = t.closest('a[href^="#"]');
-    if (a2 && !inDept) {
+    if (a2 && view === 'home') {
       var href = a2.getAttribute('href');
       if (href.length > 1 && href.charAt(1) !== '/' && document.getElementById(href.slice(1))) {
         e.preventDefault();
