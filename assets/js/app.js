@@ -8,7 +8,7 @@
   var SW_IDS = [];
   D.forEach(function (d) { d.sw.forEach(function (s) { if (SW_IDS.indexOf(s) < 0 && C.sw[s]) SW_IDS.push(s); }); });
 
-  var V = '3';                 /* bump to refresh cached data files */
+  var V = '4';                 /* bump to refresh cached data files */
   var ACCENT = '#FFB81C';
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var LANG_KEY = 'eng-lang';
@@ -104,7 +104,10 @@
   var M = (function () {
     var on = !reduce && 'IntersectionObserver' in window;
     if (on) document.documentElement.classList.add('js-reveal');
-    var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    var fontsReady = Promise.race([
+      document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve(),
+      new Promise(function (res) { setTimeout(res, 1500); })
+    ]);
     var RTL_CH = /[֐-ࣿיִ-ﻼ]/;
 
     /* Split into word spans. In right-to-left text, neighbouring Latin words stay
@@ -227,7 +230,23 @@
       }, 250);
     });
 
-    return { scan: scan, show: show, on: on };
+    /* Safety net: if the observer misses something, show it anyway */
+    function sweep() {
+      var vh = window.innerHeight;
+      $$('.reveal:not(.is-in)').forEach(function (el) {
+        if (el.offsetParent === null) return;
+        var r = el.getBoundingClientRect();
+        if (r.top < vh && r.bottom > 0) show(el);
+      });
+    }
+    if (on) {
+      var sweepT = null;
+      window.addEventListener('scroll', function () { clearTimeout(sweepT); sweepT = setTimeout(sweep, 400); }, { passive: true });
+      setInterval(sweep, 2500);
+    }
+    function off() { document.documentElement.classList.remove('js-reveal'); on = false; }
+
+    return { scan: scan, show: show, on: on, off: off };
   })();
 
   function countUp(el) {
@@ -1002,11 +1021,24 @@
     if (!C.langs.some(function (l) { return l.id === lang; })) lang = 'ku';
     loadLang(lang).then(function () {
       if (lang !== 'ku' && !I18N[lang]) lang = 'ku';
+      if (!I18N.ku || !I18N.ku.ui) throw new Error('data files did not load');
       renderAll();
-      window.addEventListener('hashchange', function () { route(); });
+      window.addEventListener('hashchange', function () { try { route(); } catch (e) { fail(e); } });
       route(true);
       document.body.classList.add('ready');
-    });
+    }).catch(fail);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  /* If anything goes wrong, show the content instead of an empty page */
+  function fail(err) {
+    if (window.console) console.error(err);
+    M.off();
+    var home = $('#home');
+    if (home && !home.innerHTML.trim()) {
+      home.hidden = false;
+      home.innerHTML = '<section class="sec boot-error"><h2 class="h2">ئەندازیارنامە</h2><p class="lead">ناوەڕۆکەکە بار نەبوو. تکایە پەڕەکە نوێ بکەرەوە.<br>The content could not load. Please refresh the page.</p></section>';
+    }
+  }
+  window.addEventListener('error', function () { M.off(); });
+  function boot() { try { init(); } catch (e) { fail(e); } }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

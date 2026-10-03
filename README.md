@@ -35,7 +35,7 @@ python3 -m http.server 8000
 - **Cloudflare Pages**: Workers & Pages → Create → Pages → Upload assets، و فۆڵدەرەکە (یان ZIP ەکە) ڕابکێشە.
 - **GitHub Pages**: Settings → Pages → Deploy from a branch، و فۆڵدەری `/ (root)` هەڵبژێرە.
 - زمان بە `?lang=ku|ar|en|de` لە بەستەرەکەدا دیاری دەکرێت.
-- فایلی `_headers` بە Cloudflare دەڵێت فۆنت و فایلەکان لە وێبگەڕدا هەڵبگرێت، بۆ ئەوەی جاری دووەم زۆر خێراتر بکرێتەوە. دوای گۆڕینی هەر فایلێکی `assets`، ژمارەی `v=3` لە `index.html` و `V` لە `app.js` زیاد بکە.
+- دوای گۆڕینی هەر فایلێکی `assets`، ژمارەی `v=4` لە `index.html` و `V` لە `app.js` زیاد بکە، بۆ ئەوەی وێبگەڕ وەشانی نوێ بهێنێت.
 
 ## پێکهاتەی فایلەکان
 
