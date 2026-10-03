@@ -1056,7 +1056,7 @@
   function api(name) {
     return {
       C: C, D: D, byId: byId, lang: lang, isEn: isEn(), rtl: document.documentElement.dir === 'rtl', reduce: reduce,
-      t: function (path) { var v = get(L()[name], path); return v != null ? v : get(K()[name], path); },
+      t: function (path) { if (!path) return L()[name] || K()[name] || {}; var v = get(L()[name], path); return v != null ? v : get(K()[name], path); },
       ui: ui, hm: hm, esc: esc, fmt: fmt, num: num, pad: pad, icon: icon, h2: h2, lead: lead, label: label, vars: vars, rgb: rgb,
       dName: dName, helmet: helmet, wimg: wimg, limg: limg, photo: photo, pexImg: pexImg, hydrate: hydrate, lazyFill: lazyFill,
       fitImg: fitImg, tx: tx, M: M, scrollToEl: scrollToEl, loadScript: loadScript, wikiUrl: wikiUrl, googleUrl: googleUrl
@@ -1217,9 +1217,11 @@
     try { saved = localStorage.getItem(LANG_KEY); } catch (e) {}
     lang = q || saved || 'ku';
     if (!C.langs.some(function (l) { return l.id === lang; })) lang = 'ku';
+    function has(l) { return !!(I18N[l] && I18N[l].ui); }
     loadLang(lang).then(function () {
-      if (lang !== 'ku' && !I18N[lang]) lang = 'ku';
-      if (!I18N.ku || !I18N.ku.ui) throw new Error('data files did not load');
+      if (lang !== 'ku' && !has(lang)) { lang = 'ku'; return loadLang('ku'); }
+    }).then(function () {
+      if (!has(lang)) throw new Error('data files did not load');
       renderAll();
       window.addEventListener('hashchange', function () { try { route(); } catch (e) { fail(e); } });
       route(true);
